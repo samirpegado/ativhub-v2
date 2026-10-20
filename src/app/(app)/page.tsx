@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { WorkOrdersView } from "@/components/work-orders/work-orders-view";
 import { listChecklists } from "@/lib/checklists/queries";
 import { listAssets } from "@/lib/assets/queries";
@@ -7,6 +8,10 @@ import {
   listWorkOrderCategories,
   listWorkOrders,
 } from "@/lib/work-orders/queries";
+
+export const metadata: Metadata = {
+  title: "Ordens de serviço",
+};
 
 export default async function HomePage() {
   const [orders, locations, assets, peopleResult, teams, categories, checklists] =

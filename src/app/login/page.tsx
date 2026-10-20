@@ -5,7 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
-  title: "Entrar",
+  title: {
+    absolute: "AtivHub - Sistema de Gestão de Ativos de Manutenção",
+  },
   robots: { index: false, follow: false },
 };
 
