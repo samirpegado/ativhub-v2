@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "environment": {
+    "example_file": ".env.example"
+  },
+  "product": {
+    "name": "AtivHub",
+    "type": "CMMS SaaS multi-tenant"
+  },
+  "reference_frontend": {
+    "path": "frontend-cmms",
+    "role": "visual-functional-model",
+    "not_part_of_app": true
+  },
+  "auth": {
+    "provider": "supabase-auth",
+    "tenant_claim": "app_metadata.tenant_id"
+  },
+  "location_address": {
+    "split_fields": [
+      "postal_code",
+      "street",
+      "number",
+      "complement",
+      "neighborhood",
+      "city",
+      "state"
+    ],
+    "formatted_field": "address",
+    "cep_lookup": "viacep"
+  },
+  "flutter": {
+    "state_management": "not-applicable"
+  }
+}

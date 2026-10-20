@@ -1,0 +1,5 @@
+# Local tooling and scratch files that must not affect generated inventory.
+.playwright-mcp/
+teste.yaml
+# Front de referencia (modelo visual Atlas CMMS) — nao faz parte do app.
+frontend-cmms/
