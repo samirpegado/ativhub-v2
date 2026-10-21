@@ -151,3 +151,18 @@
     @apply font-sans;
   }
 }
+
+.wo-calendar {
+  font-size: 0.875rem;
+}
+
+.dark .wo-calendar {
+  --fc-classic-background: var(--card);
+  --fc-classic-foreground: var(--foreground);
+  --fc-classic-faint-foreground: var(--muted-foreground);
+  --fc-classic-muted-foreground: var(--muted-foreground);
+  --fc-classic-faint: var(--muted);
+  --fc-classic-muted: var(--muted);
+  --fc-classic-border: var(--border);
+  --fc-classic-strong-border: var(--border);
+}

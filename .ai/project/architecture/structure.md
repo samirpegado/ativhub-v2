@@ -52,8 +52,10 @@ Describe the real structural organization of the repository and the architectura
   `create-tenant-user`, que cria o usuário no Auth e a membership no tenant.
   Papéis de cadastro: Administrador, Técnico, Solicitante e Somente leitura.
   O texto de cada papel vem de `role.description`.
-- `/` lista ordens de serviço e abre o cadastro em modal. Calendário fica
-  fora desta entrega. Concluir grava `completed_by`/`completed_on`; a primeira
+- `/` lista ordens de serviço e abre o cadastro em modal. A aba Calendário
+  usa FullCalendar: o evento fica no início estimado, ou no vencimento quando
+  não há início. O clique abre o detalhe; um dia vazio abre uma ordem nova
+  com esse vencimento. Concluir grava `completed_by`/`completed_on`; a primeira
   saída de `OPEN` (exceto para `ON_HOLD`) grava `first_time_to_react`.
   As tarefas pertencem à ordem. Uma lista nomeada (`checklist`) guarda uma
   cópia reutilizável: ao escolhê-la, as tarefas entram na ordem sem vínculo

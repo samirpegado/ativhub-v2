@@ -20,6 +20,9 @@ Document the real stack currently used by the repository.
 - Supabase (Postgres + Auth + Storage + RLS), cliente `@supabase/ssr`.
 - Pacote `cn` é o class-name merger oficial do shadcn v4 (`clsx` + `tailwind-merge`).
 - `qrcode` gera o QR do ativo no browser; o conteúdo atual é o `id`.
+- O calendário de ordens usa FullCalendar 7 (`@fullcalendar/react`, com
+  daygrid, timegrid, list, interaction e o tema classic) e `temporal-polyfill`.
+  O locale é `pt-br`.
 - Sem Flutter neste repositório.
 - Deploy no Coolify pelo `Dockerfile` (`output: "standalone"`). As variáveis
   `NEXT_PUBLIC_*` precisam estar disponíveis no build.

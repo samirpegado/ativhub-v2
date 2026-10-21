@@ -1,11 +1,24 @@
 "use client";
 
 import { useActionState, useCallback, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { ClipboardCheck, Pencil, Plus, Search, Signal, Trash2 } from "lucide-react";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { WorkOrderDrawer } from "@/components/work-orders/work-order-drawer";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
+
+const WorkOrderCalendar = dynamic(
+  () => import("./work-order-calendar").then((mod) => mod.WorkOrderCalendar),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="px-4 py-16 text-center text-sm text-muted-foreground">
+        Carregando calendário…
+      </div>
+    ),
+  },
+);
 import type { ChecklistRecord } from "@/lib/checklists/queries";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -92,6 +105,8 @@ export function WorkOrdersView({
   tenantId: string;
 }) {
   const [editing, setEditing] = useState<WorkOrderRecord | null | "new">(null);
+  const [initialDue, setInitialDue] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "calendar">("list");
   const [openId, setOpenId] = useState<string | null>(null);
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -103,7 +118,15 @@ export function WorkOrdersView({
     deleteWorkOrder,
     undefined,
   );
-  const close = useCallback(() => setEditing(null), []);
+  const close = useCallback(() => {
+    setEditing(null);
+    setInitialDue(null);
+  }, []);
+
+  function openNew(due?: string) {
+    setInitialDue(due ?? null);
+    setEditing("new");
+  }
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -139,22 +162,36 @@ export function WorkOrdersView({
     <TooltipProvider>
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1 border-b border-primary">
-          <span className="px-3 py-2 text-sm font-semibold text-primary">Lista</span>
-          <span
-            className="cursor-not-allowed px-3 py-2 text-sm text-muted-foreground opacity-50"
-            title="Em breve"
-          >
-            Calendário
-          </span>
+        <div className="flex items-center gap-1">
+          {(
+            [
+              ["list", "Lista"],
+              ["calendar", "Calendário"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setView(id)}
+              className={cn(
+                "border-b-2 px-3 py-2 text-sm",
+                view === id
+                  ? "border-primary font-semibold text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-        <Button className="h-9 font-semibold" onClick={() => setEditing("new")}>
+        <Button className="h-9 font-semibold" onClick={() => openNew()}>
           <Plus />
           Ordem de serviço
         </Button>
       </div>
 
       <Card className="items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]">
+        {view === "list" ? (
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -205,6 +242,7 @@ export function WorkOrdersView({
             />
           </div>
         </div>
+        ) : null}
         {state?.error ? (
           <div className="px-4 pb-3">
             <Alert variant="destructive">
@@ -212,8 +250,18 @@ export function WorkOrdersView({
             </Alert>
           </div>
         ) : null}
-        <Separator />
-        {rows.length === 0 ? (
+        {view === "list" ? <Separator /> : null}
+        {view === "calendar" ? (
+          <WorkOrderCalendar
+            orders={orders}
+            onOpen={setOpenId}
+            onCreate={(date, allDay) => {
+              const next = new Date(date);
+              if (allDay) next.setHours(9, 0, 0, 0);
+              openNew(next.toISOString());
+            }}
+          />
+        ) : rows.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
             <p className="max-w-md text-sm font-medium text-foreground">
               {orders.length === 0
@@ -344,8 +392,9 @@ export function WorkOrdersView({
       >
         {editing ? (
           <WorkOrderForm
-            key={editing === "new" ? "new" : editing.id}
+            key={editing === "new" ? `new-${initialDue ?? ""}` : editing.id}
             order={editing === "new" ? undefined : editing}
+            initialDueDate={editing === "new" ? initialDue : null}
             locations={locations}
             assets={assets}
             people={people}

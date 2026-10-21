@@ -51,10 +51,12 @@ export function WorkOrderForm({
   teams,
   categories,
   checklists,
+  initialDueDate,
   onCancel,
   onSuccess,
 }: {
   order?: WorkOrderRecord;
+  initialDueDate?: string | null;
   locations: LocationOption[];
   assets: AssetOption[];
   people: PersonRecord[];
@@ -144,7 +146,7 @@ export function WorkOrderForm({
             id="due_date"
             name="due_date"
             type="datetime-local"
-            defaultValue={toDatetimeLocal(order?.dueDate ?? null)}
+            defaultValue={toDatetimeLocal(order?.dueDate ?? initialDueDate ?? null)}
             className="h-9"
           />
         </Field>
