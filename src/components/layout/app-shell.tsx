@@ -10,7 +10,6 @@ import {
   MapPin,
   Menu,
   Package,
-  Power,
   Settings,
   Tags,
   Timer,
@@ -19,7 +18,6 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { logout } from "@/app/(app)/actions";
 import { Logo } from "@/components/brand/logo";
 import { UserMenu } from "@/components/layout/user-menu";
 import { navItems } from "@/components/layout/nav";
@@ -121,20 +119,6 @@ function SidebarChrome({
       </div>
       <div className="mx-4 h-px bg-white/10" />
       <SidebarNav onNavigate={onNavigate} />
-      <div className="h-px bg-white/10" />
-      <div className="flex h-[61px] items-center justify-center gap-2">
-        <form action={logout}>
-          <Button
-            type="submit"
-            variant="ghost"
-            size="icon"
-            className="size-9 rounded-lg bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-            aria-label="Sair"
-          >
-            <Power className="size-4" />
-          </Button>
-        </form>
-      </div>
     </div>
   );
 }
