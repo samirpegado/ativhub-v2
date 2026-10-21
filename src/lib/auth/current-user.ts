@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signStoragePath } from "@/lib/storage/signed-url";
@@ -16,15 +17,15 @@ export type AppUser = {
   initials: string;
 };
 
-export async function getSessionUser() {
+export const getSessionUser = cache(async function getSessionUser() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return { supabase, user };
-}
+});
 
-export async function requireUser(): Promise<AppUser> {
+export const requireUser = cache(async function requireUser(): Promise<AppUser> {
   const { supabase, user } = await getSessionUser();
   if (!user) {
     redirect("/login");
@@ -80,9 +81,9 @@ export async function requireUser(): Promise<AppUser> {
     roleName,
     initials,
   };
-}
+});
 
-export async function requireTenant() {
+export const requireTenant = cache(async function requireTenant() {
   const { supabase, user } = await getSessionUser();
   if (!user) {
     redirect("/login");
@@ -94,4 +95,4 @@ export async function requireTenant() {
   }
 
   return { supabase, user, tenantId: appUser.tenantId, appUser };
-}
+});

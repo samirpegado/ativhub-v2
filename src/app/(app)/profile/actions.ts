@@ -155,6 +155,11 @@ export async function setProfilePhoto(path: string): Promise<MutationState> {
     return { error: "Não foi possível salvar a foto." };
   }
 
+  const stale = [...AVATAR_EXTENSIONS]
+    .filter((item) => item !== extension)
+    .map((item) => `${prefix}${item}`);
+  await supabase.storage.from("attachments").remove(stale);
+
   refreshProfile();
   return { success: true };
 }

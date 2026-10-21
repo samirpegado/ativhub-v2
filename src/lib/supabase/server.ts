@@ -1,12 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { Database } from "./database.types";
 
 /**
  * Cliente Supabase para Server Components, Server Actions e Route Handlers.
  * Lê/grava a sessão via cookies do request (padrão @supabase/ssr).
  */
-export async function createClient() {
+export const createClient = cache(async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(
@@ -30,4 +31,4 @@ export async function createClient() {
       },
     },
   );
-}
+});

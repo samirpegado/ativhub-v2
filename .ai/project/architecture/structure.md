@@ -47,12 +47,19 @@ Describe the real structural organization of the repository and the architectura
 - Tenant ativo em `auth.jwt().app_metadata.tenant_id`, lido por
   `current_tenant_id()`.
 - `/profile` é a conta do usuário: foto, atividade de OT e dados pessoais.
+  A foto é reduzida no navegador para no máximo 256×256 em JPEG (qualidade 0,72) antes do Storage.
   Cargo (`job_title`) só muda com papel ADMIN.
 - `/people` lista pessoas e equipes. Nova pessoa chama a edge function
   `create-tenant-user`, que cria o usuário no Auth e a membership no tenant.
   Papéis de cadastro: Administrador, Técnico, Solicitante e Somente leitura.
   O texto de cada papel vem de `role.description`.
-- `/` lista ordens de serviço e abre o cadastro em modal. A aba Calendário
+- `/` lista ordens de serviço e abre o cadastro em modal. A listagem e os
+  dados do formulário vêm da função `work_orders_screen(busca, status, prioridade, limit, offset)`,
+  com no máximo 20 ordens por página e RLS do tenant. O calendário pede a mesma
+  função com todas as ordens, sem esses filtros. O clique na ordem chama
+  `work_order_detail()` para o painel. As outras tabelas (localizações, ativos,
+  pessoas, equipes e listas de verificação) também paginam 20 itens.
+  A aba Calendário
   usa FullCalendar: o evento fica no início estimado, ou no vencimento quando
   não há início. O clique abre o detalhe; um dia vazio abre uma ordem nova
   com esse vencimento. Concluir grava `completed_by`/`completed_on`; a primeira

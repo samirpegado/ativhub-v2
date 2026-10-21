@@ -71,6 +71,7 @@ function todayInput() {
 }
 
 export function WorkOrderDrawer({
+  orderId,
   order,
   categories,
   tenantId,
@@ -79,6 +80,7 @@ export function WorkOrderDrawer({
   onEdit,
   onAnswer,
 }: {
+  orderId: string | null;
   order: WorkOrderRecord | null;
   categories: CategoryOption[];
   tenantId: string;
@@ -90,6 +92,8 @@ export function WorkOrderDrawer({
   const router = useRouter();
   const [tab, setTab] = useState<"details" | "updates">("details");
   const [activity, setActivity] = useState<WorkOrderActivity>(EMPTY_ACTIVITY);
+  const [loaded, setLoaded] = useState<WorkOrderRecord | null>(null);
+  const [detailReady, setDetailReady] = useState(false);
   const [status, setStatus] = useState(order?.status ?? "OPEN");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -100,27 +104,36 @@ export function WorkOrderDrawer({
   const [note, setNote] = useState("");
 
   useEffect(() => {
-    if (!order || !open) return;
+    if (!orderId || !open) return;
     setTab("details");
     setError(null);
     setNote("");
+    setLoaded(null);
+    setActivity(EMPTY_ACTIVITY);
+    setDetailReady(false);
     let cancelled = false;
-    loadWorkOrderActivity(order.id).then((result) => {
+    loadWorkOrderActivity(orderId).then((result) => {
       if (cancelled) return;
       if ("error" in result) {
         setError(result.error);
+        setDetailReady(true);
         return;
       }
       setActivity(result.activity);
+      if (result.order) {
+        setLoaded(result.order);
+        setStatus(result.order.status);
+      }
+      setDetailReady(true);
     });
     return () => {
       cancelled = true;
     };
-  }, [open, order?.id]);
+  }, [open, orderId]);
 
   useEffect(() => {
-    if (order) setStatus(order.status);
-  }, [order]);
+    if (order && order.id === orderId) setStatus(order.status);
+  }, [order, orderId]);
 
   useEffect(() => {
     if (!activity.timer?.startedAt) return;
@@ -128,10 +141,35 @@ export function WorkOrderDrawer({
     return () => window.clearInterval(timer);
   }, [activity.timer?.startedAt]);
 
-  if (!order) return null;
+  if (!open || !orderId) return null;
 
+  const current = detailReady && loaded?.id === orderId ? loaded : null;
+
+  if (!current) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="right"
+          className="w-full gap-0 overflow-hidden p-0 data-[side=right]:sm:max-w-xl"
+        >
+          <SheetHeader className="border-b pr-12">
+            <SheetTitle>Ordem de serviço</SheetTitle>
+            <SheetDescription>Carregando detalhes.</SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-1 items-center justify-center py-16">
+            {error ? (
+              <p className="px-6 text-center text-sm text-destructive">{error}</p>
+            ) : (
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+  const record = current;
   const categoryName =
-    categories.find((category) => category.id === order.categoryId)?.name ?? null;
+    categories.find((category) => category.id === record.categoryId)?.name ?? null;
   const running = Boolean(activity.timer?.startedAt);
   const timerLabel = formatDuration(liveDuration(activity.timer, now));
 
@@ -147,10 +185,10 @@ export function WorkOrderDrawer({
   async function changeStatus(next: string) {
     setStatus(next);
     setBusy(true);
-    const result = await setWorkOrderStatus(order!.id, next);
+    const result = await setWorkOrderStatus(record.id, next);
     setBusy(false);
     if ("error" in result) {
-      setStatus(order!.status);
+      setStatus(record.status);
       setError(result.error);
       return;
     }
@@ -160,7 +198,7 @@ export function WorkOrderDrawer({
 
   async function toggleTimer() {
     setBusy(true);
-    const result = await toggleWorkOrderTimer(order!.id);
+    const result = await toggleWorkOrderTimer(record.id);
     setBusy(false);
     apply(result);
   }
@@ -168,7 +206,7 @@ export function WorkOrderDrawer({
   async function addTime() {
     setBusy(true);
     const result = await addWorkOrderLabor(
-      order!.id,
+      record.id,
       workedOn,
       Number(hours),
       Number(minutes),
@@ -183,14 +221,14 @@ export function WorkOrderDrawer({
 
   async function addNote() {
     setBusy(true);
-    const result = await addWorkOrderUpdate(order!.id, note);
+    const result = await addWorkOrderUpdate(record.id, note);
     setBusy(false);
     if (!("error" in result)) setNote("");
     apply(result);
   }
 
   async function onFile(file: File | null) {
-    if (!file || !order) return;
+    if (!file) return;
     const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
     const allowed = ["pdf", "png", "jpg", "jpeg", "webp", "txt", "doc", "docx", "xls", "xlsx"];
     if (!allowed.includes(extension)) {
@@ -201,7 +239,7 @@ export function WorkOrderDrawer({
       setError("O arquivo deve ter no máximo 10 MB.");
       return;
     }
-    const path = `${tenantId}/work-orders/${order.id}/${crypto.randomUUID()}.${extension}`;
+    const path = `${tenantId}/work-orders/${record.id}/${crypto.randomUUID()}.${extension}`;
     setBusy(true);
     const supabase = createClient();
     const { error: uploadError } = await supabase.storage
@@ -212,7 +250,7 @@ export function WorkOrderDrawer({
       setError("Não foi possível enviar o arquivo.");
       return;
     }
-    const result = await registerWorkOrderFile(order.id, path, file.name);
+    const result = await registerWorkOrderFile(record.id, path, file.name);
     setBusy(false);
     if ("error" in result) {
       await supabase.storage.from("attachments").remove([path]);
@@ -228,12 +266,12 @@ export function WorkOrderDrawer({
       >
         <SheetHeader className="border-b pr-12">
           <SheetDescription>
-            {order.customId ?? "Ordem de serviço"}
+            {record.customId ?? "Ordem de serviço"}
             {categoryName ? ` · ${categoryName}` : ""}
           </SheetDescription>
-          <SheetTitle className="text-xl font-bold">{order.title}</SheetTitle>
-          {order.description ? (
-            <p className="text-sm text-muted-foreground">{order.description}</p>
+          <SheetTitle className="text-xl font-bold">{record.title}</SheetTitle>
+          {record.description ? (
+            <p className="text-sm text-muted-foreground">{record.description}</p>
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <NativeSelect
@@ -262,12 +300,12 @@ export function WorkOrderDrawer({
               type="button"
               variant="outline"
               className="h-9"
-              onClick={() => printWorkOrderReport(order, activity, categoryName)}
+              onClick={() => printWorkOrderReport(record, activity, categoryName)}
             >
               <FileText />
               Relatório PDF
             </Button>
-            <Button type="button" variant="ghost" className="h-9" onClick={() => onEdit(order)}>
+            <Button type="button" variant="ghost" className="h-9" onClick={() => onEdit(record)}>
               Editar
             </Button>
           </div>
@@ -287,14 +325,14 @@ export function WorkOrderDrawer({
           {tab === "details" ? (
             <div className="space-y-6">
               <dl className="grid grid-cols-2 gap-3 text-sm">
-                <Detail label="Prioridade" value={workOrderPriorityLabel(order.priority)} />
-                <Detail label="Vencimento" value={formatWhen(order.dueDate)} />
-                <Detail label="Localização" value={order.locationName ?? "—"} />
-                <Detail label="Ativo" value={order.assetName ?? "—"} />
-                <Detail label="Trabalhador" value={order.primaryUserName ?? "—"} />
+                <Detail label="Prioridade" value={workOrderPriorityLabel(record.priority)} />
+                <Detail label="Vencimento" value={formatWhen(record.dueDate)} />
+                <Detail label="Localização" value={record.locationName ?? "—"} />
+                <Detail label="Ativo" value={record.assetName ?? "—"} />
+                <Detail label="Trabalhador" value={record.primaryUserName ?? "—"} />
                 <Detail
                   label="Responsáveis"
-                  value={order.assignees.map((person) => person.name).join(", ") || "—"}
+                  value={record.assignees.map((person) => person.name).join(", ") || "—"}
                 />
               </dl>
 
@@ -305,17 +343,17 @@ export function WorkOrderDrawer({
                     type="button"
                     variant="outline"
                     className="h-9"
-                    onClick={() => onAnswer(order)}
+                    onClick={() => onAnswer(record)}
                   >
                     <ClipboardCheck />
                     Responder tarefas
                   </Button>
                 </div>
-                {order.tasks.filter((task) => task.value).length === 0 ? (
+                {record.tasks.filter((task) => task.value).length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhuma tarefa respondida.</p>
                 ) : (
                   <ul className="space-y-1 text-sm">
-                    {order.tasks
+                    {record.tasks
                       .filter((task) => task.value)
                       .map((task) => (
                         <li key={task.id ?? task.label} className="flex justify-between gap-3">
@@ -343,7 +381,7 @@ export function WorkOrderDrawer({
                           type="button"
                           className="text-destructive"
                           aria-label="Remover tempo"
-                          onClick={() => deleteWorkOrderLabor(order.id, labor.id).then(apply)}
+                          onClick={() => deleteWorkOrderLabor(record.id, labor.id).then(apply)}
                         >
                           <Trash2 className="size-4" />
                         </button>
@@ -408,7 +446,7 @@ export function WorkOrderDrawer({
                           type="button"
                           className="text-destructive"
                           aria-label={`Remover ${file.name}`}
-                          onClick={() => deleteWorkOrderFile(order.id, file.id).then(apply)}
+                          onClick={() => deleteWorkOrderFile(record.id, file.id).then(apply)}
                         >
                           <Trash2 className="size-4" />
                         </button>
@@ -449,7 +487,7 @@ export function WorkOrderDrawer({
                           type="button"
                           className="text-muted-foreground hover:text-destructive"
                           aria-label="Excluir atualização"
-                          onClick={() => deleteWorkOrderUpdate(order.id, update.id).then(apply)}
+                          onClick={() => deleteWorkOrderUpdate(record.id, update.id).then(apply)}
                         >
                           <X className="size-4" />
                         </button>

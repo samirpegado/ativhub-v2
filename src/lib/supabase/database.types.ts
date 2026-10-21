@@ -1556,6 +1556,18 @@ export type Database = {
         Returns: string
       }
       current_tenant_id: { Args: never; Returns: string }
+      work_orders_screen: {
+        Args: {
+          p_include_calendar?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_priorities?: string[]
+          p_search?: string
+          p_statuses?: string[]
+        }
+        Returns: Json
+      }
+      work_order_detail: { Args: { p_work_order_id: string }; Returns: Json }
       next_custom_id: {
         Args: { p_entity: string; p_prefix: string; p_tenant_id: string }
         Returns: string

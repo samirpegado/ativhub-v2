@@ -26,3 +26,5 @@ Document the real stack currently used by the repository.
 - Sem Flutter neste repositório.
 - Deploy no Coolify pelo `Dockerfile` (`output: "standalone"`). As variáveis
   `NEXT_PUBLIC_*` precisam estar disponíveis no build.
+- `cacheComponents` permanece desligado. A sessão do Supabase e as consultas
+  da mesma request passam por `cache()` do React, para não repetir `getUser`.

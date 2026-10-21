@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useCallback, useMemo, useState } from "react";
+import { useActionState, useCallback, useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { ClipboardCheck, Pencil, Plus, Search, Signal, Trash2 } from "lucide-react";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { TablePagination } from "@/components/lists/table-pagination";
 import { WorkOrderDrawer } from "@/components/work-orders/work-order-drawer";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
@@ -38,11 +40,14 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { deleteWorkOrder } from "@/app/(app)/work-orders/actions";
+import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import type { LocationOption } from "@/lib/locations/queries";
 import type { MutationState } from "@/lib/forms/state";
 import type { PersonRecord, TeamRecord } from "@/lib/people/queries";
+import { workOrderListHref, type WorkOrderListQuery } from "@/lib/work-orders/list-params";
 import type {
   CategoryOption,
+  WorkOrderCalendarItem,
   WorkOrderPerson,
   WorkOrderRecord,
 } from "@/lib/work-orders/queries";
@@ -60,8 +65,6 @@ type AssetOption = {
   custom_id: string | null;
   location_id: string | null;
 };
-
-const OPEN_STATUSES = ["OPEN", "IN_PROGRESS", "ON_HOLD"];
 
 function formatWhen(value: string | null) {
   if (!value) return "—";
@@ -86,7 +89,11 @@ function priorityClass(priority: string) {
 }
 
 export function WorkOrdersView({
+  query,
   orders,
+  total,
+  totalAll,
+  calendar,
   locations,
   assets,
   people,
@@ -95,7 +102,11 @@ export function WorkOrdersView({
   checklists,
   tenantId,
 }: {
+  query: WorkOrderListQuery;
   orders: WorkOrderRecord[];
+  total: number;
+  totalAll: number;
+  calendar: WorkOrderCalendarItem[];
   locations: LocationOption[];
   assets: AssetOption[];
   people: PersonRecord[];
@@ -104,58 +115,64 @@ export function WorkOrdersView({
   checklists: ChecklistRecord[];
   tenantId: string;
 }) {
+  const router = useRouter();
+  const [navigating, startNavigation] = useTransition();
   const [editing, setEditing] = useState<WorkOrderRecord | null | "new">(null);
   const [initialDue, setInitialDue] = useState<string | null>(null);
-  const [view, setView] = useState<"list" | "calendar">("list");
   const [openId, setOpenId] = useState<string | null>(null);
-  const [answeringId, setAnsweringId] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [statuses, setStatuses] = useState<string[]>(OPEN_STATUSES);
-  const [priorities, setPriorities] = useState<string[]>(
-    WORK_ORDER_PRIORITIES.map((item) => item.value),
-  );
+  const [answering, setAnswering] = useState<WorkOrderRecord | null>(null);
+  const [search, setSearch] = useState(query.search);
   const [state, formAction, pending] = useActionState<MutationState, FormData>(
     deleteWorkOrder,
     undefined,
   );
+  const view = query.calendar ? "calendar" : "list";
   const close = useCallback(() => {
     setEditing(null);
     setInitialDue(null);
   }, []);
+
+  useEffect(() => {
+    setSearch(query.search);
+  }, [query.search]);
+
+  useEffect(() => {
+    const trimmed = search.trim();
+    if (trimmed === query.search) return;
+    const handle = window.setTimeout(() => {
+      startNavigation(() => {
+        router.replace(
+          workOrderListHref({ ...query, search: trimmed, page: 1 }),
+          { scroll: false },
+        );
+      });
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [query, router, search]);
 
   function openNew(due?: string) {
     setInitialDue(due ?? null);
     setEditing("new");
   }
 
-  const rows = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return orders.filter((order) => {
-      if (!statuses.includes(order.status)) return false;
-      if (!priorities.includes(order.priority)) return false;
-      if (!needle) return true;
-      return [
-        order.customId,
-        order.title,
-        order.description,
-        order.primaryUserName,
-        ...order.assignees.map((person) => person.name),
-        order.locationName,
-        order.assetName,
-        workOrderStatusLabel(order.status),
-        workOrderPriorityLabel(order.priority),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(needle);
+  function visit(next: Partial<WorkOrderListQuery> & { page?: number }) {
+    startNavigation(() => {
+      router.replace(
+        workOrderListHref({
+          search,
+          statuses: query.statuses,
+          priorities: query.priorities,
+          page: query.page,
+          calendar: query.calendar,
+          ...next,
+        }),
+        { scroll: false },
+      );
     });
-  }, [orders, priorities, query, statuses]);
+  }
 
-  function toggle(list: string[], value: string, setList: (next: string[]) => void) {
-    setList(
-      list.includes(value) ? list.filter((item) => item !== value) : [...list, value],
-    );
+  function toggle(list: string[], value: string) {
+    return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
   }
 
   return (
@@ -172,7 +189,7 @@ export function WorkOrdersView({
             <button
               key={id}
               type="button"
-              onClick={() => setView(id)}
+              onClick={() => visit({ calendar: id === "calendar" })}
               className={cn(
                 "border-b-2 px-3 py-2 text-sm",
                 view === id
@@ -190,7 +207,7 @@ export function WorkOrdersView({
         </Button>
       </div>
 
-      <Card className="items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]">
+      <Card className={cn("items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]", navigating && "opacity-70")}>
         {view === "list" ? (
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
           <DropdownMenu>
@@ -204,8 +221,10 @@ export function WorkOrdersView({
               {WORK_ORDER_PRIORITIES.map((item) => (
                 <DropdownMenuCheckboxItem
                   key={item.value}
-                  checked={priorities.includes(item.value)}
-                  onCheckedChange={() => toggle(priorities, item.value, setPriorities)}
+                  checked={query.priorities.includes(item.value)}
+                  onCheckedChange={() =>
+                    visit({ priorities: toggle(query.priorities, item.value), page: 1 })
+                  }
                   onSelect={(event) => event.preventDefault()}
                 >
                   {item.label}
@@ -223,8 +242,10 @@ export function WorkOrdersView({
               {WORK_ORDER_STATUSES.map((item) => (
                 <DropdownMenuCheckboxItem
                   key={item.value}
-                  checked={statuses.includes(item.value)}
-                  onCheckedChange={() => toggle(statuses, item.value, setStatuses)}
+                  checked={query.statuses.includes(item.value)}
+                  onCheckedChange={() =>
+                    visit({ statuses: toggle(query.statuses, item.value), page: 1 })
+                  }
                   onSelect={(event) => event.preventDefault()}
                 >
                   {item.label}
@@ -235,8 +256,8 @@ export function WorkOrdersView({
           <div className="relative min-w-40 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Pesquisar"
               className="h-9 pl-8"
             />
@@ -253,7 +274,7 @@ export function WorkOrdersView({
         {view === "list" ? <Separator /> : null}
         {view === "calendar" ? (
           <WorkOrderCalendar
-            orders={orders}
+            orders={calendar}
             onOpen={setOpenId}
             onCreate={(date, allDay) => {
               const next = new Date(date);
@@ -261,15 +282,15 @@ export function WorkOrdersView({
               openNew(next.toISOString());
             }}
           />
-        ) : rows.length === 0 ? (
+        ) : orders.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
             <p className="max-w-md text-sm font-medium text-foreground">
-              {orders.length === 0
+              {totalAll === 0
                 ? "Ordens de Serviço são tarefas ou trabalhos que podem ser agendados ou atribuídos a alguém"
                 : "Nenhum resultado para a busca."}
             </p>
             <p className="text-sm text-muted-foreground">
-              {orders.length === 0
+              {totalAll === 0
                 ? "Pressione o botão '+' para criar uma Ordem de Serviço"
                 : "Tente outro termo ou ajuste os filtros."}
             </p>
@@ -295,7 +316,7 @@ export function WorkOrdersView({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((order) => (
+                {orders.map((order) => (
                   <tr
                     key={order.id}
                     className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
@@ -338,7 +359,7 @@ export function WorkOrdersView({
                           size="icon-sm"
                           className="text-primary hover:bg-primary/10 hover:text-primary"
                           aria-label={`Responder tarefas de ${order.title}`}
-                          onClick={() => setAnsweringId(order.id)}
+                          onClick={() => setAnswering(order)}
                         >
                           <ClipboardCheck className="size-4" />
                         </Button>
@@ -380,6 +401,15 @@ export function WorkOrdersView({
             </table>
           </div>
         )}
+        {view === "list" ? (
+          <TablePagination
+            page={query.page}
+            pageSize={LIST_PAGE_SIZE}
+            total={total}
+            pending={navigating}
+            onPageChange={(page) => visit({ page })}
+          />
+        ) : null}
       </Card>
 
       <FormDialog
@@ -408,6 +438,7 @@ export function WorkOrdersView({
       </FormDialog>
 
       <WorkOrderDrawer
+        orderId={openId}
         order={orders.find((order) => order.id === openId) ?? null}
         categories={categories}
         tenantId={tenantId}
@@ -419,13 +450,13 @@ export function WorkOrdersView({
           setOpenId(null);
           setEditing(order);
         }}
-        onAnswer={(order) => setAnsweringId(order.id)}
+        onAnswer={setAnswering}
       />
 
       <WorkOrderTasksDialog
-        order={orders.find((order) => order.id === answeringId) ?? null}
+        order={answering}
         onOpenChange={(next) => {
-          if (!next) setAnsweringId(null);
+          if (!next) setAnswering(null);
         }}
       />
     </div>

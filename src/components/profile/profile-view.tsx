@@ -19,17 +19,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import type { MutationState } from "@/lib/forms/state";
+import { compressAvatar } from "@/lib/images/compress-avatar";
 import { formatPhone } from "@/lib/phone/br";
 import type { ProfileData } from "@/lib/profile/queries";
 
-const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
-
-function extensionFor(file: File) {
-  if (file.type === "image/png") return "png";
-  if (file.type === "image/webp") return "webp";
-  if (file.type === "image/jpeg") return "jpg";
-  return null;
-}
+const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
+const ACCEPTED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 export function ProfileView({ profile }: { profile: ProfileData }) {
   const router = useRouter();
@@ -44,22 +39,30 @@ export function ProfileView({ profile }: { profile: ProfileData }) {
 
   async function onPhoto(file: File) {
     setPhotoError(null);
-    const extension = extensionFor(file);
-    if (!extension) {
+    if (!ACCEPTED_TYPES.has(file.type)) {
       setPhotoError("Envie uma imagem PNG, JPG ou WebP.");
       return;
     }
-    if (file.size > MAX_PHOTO_BYTES) {
-      setPhotoError("A imagem deve ter no máximo 2 MB.");
+    if (file.size > MAX_SOURCE_BYTES) {
+      setPhotoError("A imagem original deve ter no máximo 12 MB.");
       return;
     }
 
-    const path = `${profile.tenantId}/avatars/${profile.membershipId}.${extension}`;
     setUploading(true);
+    let compressed: File;
+    try {
+      compressed = await compressAvatar(file);
+    } catch {
+      setUploading(false);
+      setPhotoError("Não foi possível processar a imagem.");
+      return;
+    }
+
+    const path = `${profile.tenantId}/avatars/${profile.membershipId}.jpg`;
     const supabase = createClient();
-    const { error } = await supabase.storage.from("attachments").upload(path, file, {
+    const { error } = await supabase.storage.from("attachments").upload(path, compressed, {
       upsert: true,
-      contentType: file.type,
+      contentType: "image/jpeg",
       cacheControl: "3600",
     });
     if (error) {
@@ -74,7 +77,10 @@ export function ProfileView({ profile }: { profile: ProfileData }) {
       setPhotoError(result.error);
       return;
     }
-    setPreview(URL.createObjectURL(file));
+    setPreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return URL.createObjectURL(compressed);
+    });
     router.refresh();
   }
 

@@ -1,6 +1,11 @@
+import type { ChecklistRecord } from "@/lib/checklists/queries";
 import { requireTenant } from "@/lib/auth/current-user";
-import { relationName } from "@/lib/forms/parse";
-import { signStoragePath } from "@/lib/storage/signed-url";
+import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
+import type { LocationOption } from "@/lib/locations/queries";
+import type { PersonRecord, TeamRecord } from "@/lib/people/queries";
+import { signStoragePaths } from "@/lib/storage/signed-url";
+import type { WorkOrderActivity } from "@/lib/work-orders/activity";
+import type { WorkOrderListQuery } from "@/lib/work-orders/list-params";
 import { isTaskType, type WorkOrderTask } from "@/lib/work-orders/tasks";
 
 export type WorkOrderPerson = {
@@ -37,17 +42,6 @@ export type WorkOrderRecord = {
 
 export type CategoryOption = { id: string; name: string };
 
-function personName(
-  value:
-    | { first_name: string; last_name: string }
-    | { first_name: string; last_name: string }[]
-    | null,
-) {
-  const row = Array.isArray(value) ? value[0] : value;
-  if (!row) return null;
-  return [row.first_name, row.last_name].filter(Boolean).join(" ") || null;
-}
-
 export async function listWorkOrderCategories() {
   const { supabase } = await requireTenant();
   const { data, error } = await supabase
@@ -60,109 +54,357 @@ export async function listWorkOrderCategories() {
   return (data ?? []) satisfies CategoryOption[];
 }
 
-export async function listWorkOrders() {
+type ScreenAsset = {
+  id: string;
+  name: string;
+  custom_id: string | null;
+  location_id: string | null;
+};
+
+export type WorkOrderCalendarItem = {
+  id: string;
+  customId: string | null;
+  title: string;
+  status: string;
+  dueDate: string | null;
+  estimatedStartDate: string | null;
+  estimatedDuration: number | null;
+};
+
+export type WorkOrdersScreen = {
+  orders: WorkOrderRecord[];
+  total: number;
+  totalAll: number;
+  calendar: WorkOrderCalendarItem[];
+  locations: LocationOption[];
+  assets: ScreenAsset[];
+  people: PersonRecord[];
+  teams: TeamRecord[];
+  categories: CategoryOption[];
+  checklists: ChecklistRecord[];
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function asList(value: unknown) {
+  return Array.isArray(value) ? value : [];
+}
+
+function text(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function stringList(value: unknown) {
+  return asList(value).filter((item): item is string => typeof item === "string");
+}
+
+function portrait(value: unknown) {
+  const row = asRecord(value);
+  const id = text(row?.id);
+  if (!row || !id) return null;
+  return {
+    id,
+    firstName: text(row.firstName) ?? "",
+    lastName: text(row.lastName) ?? "",
+    imagePath: text(row.imagePath),
+  };
+}
+
+function portraitName(person: { firstName: string; lastName: string }) {
+  return [person.firstName, person.lastName].filter(Boolean).join(" ");
+}
+
+function imagePathsFromOrder(row: Record<string, unknown> | null) {
+  const primary = portrait(row?.primaryUser);
+  const assignees = asList(row?.assignees).map(portrait);
+  return [primary, ...assignees]
+    .map((person) => person?.imagePath)
+    .filter((path): path is string => Boolean(path));
+}
+
+function mapOrder(
+  row: Record<string, unknown>,
+  imageUrls: Map<string, string | null>,
+): WorkOrderRecord {
+  function toPerson(value: unknown): WorkOrderPerson | null {
+    const person = portrait(value);
+    if (!person) return null;
+    return {
+      id: person.id,
+      name: portraitName(person) || "Usuário",
+      imageUrl: person.imagePath ? (imageUrls.get(person.imagePath) ?? null) : null,
+    };
+  }
+
+  const primary = toPerson(row.primaryUser);
+  const assignees = asList(row.assignees)
+    .map(toPerson)
+    .filter((person): person is WorkOrderPerson => Boolean(person));
+
+  return {
+    id: text(row.id) ?? "",
+    customId: text(row.customId),
+    title: text(row.title) ?? "",
+    description: text(row.description),
+    status: text(row.status) ?? "OPEN",
+    priority: text(row.priority) ?? "NONE",
+    dueDate: text(row.dueDate),
+    estimatedStartDate: text(row.estimatedStartDate),
+    estimatedDuration: typeof row.estimatedDuration === "number" ? row.estimatedDuration : null,
+    requiredSignature: row.requiredSignature === true,
+    locationId: text(row.locationId),
+    locationName: text(row.locationName),
+    assetId: text(row.assetId),
+    assetName: text(row.assetName),
+    teamId: text(row.teamId),
+    primaryUserId: text(row.primaryUserId),
+    primaryUserName: primary?.name ?? null,
+    primaryUser: primary,
+    categoryId: text(row.categoryId),
+    firstTimeToReact: text(row.firstTimeToReact),
+    assigneeIds: assignees.map((person) => person.id),
+    assignees,
+    tasks: asList(row.tasks).flatMap((item) => {
+      const task = asRecord(item);
+      const label = text(task?.label);
+      const taskType = text(task?.taskType);
+      if (!task || !label || !taskType) return [];
+      return [
+        {
+          id: text(task.id) ?? undefined,
+          label,
+          taskType: isTaskType(taskType) ? taskType : "SUBTASK",
+          options: stringList(task.options),
+          value: text(task.value),
+        },
+      ];
+    }),
+  };
+}
+
+function countOf(value: unknown) {
+  const count = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(count) ? count : 0;
+}
+
+export async function listWorkOrdersScreen(query: WorkOrderListQuery): Promise<WorkOrdersScreen> {
   const { supabase } = await requireTenant();
-  const [orders, assignees, tasks] = await Promise.all([
-    supabase
-      .from("work_order")
-      .select(
-        "id, custom_id, title, description, status, priority, due_date, estimated_start_date, estimated_duration, required_signature, location_id, asset_id, team_id, primary_user_id, category_id, first_time_to_react, location:location_id(name), asset:asset_id(name), primary_user:primary_user_id(first_name, last_name)",
-      )
-      .eq("archived", false)
-      .order("created_at", { ascending: false }),
-    supabase.from("work_order_assignee").select("work_order_id, membership_id"),
-    supabase
-      .from("task")
-      .select(
-        "id, work_order_id, label, task_type, options, value, order_index",
-      )
-      .order("order_index"),
-  ]);
+  const { data, error } = await supabase.rpc("work_orders_screen", {
+    p_search: query.search || undefined,
+    p_statuses: query.statuses,
+    p_priorities: query.priorities,
+    p_limit: LIST_PAGE_SIZE,
+    p_offset: query.offset,
+    p_include_calendar: query.calendar,
+  });
+  const screen = asRecord(data);
 
-  if (orders.error || assignees.error || tasks.error) {
+  if (error || !screen) {
     throw new Error("Não foi possível carregar as ordens de serviço.");
   }
 
-  const memberIds = [
-    ...new Set(
-      [
-        ...(orders.data ?? []).map((row) => row.primary_user_id),
-        ...(assignees.data ?? []).map((item) => item.membership_id),
-      ].filter((id): id is string => Boolean(id)),
-    ),
-  ];
-  const { data: members, error: membersError } = memberIds.length
-    ? await supabase
-        .from("membership")
-        .select("id, first_name, last_name, image_url")
-        .in("id", memberIds)
-    : { data: [], error: null };
+  const orderRows = asList(screen.orders).map((item) => asRecord(item));
+  const imagePaths = [...new Set(orderRows.flatMap((row) => imagePathsFromOrder(row)))];
+  const signed = await signStoragePaths(supabase, imagePaths);
+  const imageUrls = new Map(imagePaths.map((path, index) => [path, signed[index] ?? null]));
+  const orders = orderRows
+    .filter((row): row is Record<string, unknown> => Boolean(row))
+    .map((row) => mapOrder(row, imageUrls));
 
-  if (membersError) {
-    throw new Error("Não foi possível carregar as ordens de serviço.");
+  return {
+    orders,
+    total: countOf(screen.total),
+    totalAll: countOf(screen.totalAll),
+    calendar: asList(screen.calendar).flatMap((item) => {
+      const row = asRecord(item);
+      const id = text(row?.id);
+      const title = text(row?.title);
+      if (!row || !id || !title) return [];
+      return [
+        {
+          id,
+          customId: text(row.customId),
+          title,
+          status: text(row.status) ?? "OPEN",
+          dueDate: text(row.dueDate),
+          estimatedStartDate: text(row.estimatedStartDate),
+          estimatedDuration:
+            typeof row.estimatedDuration === "number" ? row.estimatedDuration : null,
+        } satisfies WorkOrderCalendarItem,
+      ];
+    }),
+    locations: asList(screen.locations).flatMap((item) => {
+      const row = asRecord(item);
+      if (!row) return [];
+      const id = text(row.id);
+      const name = text(row.name);
+      if (!id || !name) return [];
+      return [{ id, name, custom_id: text(row.customId) } satisfies LocationOption];
+    }),
+    assets: asList(screen.assets).flatMap((item) => {
+      const row = asRecord(item);
+      if (!row) return [];
+      const id = text(row.id);
+      const name = text(row.name);
+      if (!id || !name) return [];
+      return [
+        {
+          id,
+          name,
+          custom_id: text(row.customId),
+          location_id: text(row.locationId),
+        } satisfies ScreenAsset,
+      ];
+    }),
+    people: asList(screen.people).flatMap((item) => {
+      const row = asRecord(item);
+      if (!row) return [];
+      const id = text(row.id);
+      const roleId = text(row.roleId);
+      if (!id || !roleId) return [];
+      return [
+        {
+          id,
+          firstName: text(row.firstName) ?? "",
+          lastName: text(row.lastName) ?? "",
+          email: text(row.email) ?? "",
+          phone: text(row.phone),
+          roleId,
+          roleCode: text(row.roleCode) ?? "",
+          roleName: text(row.roleName) ?? "Usuário",
+          roleDescription: text(row.roleDescription) ?? "",
+          isOwner: row.isOwner === true,
+        } satisfies PersonRecord,
+      ];
+    }),
+    teams: asList(screen.teams).flatMap((item) => {
+      const row = asRecord(item);
+      if (!row) return [];
+      const id = text(row.id);
+      const name = text(row.name);
+      if (!id || !name) return [];
+      return [
+        {
+          id,
+          name,
+          description: text(row.description),
+          memberIds: stringList(row.memberIds),
+        } satisfies TeamRecord,
+      ];
+    }),
+    categories: asList(screen.categories).flatMap((item) => {
+      const row = asRecord(item);
+      if (!row) return [];
+      const id = text(row.id);
+      const name = text(row.name);
+      if (!id || !name) return [];
+      return [{ id, name } satisfies CategoryOption];
+    }),
+    checklists: asList(screen.checklists).flatMap((item) => {
+      const row = asRecord(item);
+      if (!row) return [];
+      const id = text(row.id);
+      const name = text(row.name);
+      if (!id || !name) return [];
+      return [
+        {
+          id,
+          name,
+          tasks: asList(row.tasks).flatMap((taskItem) => {
+            const task = asRecord(taskItem);
+            const label = text(task?.label);
+            const taskType = text(task?.taskType);
+            if (!task || !label || !taskType) return [];
+            return [
+              {
+                label,
+                taskType: isTaskType(taskType) ? taskType : "SUBTASK",
+                options: stringList(task.options),
+              },
+            ];
+          }),
+        } satisfies ChecklistRecord,
+      ];
+    }),
+  };
+}
+
+export type WorkOrderDetail = {
+  order: WorkOrderRecord;
+  activity: WorkOrderActivity;
+};
+
+export async function loadWorkOrderDetail(workOrderId: string): Promise<WorkOrderDetail> {
+  const { supabase } = await requireTenant();
+  const { data, error } = await supabase.rpc("work_order_detail", {
+    p_work_order_id: workOrderId,
+  });
+  const detail = asRecord(data);
+  const orderRow = asRecord(detail?.order);
+
+  if (error || !detail || !orderRow) {
+    throw new Error("Não foi possível carregar os detalhes da ordem.");
   }
 
-  const imageUrls = await Promise.all(
-    (members ?? []).map((member) => signStoragePath(supabase, member.image_url)),
-  );
-  const people = new Map<string, WorkOrderPerson>(
-    (members ?? []).map((member, index) => [
-      member.id,
-      {
-        id: member.id,
-        name: [member.first_name, member.last_name].filter(Boolean).join(" "),
-        imageUrl: imageUrls[index] ?? null,
-      },
+  const fileRows = asList(detail.files).map((item) => asRecord(item));
+  const imagePaths = [
+    ...new Set([
+      ...imagePathsFromOrder(orderRow),
+      ...fileRows
+        .map((file) => text(file?.path))
+        .filter((path): path is string => Boolean(path)),
     ]),
-  );
+  ];
+  const signed = await signStoragePaths(supabase, imagePaths);
+  const urls = new Map(imagePaths.map((path, index) => [path, signed[index] ?? null]));
+  const timer = asRecord(detail.timer);
 
-  return (orders.data ?? []).map((row) => ({
-    id: row.id,
-    customId: row.custom_id,
-    title: row.title,
-    description: row.description,
-    status: row.status,
-    priority: row.priority,
-    dueDate: row.due_date,
-    estimatedStartDate: row.estimated_start_date,
-    estimatedDuration: row.estimated_duration,
-    requiredSignature: row.required_signature,
-    locationId: row.location_id,
-    locationName: relationName(
-      row.location as { name: string } | { name: string }[] | null,
-    ),
-    assetId: row.asset_id,
-    assetName: relationName(
-      row.asset as { name: string } | { name: string }[] | null,
-    ),
-    teamId: row.team_id,
-    primaryUserId: row.primary_user_id,
-    primaryUserName:
-      (row.primary_user_id ? people.get(row.primary_user_id)?.name : null) ??
-      personName(row.primary_user),
-    primaryUser: row.primary_user_id
-      ? (people.get(row.primary_user_id) ?? null)
-      : null,
-    categoryId: row.category_id,
-    firstTimeToReact: row.first_time_to_react,
-    assigneeIds: (assignees.data ?? [])
-      .filter((item) => item.work_order_id === row.id)
-      .map((item) => item.membership_id),
-    assignees: (assignees.data ?? [])
-      .filter((item) => item.work_order_id === row.id)
-      .map((item) => people.get(item.membership_id))
-      .filter((person): person is WorkOrderPerson => Boolean(person)),
-    tasks: (tasks.data ?? [])
-      .filter((item) => item.work_order_id === row.id)
-      .sort((a, b) => a.order_index - b.order_index)
-      .map((item) => ({
-        id: item.id,
-        label: item.label,
-        taskType: isTaskType(item.task_type) ? item.task_type : "SUBTASK",
-        options: Array.isArray(item.options)
-          ? item.options.filter((option): option is string => typeof option === "string")
-          : [],
-        value: item.value,
-      })),
-  })) satisfies WorkOrderRecord[];
+  return {
+    order: mapOrder(orderRow, urls),
+    activity: {
+      timer: timer
+        ? {
+            durationSeconds:
+              typeof timer.durationSeconds === "number" ? timer.durationSeconds : 0,
+            startedAt: text(timer.startedAt),
+          }
+        : null,
+      labors: asList(detail.labors).flatMap((item) => {
+        const row = asRecord(item);
+        const id = text(row?.id);
+        if (!row || !id) return [];
+        return [
+          {
+            id,
+            durationSeconds: typeof row.durationSeconds === "number" ? row.durationSeconds : 0,
+            workedOn: text(row.workedOn),
+            author: text(row.author) ?? "Usuário",
+          },
+        ];
+      }),
+      files: fileRows.flatMap((row) => {
+        const id = text(row?.id);
+        const path = text(row?.path);
+        if (!row || !id || !path) return [];
+        return [{ id, name: text(row.name) ?? "Arquivo", url: urls.get(path) ?? "" }];
+      }),
+      updates: asList(detail.updates).flatMap((item) => {
+        const row = asRecord(item);
+        const id = text(row?.id);
+        const createdAt = text(row?.createdAt);
+        if (!row || !id || !createdAt) return [];
+        return [
+          {
+            id,
+            body: text(row.body) ?? "",
+            createdAt,
+            author: text(row.author) ?? "Usuário",
+          },
+        ];
+      }),
+    },
+  };
 }

@@ -11,6 +11,19 @@ Use this file as a lightweight ADR log.
 - **Decision**: `TODO`
 - **Consequences**: `TODO`
 
+### ADR-0005 - Cache curto das telas autenticadas
+
+- **Status**: accepted
+- **Context**: Cada navegação esperava o servidor, e cada consulta da página
+  chamava de novo a autenticação do Supabase.
+- **Decision**: Deduplicar cliente, sessão e tenant com `cache()` do React no
+  mesmo request. Manter `cacheComponents` desligado. URLs assinadas de uma
+  lista saem numa única chamada. Não usar `staleTimes`: o padrão do Next para
+  página dinâmica é buscar de novo a cada navegação, e o cache experimental de
+  30s deixaria a tela desatualizada.
+- **Consequences**: Cada clique ainda espera o servidor, mas a request não
+  repete `getUser` nem uma assinatura por foto.
+
 ### ADR-0004 - Valor em real brasileiro
 
 - **Status**: accepted

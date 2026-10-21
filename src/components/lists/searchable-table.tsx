@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { TablePagination } from "@/components/lists/table-pagination";
+import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import { Pencil, Plus, QrCode, Search, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,7 @@ export function SearchableTable({
   manage?: boolean;
 }) {
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [state, formAction, pending] = useActionState<MutationState, FormData>(
     deleteAction,
     undefined,
@@ -54,6 +57,12 @@ export function SearchableTable({
     if (!needle) return rows;
     return rows.filter((row) => row.searchText.includes(needle));
   }, [query, rows]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / LIST_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageRows = filtered.slice(
+    (currentPage - 1) * LIST_PAGE_SIZE,
+    currentPage * LIST_PAGE_SIZE,
+  );
 
   return (
     <div className="space-y-3">
@@ -72,7 +81,10 @@ export function SearchableTable({
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
               placeholder={searchPlaceholder}
               className="h-9 pl-8"
             />
@@ -116,7 +128,7 @@ export function SearchableTable({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((row) => (
+                {pageRows.map((row) => (
                   <tr key={row.id} className="border-b last:border-0">
                     {row.cells.map((cell, index) => (
                       <td
@@ -190,6 +202,12 @@ export function SearchableTable({
             </table>
           </div>
         )}
+        <TablePagination
+          page={currentPage}
+          pageSize={LIST_PAGE_SIZE}
+          total={filtered.length}
+          onPageChange={setPage}
+        />
       </Card>
     </div>
   );

@@ -11,7 +11,7 @@ import classicThemePlugin from "@fullcalendar/react/themes/classic";
 import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/classic/theme.css";
 import "@fullcalendar/react/themes/classic/palette.css";
-import type { WorkOrderRecord } from "@/lib/work-orders/queries";
+import type { WorkOrderCalendarItem } from "@/lib/work-orders/queries";
 import { Button } from "@/components/ui/button";
 import { WORK_ORDER_STATUSES } from "@/lib/work-orders/status";
 
@@ -63,7 +63,7 @@ function localDay(value: string) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-function toEvents(orders: WorkOrderRecord[]): EventInput[] {
+function toEvents(orders: WorkOrderCalendarItem[]): EventInput[] {
   const events: EventInput[] = [];
 
   for (const order of orders) {
@@ -93,7 +93,7 @@ export function WorkOrderCalendar({
   onOpen,
   onCreate,
 }: {
-  orders: WorkOrderRecord[];
+  orders: WorkOrderCalendarItem[];
   onOpen: (id: string) => void;
   onCreate: (date: Date, allDay: boolean) => void;
 }) {

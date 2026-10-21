@@ -1,6 +1,6 @@
 import { requireTenant } from "@/lib/auth/current-user";
 import { relationName } from "@/lib/forms/parse";
-import { signStoragePath } from "@/lib/storage/signed-url";
+import { signStoragePaths } from "@/lib/storage/signed-url";
 
 export type AssetRecord = {
   id: string;
@@ -24,6 +24,21 @@ export type AssetRecord = {
   imageUrl: string | null;
 };
 
+export async function listAssetOptions() {
+  const { supabase } = await requireTenant();
+  const { data, error } = await supabase
+    .from("asset")
+    .select("id, custom_id, name, location_id")
+    .eq("archived", false)
+    .order("name");
+
+  if (error) {
+    throw new Error("Não foi possível carregar os ativos.");
+  }
+
+  return data ?? [];
+}
+
 export async function listAssets() {
   const { supabase } = await requireTenant();
   const { data, error } = await supabase
@@ -39,8 +54,9 @@ export async function listAssets() {
   }
 
   const rows = data ?? [];
-  const imageUrls = await Promise.all(
-    rows.map((row) => signStoragePath(supabase, row.image_url)),
+  const imageUrls = await signStoragePaths(
+    supabase,
+    rows.map((row) => row.image_url),
   );
 
   return rows.map((row, index) => ({

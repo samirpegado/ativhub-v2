@@ -1,46 +1,53 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { WorkOrdersView } from "@/components/work-orders/work-orders-view";
 import { requireTenant } from "@/lib/auth/current-user";
-import { listChecklists } from "@/lib/checklists/queries";
-import { listAssets } from "@/lib/assets/queries";
-import { listLocations } from "@/lib/locations/queries";
-import { listPeople, listTeams } from "@/lib/people/queries";
 import {
-  listWorkOrderCategories,
-  listWorkOrders,
-} from "@/lib/work-orders/queries";
+  parseWorkOrderListQuery,
+  workOrderListHref,
+  workOrderPageCount,
+} from "@/lib/work-orders/list-params";
+import { listWorkOrdersScreen } from "@/lib/work-orders/queries";
 
 export const metadata: Metadata = {
   title: "Ordens de serviço",
 };
 
-export default async function HomePage() {
-  const { tenantId } = await requireTenant();
-  const [orders, locations, assets, peopleResult, teams, categories, checklists] =
-    await Promise.all([
-      listWorkOrders(),
-      listLocations(),
-      listAssets(),
-      listPeople(),
-      listTeams(),
-      listWorkOrderCategories(),
-      listChecklists(),
-    ]);
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    q?: string;
+    status?: string;
+    priority?: string;
+    page?: string;
+    view?: string;
+  }>;
+}) {
+  const params = await searchParams;
+  const query = parseWorkOrderListQuery(params);
+  const [{ tenantId }, screen] = await Promise.all([
+    requireTenant(),
+    listWorkOrdersScreen(query),
+  ]);
+  const pageCount = workOrderPageCount(screen.total);
+  if (query.page > pageCount) {
+    redirect(workOrderListHref({ ...query, page: pageCount }));
+  }
 
   return (
     <WorkOrdersView
-      orders={orders}
-      locations={locations}
-      assets={assets.map((asset) => ({
-        id: asset.id,
-        name: asset.name,
-        custom_id: asset.custom_id,
-        location_id: asset.location_id,
-      }))}
-      people={peopleResult.people}
-      teams={teams}
-      categories={categories}
-      checklists={checklists}
+      query={query}
+      orders={screen.orders}
+      total={screen.total}
+      totalAll={screen.totalAll}
+      calendar={screen.calendar}
+      locations={screen.locations}
+      assets={screen.assets}
+      people={screen.people}
+      teams={screen.teams}
+      categories={screen.categories}
+      checklists={screen.checklists}
       tenantId={tenantId}
     />
   );

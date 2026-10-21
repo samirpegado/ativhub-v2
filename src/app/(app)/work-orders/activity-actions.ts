@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireTenant } from "@/lib/auth/current-user";
 import { parseUuid } from "@/lib/forms/parse";
-import { signStoragePath } from "@/lib/storage/signed-url";
 import type { WorkOrderActivity } from "@/lib/work-orders/activity";
+import { loadWorkOrderDetail, type WorkOrderRecord } from "@/lib/work-orders/queries";
 import { isWorkOrderStatus, statusTimestamps } from "@/lib/work-orders/status";
 import {
   INSPECTION_ANSWERS,
@@ -12,80 +12,12 @@ import {
   isTaskType,
 } from "@/lib/work-orders/tasks";
 
-type ActivityResult = { error: string } | { activity: WorkOrderActivity };
-
-function memberName(
-  value:
-    | { first_name: string; last_name: string }
-    | { first_name: string; last_name: string }[]
-    | null,
-) {
-  const row = Array.isArray(value) ? value[0] : value;
-  if (!row) return "Usuário";
-  return [row.first_name, row.last_name].filter(Boolean).join(" ") || "Usuário";
-}
+type ActivityResult =
+  | { error: string }
+  | { activity: WorkOrderActivity; order?: WorkOrderRecord };
 
 async function readActivity(workOrderId: string): Promise<WorkOrderActivity> {
-  const { supabase } = await requireTenant();
-  const [labors, files, updates] = await Promise.all([
-    supabase
-      .from("labor")
-      .select(
-        "id, duration_seconds, logged, started_at, membership:membership_id(first_name, last_name)",
-      )
-      .eq("work_order_id", workOrderId)
-      .order("started_at", { ascending: false }),
-    supabase
-      .from("file")
-      .select("id, name, url, created_at")
-      .eq("entity_type", "WORK_ORDER")
-      .eq("entity_id", workOrderId)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("work_order_update")
-      .select(
-        "id, body, created_at, membership:membership_id(first_name, last_name)",
-      )
-      .eq("work_order_id", workOrderId)
-      .order("created_at", { ascending: true }),
-  ]);
-
-  if (labors.error || files.error || updates.error) {
-    throw new Error("Não foi possível carregar os detalhes da ordem.");
-  }
-
-  const timerRow = (labors.data ?? []).find((row) => row.logged);
-  const signedFiles = await Promise.all(
-    (files.data ?? []).map(async (file) => ({
-      id: file.id,
-      name: file.name,
-      url: (await signStoragePath(supabase, file.url)) ?? "",
-    })),
-  );
-
-  return {
-    timer: timerRow
-      ? {
-          durationSeconds: timerRow.duration_seconds,
-          startedAt: timerRow.started_at,
-        }
-      : null,
-    labors: (labors.data ?? [])
-      .filter((row) => !row.logged)
-      .map((row) => ({
-        id: row.id,
-        durationSeconds: row.duration_seconds,
-        workedOn: row.started_at,
-        author: memberName(row.membership),
-      })),
-    files: signedFiles,
-    updates: (updates.data ?? []).map((row) => ({
-      id: row.id,
-      body: row.body,
-      createdAt: row.created_at,
-      author: memberName(row.membership),
-    })),
-  };
+  return (await loadWorkOrderDetail(workOrderId)).activity;
 }
 
 function refresh() {
@@ -105,7 +37,8 @@ async function ownedOrder(workOrderId: string) {
 export async function loadWorkOrderActivity(workOrderId: string): Promise<ActivityResult> {
   try {
     const { workOrderId: id } = await ownedOrder(workOrderId);
-    return { activity: await readActivity(id) };
+    const detail = await loadWorkOrderDetail(id);
+    return { activity: detail.activity, order: detail.order };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Não foi possível carregar a ordem.",
