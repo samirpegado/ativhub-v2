@@ -40,9 +40,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 ## Deploy no Coolify
 
-O `Dockerfile` gera uma imagem standalone e escuta na porta **3000**.
+O `Dockerfile` gera a imagem na VM e escuta na porta **3000**. O build roda com prioridade baixa e heap do Node limitado a 1 GB, para a máquina fraca continuar respondendo. O deploy demora mais.
 
-No recurso do Coolify, use o build pack Dockerfile e marque estas variáveis como disponíveis no build:
+Crie o recurso como **Dockerfile**, apontando para este repositório. Marque estas variáveis como disponíveis no build:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`

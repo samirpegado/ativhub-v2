@@ -55,9 +55,9 @@ Describe the real structural organization of the repository and the architectura
   O texto de cada papel vem de `role.description`.
 - `/` lista ordens de serviço e abre o cadastro em modal. A listagem e os
   dados do formulário vêm da função `work_orders_screen(busca, status, prioridade, limit, offset)`,
-  com no máximo 20 ordens por página e RLS do tenant. O calendário pede a mesma
-  função com todas as ordens, sem esses filtros. O clique na ordem chama
-  `work_order_detail()` para o painel. As outras tabelas (localizações, ativos,
+  chamada no servidor com a sessão do usuário, com no máximo 20 ordens por página e RLS do tenant.
+  O calendário pede a mesma função com todas as ordens, sem esses filtros. O clique na ordem chama
+  `work_order_detail()` no servidor para o painel. As outras tabelas (localizações, ativos,
   pessoas, equipes e listas de verificação) também paginam 20 itens.
   A aba Calendário
   usa FullCalendar: o evento fica no início estimado, ou no vencimento quando

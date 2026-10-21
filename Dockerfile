@@ -1,10 +1,13 @@
+# Build na VM do Coolify. nice e o heap limitado deixam o host responsivo;
+# o deploy só demora mais.
 FROM node:22-alpine AS base
 
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+ENV UV_THREADPOOL_SIZE=1
+RUN nice -n 19 npm ci --no-audit --no-fund
 
 FROM base AS builder
 WORKDIR /app
@@ -20,8 +23,11 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV RAYON_NUM_THREADS=1
+ENV UV_THREADPOOL_SIZE=1
+ENV NODE_OPTIONS=--max-old-space-size=1024
 
-RUN npm run build
+RUN nice -n 19 npm run build
 
 FROM base AS runner
 WORKDIR /app

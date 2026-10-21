@@ -11,6 +11,19 @@ Use this file as a lightweight ADR log.
 - **Decision**: `TODO`
 - **Consequences**: `TODO`
 
+### ADR-0006 - Build contido na VM
+
+- **Status**: accepted
+- **Context**: A VM de deploy tem pouca CPU. Cada push fazia o Coolify rodar
+  `npm ci` e `next build` nela, e o host caía no meio do build. Publicar a
+  imagem pronta no GHCR exigia token e login de registry no Coolify.
+- **Decision**: O Coolify continua buildando o `Dockerfile`. O `npm ci` e o
+  `next build` rodam com `nice -n 19`, `RAYON_NUM_THREADS=1`,
+  `UV_THREADPOOL_SIZE=1` e heap do Node em 1 GB.
+- **Consequences**: O deploy demora mais e a VM segue utilizável. Se o heap
+  não bastar, o build falha dentro do container em vez de derrubar o host.
+  As `NEXT_PUBLIC_*` continuam marcadas como disponíveis no build.
+
 ### ADR-0005 - Cache curto das telas autenticadas
 
 - **Status**: accepted
