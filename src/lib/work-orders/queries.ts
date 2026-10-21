@@ -74,7 +74,7 @@ export async function listWorkOrders() {
     supabase
       .from("task")
       .select(
-        "work_order_id, label, task_type, options, order_index",
+        "id, work_order_id, label, task_type, options, value, order_index",
       )
       .order("order_index"),
   ]);
@@ -156,11 +156,13 @@ export async function listWorkOrders() {
       .filter((item) => item.work_order_id === row.id)
       .sort((a, b) => a.order_index - b.order_index)
       .map((item) => ({
+        id: item.id,
         label: item.label,
         taskType: isTaskType(item.task_type) ? item.task_type : "SUBTASK",
         options: Array.isArray(item.options)
           ? item.options.filter((option): option is string => typeof option === "string")
           : [],
+        value: item.value,
       })),
   })) satisfies WorkOrderRecord[];
 }

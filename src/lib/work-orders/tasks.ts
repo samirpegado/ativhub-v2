@@ -9,10 +9,36 @@ export const TASK_TYPES = [
 export type TaskType = (typeof TASK_TYPES)[number]["value"];
 
 export type WorkOrderTask = {
+  id?: string;
   label: string;
   taskType: TaskType;
   options: string[];
+  value?: string | null;
 };
+
+export const SUBTASK_ANSWERS = [
+  { value: "OPEN", label: "Aberto" },
+  { value: "IN_PROGRESS", label: "Em andamento" },
+  { value: "ON_HOLD", label: "Em espera" },
+  { value: "COMPLETE", label: "Concluído" },
+] as const;
+
+export const INSPECTION_ANSWERS = [
+  { value: "PASS", label: "Aprovado" },
+  { value: "FLAG", label: "Atenção" },
+  { value: "FAIL", label: "Reprovado" },
+] as const;
+
+export function taskAnswerLabel(task: Pick<WorkOrderTask, "taskType" | "value">) {
+  if (!task.value) return "—";
+  if (task.taskType === "SUBTASK") {
+    return SUBTASK_ANSWERS.find((item) => item.value === task.value)?.label ?? task.value;
+  }
+  if (task.taskType === "INSPECTION") {
+    return INSPECTION_ANSWERS.find((item) => item.value === task.value)?.label ?? task.value;
+  }
+  return task.value;
+}
 
 export function parseTaskList(value: unknown): WorkOrderTask[] {
   if (!Array.isArray(value)) throw new Error("Tarefas inválidas.");
@@ -36,10 +62,13 @@ export function parseTaskList(value: unknown): WorkOrderTask[] {
       throw new Error("A múltipla escolha precisa de pelo menos duas opções.");
     }
 
+    const value = typeof row.value === "string" ? row.value.trim() : "";
+
     return {
       label,
       taskType,
       options: taskType === "MULTIPLE" ? options.slice(0, 20) : [],
+      value: value || null,
     };
   });
 }

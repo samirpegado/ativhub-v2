@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState, useCallback, useMemo, useState } from "react";
-import { Pencil, Plus, Search, Signal, Trash2 } from "lucide-react";
+import { ClipboardCheck, Pencil, Plus, Search, Signal, Trash2 } from "lucide-react";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { WorkOrderDrawer } from "@/components/work-orders/work-order-drawer";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
+import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
 import type { ChecklistRecord } from "@/lib/checklists/queries";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -78,6 +80,7 @@ export function WorkOrdersView({
   teams,
   categories,
   checklists,
+  tenantId,
 }: {
   orders: WorkOrderRecord[];
   locations: LocationOption[];
@@ -86,8 +89,11 @@ export function WorkOrdersView({
   teams: TeamRecord[];
   categories: CategoryOption[];
   checklists: ChecklistRecord[];
+  tenantId: string;
 }) {
   const [editing, setEditing] = useState<WorkOrderRecord | null | "new">(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statuses, setStatuses] = useState<string[]>(OPEN_STATUSES);
   const [priorities, setPriorities] = useState<string[]>(
@@ -242,7 +248,11 @@ export function WorkOrdersView({
               </thead>
               <tbody>
                 {rows.map((order) => (
-                  <tr key={order.id} className="border-b last:border-0">
+                  <tr
+                    key={order.id}
+                    className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
+                    onClick={() => setOpenId(order.id)}
+                  >
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                       {order.customId ?? "—"}
                     </td>
@@ -272,8 +282,18 @@ export function WorkOrdersView({
                     <td className="px-4 py-3">{order.locationName ?? "—"}</td>
                     <td className="px-4 py-3">{order.assetName ?? "—"}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{formatWhen(order.dueDate)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                       <div className="flex items-center justify-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-primary hover:bg-primary/10 hover:text-primary"
+                          aria-label={`Responder tarefas de ${order.title}`}
+                          onClick={() => setAnsweringId(order.id)}
+                        >
+                          <ClipboardCheck className="size-4" />
+                        </Button>
                         <Button
                           type="button"
                           variant="ghost"
@@ -337,6 +357,28 @@ export function WorkOrdersView({
           />
         ) : null}
       </FormDialog>
+
+      <WorkOrderDrawer
+        order={orders.find((order) => order.id === openId) ?? null}
+        categories={categories}
+        tenantId={tenantId}
+        open={openId !== null}
+        onOpenChange={(next) => {
+          if (!next) setOpenId(null);
+        }}
+        onEdit={(order) => {
+          setOpenId(null);
+          setEditing(order);
+        }}
+        onAnswer={(order) => setAnsweringId(order.id)}
+      />
+
+      <WorkOrderTasksDialog
+        order={orders.find((order) => order.id === answeringId) ?? null}
+        onOpenChange={(next) => {
+          if (!next) setAnsweringId(null);
+        }}
+      />
     </div>
     </TooltipProvider>
   );

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { WorkOrdersView } from "@/components/work-orders/work-orders-view";
+import { requireTenant } from "@/lib/auth/current-user";
 import { listChecklists } from "@/lib/checklists/queries";
 import { listAssets } from "@/lib/assets/queries";
 import { listLocations } from "@/lib/locations/queries";
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
+  const { tenantId } = await requireTenant();
   const [orders, locations, assets, peopleResult, teams, categories, checklists] =
     await Promise.all([
       listWorkOrders(),
@@ -39,6 +41,7 @@ export default async function HomePage() {
       teams={teams}
       categories={categories}
       checklists={checklists}
+      tenantId={tenantId}
     />
   );
 }

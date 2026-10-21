@@ -57,7 +57,10 @@ Describe the real structural organization of the repository and the architectura
   saída de `OPEN` (exceto para `ON_HOLD`) grava `first_time_to_react`.
   As tarefas pertencem à ordem. Uma lista nomeada (`checklist`) guarda uma
   cópia reutilizável: ao escolhê-la, as tarefas entram na ordem sem vínculo
-  permanente com o modelo.
+  permanente com o modelo. `/checklists` lista e edita esses modelos. O clique
+  na ordem abre um painel com status, temporizador, mão de obra (data e
+  duração do usuário logado), arquivos, relatório para impressão e a aba
+  de atualizações.
 - CRUD autenticado em `/locations` e `/assets` (lista + modal de criar/editar).
   Endereço de localização em campos separados; `address` é o texto formatado.
   A imagem do ativo fica em `attachments/{tenant}/assets/` e o caminho em

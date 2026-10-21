@@ -166,6 +166,7 @@ async function replaceLinks(
         label: task.label,
         task_type: task.taskType,
         options: task.options,
+        value: task.value ?? null,
         order_index: index,
       })),
     );

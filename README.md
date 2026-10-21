@@ -4,7 +4,8 @@ CMMS multiempresa para manutenção industrial e predial. Cada empresa enxerga s
 
 ## O que já está no app
 
-- **Ordens de serviço**: lista, filtros e cadastro. Cada ordem tem tarefas (texto, número, status, inspeção ou múltipla escolha). Uma lista de verificação salva pode ser reutilizada em outras ordens.
+- **Ordens de serviço**: lista, filtros e cadastro. O clique abre o detalhe, com temporizador, mão de obra, arquivos, atualizações e relatório para impressão. Cada ordem tem tarefas (texto, número, status, inspeção ou múltipla escolha). Uma lista de verificação salva pode ser reutilizada em outras ordens.
+- **Listas de verificação**: consulta e edição dos modelos de tarefas usados nas ordens.
 - **Ativos**: cadastro com foto, localização e QR do próprio ativo.
 - **Localizações**: endereço separado, com preenchimento pelo CEP.
 - **Pessoas e equipes**: papéis Administrador, Técnico, Solicitante e Somente leitura. O administrador cria o acesso da pessoa na empresa.

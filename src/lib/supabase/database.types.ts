@@ -1497,6 +1497,55 @@ export type Database = {
           },
         ]
       }
+      work_order_update: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          membership_id: string | null
+          tenant_id: string
+          work_order_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          membership_id?: string | null
+          tenant_id: string
+          work_order_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          membership_id?: string | null
+          tenant_id?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_update_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "membership"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_update_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_update_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

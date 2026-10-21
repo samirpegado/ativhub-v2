@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   ClipboardList,
   Inbox,
+  ListChecks,
   MapPin,
   Menu,
   Package,
@@ -34,6 +35,7 @@ import { cn } from "@/lib/utils";
 
 const icons: Record<(typeof navItems)[number]["href"], LucideIcon> = {
   "/": ClipboardList,
+  "/checklists": ListChecks,
   "/preventive": Timer,
   "/requests": Inbox,
   "/assets": Package,

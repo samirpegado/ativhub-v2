@@ -1,5 +1,6 @@
 export const navItems = [
   { href: "/", label: "Ordens de serviço", enabled: true },
+  { href: "/checklists", label: "Listas de verificação", enabled: true },
   { href: "/preventive", label: "Preventiva", enabled: false },
   { href: "/requests", label: "Solicitações", enabled: false },
   { href: "/assets", label: "Ativos", enabled: true },

@@ -39,10 +39,12 @@ export function TaskEditor({
   tasks,
   checklists,
   onChange,
+  showLibrary = true,
 }: {
   tasks: WorkOrderTask[];
   checklists: ChecklistRecord[];
   onChange: (tasks: WorkOrderTask[]) => void;
+  showLibrary?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
@@ -80,6 +82,7 @@ export function TaskEditor({
         label: task.label,
         taskType: task.taskType,
         options: task.options,
+        value: task.value ?? null,
       })),
     );
   }
@@ -189,23 +192,27 @@ export function TaskEditor({
                 <Plus />
                 Tarefa
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-primary"
-                onClick={() => setShowLists((value) => !value)}
-              >
-                <Plus />
-                Lista de verificação
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="text-primary"
-                onClick={() => setShowSave((value) => !value)}
-              >
-                Salvar lista
-              </Button>
+              {showLibrary ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-primary"
+                    onClick={() => setShowLists((value) => !value)}
+                  >
+                    <Plus />
+                    Lista de verificação
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-primary"
+                    onClick={() => setShowSave((value) => !value)}
+                  >
+                    Salvar lista
+                  </Button>
+                </>
+              ) : null}
             </div>
           </div>
 
