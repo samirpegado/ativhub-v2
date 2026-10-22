@@ -25,6 +25,7 @@ import type { AppUser } from "@/lib/auth/current-user";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -100,15 +101,17 @@ function SidebarNav({
 function SidebarChrome({
   user,
   onNavigate,
+  onClose,
   priorityLogo,
 }: {
   user: AppUser;
   onNavigate?: () => void;
+  onClose?: () => void;
   priorityLogo?: boolean;
 }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex justify-center px-4 pt-6 pb-4">
+      <div className={cn("relative flex justify-center pt-6 pb-4", onClose ? "px-12" : "px-4")}>
         <Logo
           size="sm"
           inverted
@@ -117,6 +120,19 @@ function SidebarChrome({
           src="/logo-white-full.png"
           className="gap-1 [&_img]:-mr-[0%]"
         />
+        {onClose ? (
+          <SheetClose asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-3 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground"
+              onClick={onClose}
+              aria-label="Fechar menu"
+            >
+              <X />
+            </Button>
+          </SheetClose>
+        ) : null}
       </div>
       <div className="mx-4 h-px bg-white/10" />
       <SidebarNav user={user} onNavigate={onNavigate} />
@@ -150,26 +166,30 @@ export function AppShell({
           <SheetHeader className="sr-only">
             <SheetTitle>Menu</SheetTitle>
           </SheetHeader>
-          <SidebarChrome user={user} onNavigate={() => setOpen(false)} />
+          <SidebarChrome
+            user={user}
+            onNavigate={() => setOpen(false)}
+            onClose={() => setOpen(false)}
+          />
         </SheetContent>
       </Sheet>
 
-      <header className="fixed top-0 right-0 left-0 z-20 flex h-20 min-w-0 items-center justify-between bg-card/95 px-4 shadow-[0px_2px_8px_-3px_rgba(34,51,84,0.2),0px_5px_22px_-4px_rgba(34,51,84,0.1)] backdrop-blur-[3px] lg:left-[290px]">
-        <h1 className="truncate text-xl font-bold sm:text-[30px] sm:leading-none">
-          {title}
-        </h1>
-        <div className="flex shrink-0 items-center gap-1">
-          <UserMenu user={user} />
+      <header className="fixed top-0 right-0 left-0 z-20 flex h-20 min-w-0 items-center justify-between gap-2 bg-card/95 px-4 shadow-[0px_2px_8px_-3px_rgba(34,51,84,0.2),0px_5px_22px_-4px_rgba(34,51,84,0.1)] backdrop-blur-[3px] lg:left-[290px]">
+        <div className="flex min-w-0 items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
-            className="text-primary lg:hidden"
+            className="shrink-0 text-primary lg:hidden"
             onClick={() => setOpen((value) => !value)}
             aria-label={open ? "Fechar menu" : "Abrir menu"}
           >
             {open ? <X /> : <Menu />}
           </Button>
+          <h1 className="truncate text-xl font-bold sm:text-[30px] sm:leading-none">
+            {title}
+          </h1>
         </div>
+        <UserMenu user={user} />
       </header>
 
       <main className="min-h-full pt-20 lg:pl-[290px]">
