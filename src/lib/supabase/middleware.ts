@@ -6,7 +6,7 @@ import type { Database } from "./database.types";
  * Atualiza/renova a sessão do Supabase a cada request e aplica o guard
  * básico de autenticação. Chamado pelo proxy raiz (src/proxy.ts, Next 16).
  *
- * Rotas públicas: /login, /register, /invite/*, e assets do Next.
+ * Rotas públicas: /login, /register, /invite/*, /s e assets do Next.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -42,7 +42,9 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/invite") ||
-    pathname.startsWith("/auth");
+    pathname.startsWith("/auth") ||
+    pathname === "/s" ||
+    pathname.startsWith("/s/");
 
   if (user && isPublicRoute) {
     const url = request.nextUrl.clone();

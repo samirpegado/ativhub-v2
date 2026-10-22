@@ -11,9 +11,11 @@ import {
   deleteWorkOrderUpdate,
   loadWorkOrderActivity,
   registerWorkOrderFile,
+  removeWorkOrderPart,
   setWorkOrderStatus,
   toggleWorkOrderTimer,
 } from "@/app/(app)/work-orders/activity-actions";
+import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-dialog";
 import { printWorkOrderReport } from "@/components/work-orders/work-order-report";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,13 +28,16 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { formatQuantity } from "@/lib/inventory/format";
+import { formatBrl } from "@/lib/money/brl";
+import { partsTotal, serviceCharge } from "@/lib/work-orders/billing";
 import { createClient } from "@/lib/supabase/client";
 import {
   formatDuration,
   liveDuration,
   type WorkOrderActivity,
 } from "@/lib/work-orders/activity";
-import type { CategoryOption, WorkOrderRecord } from "@/lib/work-orders/queries";
+import type { WorkOrderRecord } from "@/lib/work-orders/queries";
 import {
   WORK_ORDER_STATUSES,
   workOrderPriorityLabel,
@@ -45,6 +50,8 @@ const EMPTY_ACTIVITY: WorkOrderActivity = {
   labors: [],
   files: [],
   updates: [],
+  parts: [],
+  partOptions: [],
 };
 
 function formatDay(value: string | null) {
@@ -73,7 +80,6 @@ function todayInput() {
 export function WorkOrderDrawer({
   orderId,
   order,
-  categories,
   tenantId,
   open,
   onOpenChange,
@@ -82,7 +88,6 @@ export function WorkOrderDrawer({
 }: {
   orderId: string | null;
   order: WorkOrderRecord | null;
-  categories: CategoryOption[];
   tenantId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -102,12 +107,15 @@ export function WorkOrderDrawer({
   const [hours, setHours] = useState("0");
   const [minutes, setMinutes] = useState("0");
   const [note, setNote] = useState("");
+  const [partsOpen, setPartsOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!orderId || !open) return;
     setTab("details");
     setError(null);
     setNote("");
+    setPartsOpen(false);
     setLoaded(null);
     setActivity(EMPTY_ACTIVITY);
     setDetailReady(false);
@@ -120,6 +128,7 @@ export function WorkOrderDrawer({
         return;
       }
       setActivity(result.activity);
+      setLogoUrl(result.logoUrl ?? null);
       if (result.order) {
         setLoaded(result.order);
         setStatus(result.order.status);
@@ -168,8 +177,6 @@ export function WorkOrderDrawer({
     );
   }
   const record = current;
-  const categoryName =
-    categories.find((category) => category.id === record.categoryId)?.name ?? null;
   const running = Boolean(activity.timer?.startedAt);
   const timerLabel = formatDuration(liveDuration(activity.timer, now));
 
@@ -259,6 +266,7 @@ export function WorkOrderDrawer({
   }
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
@@ -267,7 +275,6 @@ export function WorkOrderDrawer({
         <SheetHeader className="border-b pr-12">
           <SheetDescription>
             {record.customId ?? "Ordem de serviço"}
-            {categoryName ? ` · ${categoryName}` : ""}
           </SheetDescription>
           <SheetTitle className="text-xl font-bold">{record.title}</SheetTitle>
           {record.description ? (
@@ -300,7 +307,7 @@ export function WorkOrderDrawer({
               type="button"
               variant="outline"
               className="h-9"
-              onClick={() => printWorkOrderReport(record, activity, categoryName)}
+              onClick={() => printWorkOrderReport(record, activity, logoUrl)}
             >
               <FileText />
               Relatório PDF
@@ -364,6 +371,57 @@ export function WorkOrderDrawer({
                   </ul>
                 )}
               </section>
+
+              <section className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-semibold">Peças</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9"
+                    onClick={() => setPartsOpen(true)}
+                  >
+                    Adicionar peças
+                  </Button>
+                </div>
+                {activity.parts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma peça nesta ordem.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {activity.parts.map((part) => (
+                      <li key={part.id} className="flex items-center justify-between gap-2">
+                        <span>
+                          {part.name}
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {formatQuantity(part.quantity, part.unit)} ·{" "}
+                            {formatBrl(part.cost * part.quantity)}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          className="text-destructive"
+                          aria-label={`Remover ${part.name}`}
+                          onClick={() => removeWorkOrderPart(record.id, part.id).then(apply)}
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              {record.billingMode === "NONE" ? null : (
+                <section className="space-y-1 text-sm">
+                  <h3 className="font-semibold">Cobrança</h3>
+                  <p>Serviço · {formatBrl(serviceCharge(record, activity))}</p>
+                  <p>Peças · {formatBrl(partsTotal(activity.parts))}</p>
+                  <p className="font-semibold">
+                    Total · {formatBrl(serviceCharge(record, activity) + partsTotal(activity.parts))}
+                  </p>
+                </section>
+              )}
 
               <section className="space-y-3">
                 <h3 className="font-semibold">Mão de obra</h3>
@@ -511,6 +569,14 @@ export function WorkOrderDrawer({
         </div>
       </SheetContent>
     </Sheet>
+    <WorkOrderPartsDialog
+      open={partsOpen}
+      workOrderId={record.id}
+      options={activity.partOptions}
+      onOpenChange={setPartsOpen}
+      onAdded={(next) => apply({ activity: next })}
+    />
+    </>
   );
 }
 

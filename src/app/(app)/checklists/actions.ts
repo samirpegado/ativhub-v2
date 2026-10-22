@@ -1,13 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/current-user";
+import { requireAdmin } from "@/lib/auth/permissions";
 import { deleteError, mutationError, parseUuid } from "@/lib/forms/parse";
 import type { MutationState } from "@/lib/forms/state";
 import { parseTaskList } from "@/lib/work-orders/tasks";
 
 function refresh() {
-  revalidatePath("/checklists");
+  revalidatePath("/settings");
   revalidatePath("/");
 }
 
@@ -34,7 +34,7 @@ function readFields(formData: FormData) {
 }
 
 async function replaceTasks(
-  supabase: Awaited<ReturnType<typeof requireTenant>>["supabase"],
+  supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
   tenantId: string,
   checklistId: string,
   tasks: ReturnType<typeof readFields>["tasks"],
@@ -72,7 +72,7 @@ export async function createChecklist(
   formData: FormData,
 ): Promise<MutationState> {
   try {
-    const { supabase, tenantId } = await requireTenant();
+    const { supabase, tenantId } = await requireAdmin();
     const fields = readFields(formData);
     const { data, error } = await supabase
       .from("checklist")
@@ -103,7 +103,7 @@ export async function updateChecklist(
   formData: FormData,
 ): Promise<MutationState> {
   try {
-    const { supabase, tenantId } = await requireTenant();
+    const { supabase, tenantId } = await requireAdmin();
     const id = parseUuid(formData.get("id"));
     if (!id) throw new Error("Lista inválida.");
     const fields = readFields(formData);
@@ -132,7 +132,7 @@ export async function deleteChecklist(
   formData: FormData,
 ): Promise<MutationState> {
   try {
-    const { supabase, tenantId } = await requireTenant();
+    const { supabase, tenantId } = await requireAdmin();
     const id = parseUuid(formData.get("id"));
     if (!id) throw new Error("Lista inválida.");
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/current-user";
+import { requireArea } from "@/lib/auth/permissions";
 import { emptyToNull } from "@/lib/address/format";
 import { ASSET_STATUSES } from "@/lib/assets/status";
 import {
@@ -71,7 +71,7 @@ export async function createAsset(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase, tenantId } = await requireTenant();
+  const { supabase, tenantId } = await requireArea("assets", "edit");
 
   try {
     const fields = readAssetFields(formData);
@@ -98,7 +98,7 @@ export async function updateAsset(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase, tenantId } = await requireTenant();
+  const { supabase, tenantId } = await requireArea("assets", "edit");
 
   try {
     const id = parseUuid(formData.get("id"));
@@ -127,7 +127,7 @@ export async function deleteAsset(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase } = await requireTenant();
+  const { supabase } = await requireArea("assets", "edit");
 
   try {
     const id = parseUuid(formData.get("id"));

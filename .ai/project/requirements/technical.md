@@ -6,6 +6,7 @@
 - Isolamento multi-tenant por `tenant_id` + RLS
 - Auth e-mail/senha (Supabase Auth)
 - Storage privado `attachments` com path `{tenant_id}/...`
+- Listas em tabela: filtros, busca e paginação numa RPC do Postgres, com a query devolvendo os dados completos da tela (padrão de `work_orders_screen` / `work_order_detail`)
 
 ## Integrations
 

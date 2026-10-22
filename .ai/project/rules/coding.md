@@ -15,6 +15,16 @@ Não faz parte do app AtivHub. Não importar, não compilar, não copiar a
 arquitetura React/MUI/Redux. Regras de negócio e tokens vêm de
 `docs/ativhub-mvp-plan.md`.
 
+## Listas
+
+Toda lista em tabela segue o padrão de ordens de serviço. Filtros, busca e
+paginação entram como argumentos de uma RPC no Postgres. A query filtra e
+pagina no banco e devolve o payload completo da tela (a página de registros e
+os dados que o formulário precisa), numa chamada só. O limite é 20. A página
+Next lê essa função no servidor, com a sessão do usuário. O clique num
+registro usa outra RPC com o detalhe completo, no mesmo modelo de
+`work_order_detail`.
+
 ## CRUD UI
 
 Cadastro e edição de entidades abrem em **modal** na listagem (`FormDialog`).

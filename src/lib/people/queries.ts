@@ -1,3 +1,4 @@
+import { can } from "@/lib/auth/areas";
 import { requireTenant } from "@/lib/auth/current-user";
 import { isAssignableRole } from "@/lib/people/roles";
 
@@ -90,9 +91,7 @@ export async function listPeople() {
 
   return {
     people,
-    canManage: people.some(
-      (person) => person.id === appUser.membershipId && person.roleCode === "ADMIN",
-    ),
+    canManage: can(appUser, "people", "edit"),
   };
 }
 

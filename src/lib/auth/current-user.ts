@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { areasFromPermissions, type AreaAccess } from "@/lib/auth/areas";
 import { createClient } from "@/lib/supabase/server";
 import { signStoragePath } from "@/lib/storage/signed-url";
 
@@ -13,7 +14,10 @@ export type AppUser = {
   tenantId: string | null;
   tenantName: string | null;
   membershipId: string | null;
+  roleCode: string;
   roleName: string;
+  isAdmin: boolean;
+  areas: AreaAccess;
   initials: string;
 };
 
@@ -35,7 +39,7 @@ export const requireUser = cache(async function requireUser(): Promise<AppUser> 
   let query = supabase
     .from("membership")
     .select(
-      "id, first_name, last_name, image_url, job_title, role:role_id(code, name), tenant:tenant_id(id, name)",
+      "id, first_name, last_name, image_url, job_title, is_owner, role:role_id(code, name, permissions), tenant:tenant_id(id, name)",
     )
     .eq("user_id", user.id)
     .eq("enabled", true);
@@ -49,13 +53,15 @@ export const requireUser = cache(async function requireUser(): Promise<AppUser> 
   const tenant = membership?.tenant;
   const tenantRecord = Array.isArray(tenant) ? tenant[0] : tenant;
   const role = membership?.role as
-    | { code: string; name: string }
-    | { code: string; name: string }[]
+    | { code: string; name: string; permissions: unknown }
+    | { code: string; name: string; permissions: unknown }[]
     | null
     | undefined;
   const roleRecord = Array.isArray(role) ? role[0] : role;
   const resolvedTenantId = tenantId ?? tenantRecord?.id ?? null;
   const tenantName = tenantRecord?.name ?? null;
+  const roleCode = roleRecord?.code ?? "";
+  const isAdmin = roleCode === "ADMIN" || membership?.is_owner === true;
   const roleName = membership?.job_title || roleRecord?.name || "Usuário";
 
   const firstName = membership?.first_name ?? "";
@@ -78,7 +84,10 @@ export const requireUser = cache(async function requireUser(): Promise<AppUser> 
     tenantId: resolvedTenantId,
     tenantName,
     membershipId: membership?.id ?? null,
+    roleCode,
     roleName,
+    isAdmin,
+    areas: areasFromPermissions(roleCode, roleRecord?.permissions, isAdmin),
     initials,
   };
 });

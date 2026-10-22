@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/current-user";
+import { requireArea } from "@/lib/auth/permissions";
+import { isBillingMode } from "@/lib/work-orders/billing";
 import { ASSET_STATUSES } from "@/lib/assets/status";
 import { emptyToNull } from "@/lib/address/format";
-import { deleteError, mutationError, parseUuid } from "@/lib/forms/parse";
+import { deleteError, mutationError, parseMoney, parseUuid } from "@/lib/forms/parse";
 import type { MutationState } from "@/lib/forms/state";
 import {
   isWorkOrderPriority,
@@ -61,7 +62,7 @@ function readTasks(formData: FormData): WorkOrderTask[] {
 
 async function readFields(
   formData: FormData,
-  supabase: Awaited<ReturnType<typeof requireTenant>>["supabase"],
+  supabase: Awaited<ReturnType<typeof requireArea>>["supabase"],
   tenantId: string,
 ) {
   const title = String(formData.get("title") ?? "").trim();
@@ -79,7 +80,8 @@ async function readFields(
   const assetId = parseUuid(formData.get("asset_id"));
   const teamId = parseUuid(formData.get("team_id"));
   const primaryUserId = parseUuid(formData.get("primary_user_id"));
-  const categoryId = parseUuid(formData.get("category_id"));
+  const billingMode = String(formData.get("billing_mode") ?? "NONE");
+  if (!isBillingMode(billingMode)) throw new Error("Cobrança inválida.");
 
   if (assetId) {
     const { data: asset } = await supabase
@@ -110,7 +112,8 @@ async function readFields(
     asset_id: assetId,
     team_id: teamId,
     primary_user_id: primaryUserId,
-    category_id: categoryId,
+    billing_mode: billingMode,
+    service_amount: billingMode === "FIXED" ? (parseMoney(formData.get("service_amount")) ?? 0) : null,
     assigneeIds: readIds(formData, "assignee_ids"),
     tasks: readTasks(formData),
     assetStatus: String(formData.get("asset_status") ?? ""),
@@ -118,7 +121,7 @@ async function readFields(
 }
 
 async function replaceLinks(
-  supabase: Awaited<ReturnType<typeof requireTenant>>["supabase"],
+  supabase: Awaited<ReturnType<typeof requireArea>>["supabase"],
   tenantId: string,
   workOrderId: string,
   assigneeIds: string[],
@@ -178,7 +181,7 @@ export async function createWorkOrder(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase, tenantId, appUser } = await requireTenant();
+  const { supabase, tenantId, appUser } = await requireArea("work_orders", "edit");
 
   try {
     const fields = await readFields(formData, supabase, tenantId);
@@ -237,7 +240,7 @@ export async function updateWorkOrder(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase, tenantId, appUser } = await requireTenant();
+  const { supabase, tenantId, appUser } = await requireArea("work_orders", "edit");
 
   try {
     const id = parseUuid(formData.get("id"));
@@ -290,7 +293,7 @@ export async function deleteWorkOrder(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase } = await requireTenant();
+  const { supabase } = await requireArea("work_orders", "edit");
 
   try {
     const id = parseUuid(formData.get("id"));

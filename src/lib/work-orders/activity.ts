@@ -1,12 +1,14 @@
 export type WorkOrderTimer = {
   durationSeconds: number;
   startedAt: string | null;
+  hourlyRate: number | null;
 };
 
 export type WorkOrderLabor = {
   id: string;
   durationSeconds: number;
   workedOn: string | null;
+  hourlyRate: number | null;
   author: string;
 };
 
@@ -23,11 +25,32 @@ export type WorkOrderUpdate = {
   author: string;
 };
 
+export type WorkOrderPartLine = {
+  id: string;
+  partId: string;
+  name: string;
+  unit: string | null;
+  cost: number;
+  quantity: number;
+  nonStock: boolean;
+};
+
+export type WorkOrderPartOption = {
+  id: string;
+  name: string;
+  unit: string | null;
+  cost: number;
+  quantity: number;
+  nonStock: boolean;
+};
+
 export type WorkOrderActivity = {
   timer: WorkOrderTimer | null;
   labors: WorkOrderLabor[];
   files: WorkOrderFile[];
   updates: WorkOrderUpdate[];
+  parts: WorkOrderPartLine[];
+  partOptions: WorkOrderPartOption[];
 };
 
 export function formatDuration(totalSeconds: number) {

@@ -91,11 +91,13 @@ export function UserMenu({ user }: { user: AppUser }) {
             label="Minha conta"
             onSelect={() => router.push("/profile")}
           />
-          <MenuRow
-            icon={Building2}
-            label="Minha empresa"
-            onSelect={() => router.push("/company")}
-          />
+          {user.isAdmin ? (
+            <MenuRow
+              icon={Building2}
+              label="Minha empresa"
+              onSelect={() => router.push("/company")}
+            />
+          ) : null}
         </div>
 
         <DropdownMenuSeparator className="mx-0" />

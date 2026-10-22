@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/current-user";
+import { requireArea } from "@/lib/auth/permissions";
 import { emptyToNull } from "@/lib/address/format";
 import { deleteError, mutationError, parseUuid } from "@/lib/forms/parse";
 import type { MutationState } from "@/lib/forms/state";
@@ -13,22 +13,7 @@ function refreshPeople() {
 }
 
 async function requireAdmin() {
-  const context = await requireTenant();
-  const { data, error } = await context.supabase
-    .from("membership")
-    .select("id, role:role_id(code)")
-    .eq("user_id", context.user.id)
-    .eq("tenant_id", context.tenantId)
-    .eq("enabled", true)
-    .maybeSingle();
-
-  const role = data?.role as { code: string } | { code: string }[] | null;
-  const code = Array.isArray(role) ? role[0]?.code : role?.code;
-  if (error || !data || code !== "ADMIN") {
-    throw new Error("Só um administrador pode gerenciar pessoas e equipes.");
-  }
-
-  return context;
+  return requireArea("people", "edit");
 }
 
 function readPersonFields(formData: FormData, currentCode?: string) {

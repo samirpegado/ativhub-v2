@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { WorkOrderTask } from "@/lib/work-orders/tasks";
+import { CurrencyInput } from "@/components/forms/currency-input";
 import { Field } from "@/components/forms/field";
 import { FormActions } from "@/components/forms/form-actions";
 import { ASSET_STATUSES } from "@/lib/assets/status";
@@ -14,7 +15,8 @@ import type { ChecklistRecord } from "@/lib/checklists/queries";
 import type { LocationOption } from "@/lib/locations/queries";
 import type { MutationState } from "@/lib/forms/state";
 import type { PersonRecord, TeamRecord } from "@/lib/people/queries";
-import type { CategoryOption, WorkOrderRecord } from "@/lib/work-orders/queries";
+import { BILLING_MODES, isBillingMode } from "@/lib/work-orders/billing";
+import type { WorkOrderRecord } from "@/lib/work-orders/queries";
 import {
   WORK_ORDER_PRIORITIES,
   WORK_ORDER_STATUSES,
@@ -49,7 +51,6 @@ export function WorkOrderForm({
   assets,
   people,
   teams,
-  categories,
   checklists,
   initialDueDate,
   onCancel,
@@ -61,7 +62,6 @@ export function WorkOrderForm({
   assets: AssetOption[];
   people: PersonRecord[];
   teams: TeamRecord[];
-  categories: CategoryOption[];
   checklists: ChecklistRecord[];
   onCancel: () => void;
   onSuccess: () => void;
@@ -74,6 +74,7 @@ export function WorkOrderForm({
   const [locationId, setLocationId] = useState(order?.locationId ?? "");
   const [assetId, setAssetId] = useState(order?.assetId ?? "");
   const [tasks, setTasks] = useState<WorkOrderTask[]>(order?.tasks ?? []);
+  const [billingMode, setBillingMode] = useState(order?.billingMode ?? "NONE");
 
   useEffect(() => {
     if (state?.success) onSuccess();
@@ -244,21 +245,33 @@ export function WorkOrderForm({
             ))}
           </NativeSelect>
         </Field>
-        {categories.length > 0 ? (
-          <Field label="Categoria" htmlFor="category_id">
-            <NativeSelect
-              id="category_id"
-              name="category_id"
+        <Field label="Cobrança" htmlFor="billing_mode">
+          <NativeSelect
+            id="billing_mode"
+            name="billing_mode"
+            className="h-9"
+            value={billingMode}
+            onChange={(event) => {
+              const next = event.target.value;
+              if (isBillingMode(next)) setBillingMode(next);
+            }}
+          >
+            {BILLING_MODES.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+        {billingMode === "FIXED" ? (
+          <Field label="Valor do serviço" htmlFor="service_amount" required>
+            <CurrencyInput
+              id="service_amount"
+              name="service_amount"
+              required
+              defaultValue={order?.serviceAmount}
               className="h-9"
-              defaultValue={order?.categoryId ?? ""}
-            >
-              <option value="">Nenhuma</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </NativeSelect>
+            />
           </Field>
         ) : null}
         {order ? null : (

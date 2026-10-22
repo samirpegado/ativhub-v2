@@ -1,12 +1,15 @@
+import type { MenuArea } from "@/lib/auth/areas";
+
 export const navItems = [
-  { href: "/", label: "Ordens de serviço", enabled: true },
-  { href: "/checklists", label: "Listas de verificação", enabled: true },
-  { href: "/preventive", label: "Preventiva", enabled: false },
-  { href: "/requests", label: "Solicitações", enabled: false },
-  { href: "/assets", label: "Ativos", enabled: true },
-  { href: "/locations", label: "Localizações", enabled: true },
-  { href: "/inventory", label: "Peças e inventário", enabled: false },
-  { href: "/people", label: "Pessoas e equipes", enabled: true },
-  { href: "/categories", label: "Categorias", enabled: false },
-  { href: "/settings", label: "Configurações", enabled: false },
+  { href: "/", label: "Ordens de serviço", area: "work_orders" },
+  { href: "/preventive", label: "Preventiva", area: "preventive" },
+  { href: "/requests", label: "Solicitações", area: "requests" },
+  { href: "/assets", label: "Ativos", area: "assets" },
+  { href: "/locations", label: "Localizações", area: "locations" },
+  { href: "/inventory", label: "Peças e inventário", area: "inventory" },
+  { href: "/parties", label: "Fornecedores e contratantes", area: "parties" },
+  { href: "/people", label: "Pessoas e equipes", area: "people" },
+  { href: "/settings", label: "Configurações", area: "settings" },
 ] as const;
+
+export type NavArea = MenuArea | "settings";

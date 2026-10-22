@@ -5,13 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ClipboardList,
+  Handshake,
   Inbox,
-  ListChecks,
   MapPin,
   Menu,
   Package,
   Settings,
-  Tags,
   Timer,
   Users,
   Wrench,
@@ -21,6 +20,7 @@ import type { LucideIcon } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { UserMenu } from "@/components/layout/user-menu";
 import { navItems } from "@/components/layout/nav";
+import { can } from "@/lib/auth/areas";
 import type { AppUser } from "@/lib/auth/current-user";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,14 +33,13 @@ import { cn } from "@/lib/utils";
 
 const icons: Record<(typeof navItems)[number]["href"], LucideIcon> = {
   "/": ClipboardList,
-  "/checklists": ListChecks,
   "/preventive": Timer,
   "/requests": Inbox,
   "/assets": Package,
   "/locations": MapPin,
   "/inventory": Wrench,
+  "/parties": Handshake,
   "/people": Users,
-  "/categories": Tags,
   "/settings": Settings,
 };
 
@@ -56,38 +55,38 @@ function pageTitle(pathname: string) {
   return match?.label ?? "AtivHub";
 }
 
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+function visibleNav(user: AppUser) {
+  return navItems.filter((item) => {
+    if (item.area === "settings") return user.isAdmin;
+    return can(user, item.area, "view");
+  });
+}
+
+function SidebarNav({
+  user,
+  onNavigate,
+}: {
+  user: AppUser;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
     <nav className="flex flex-1 flex-col overflow-y-auto py-2">
-      {navItems.map((item) => {
+      {visibleNav(user).map((item) => {
         const Icon = icons[item.href];
-        const active = item.enabled && isActivePath(pathname, item.href);
-        const className = cn(
-          "flex w-full items-center gap-3 px-6 py-3 text-left text-sm font-medium transition-colors",
-          active
-            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          !item.enabled &&
-            "cursor-not-allowed opacity-40 hover:bg-transparent hover:text-sidebar-foreground",
-        );
-
-        if (!item.enabled) {
-          return (
-            <span key={item.href} className={className} title="Em breve">
-              <Icon className="size-5 opacity-50" />
-              {item.label}
-            </span>
-          );
-        }
-
+        const active = isActivePath(pathname, item.href);
         return (
           <Link
             key={item.href}
             href={item.href}
             onClick={onNavigate}
-            className={className}
+            className={cn(
+              "flex w-full items-center gap-3 px-6 py-3 text-left text-sm font-medium transition-colors",
+              active
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            )}
           >
             <Icon className="size-5 opacity-80" />
             {item.label}
@@ -99,9 +98,11 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function SidebarChrome({
+  user,
   onNavigate,
   priorityLogo,
 }: {
+  user: AppUser;
   onNavigate?: () => void;
   priorityLogo?: boolean;
 }) {
@@ -118,7 +119,7 @@ function SidebarChrome({
         />
       </div>
       <div className="mx-4 h-px bg-white/10" />
-      <SidebarNav onNavigate={onNavigate} />
+      <SidebarNav user={user} onNavigate={onNavigate} />
     </div>
   );
 }
@@ -137,7 +138,7 @@ export function AppShell({
   return (
     <div className="min-h-full bg-background">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[290px] bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
-        <SidebarChrome priorityLogo />
+        <SidebarChrome user={user} priorityLogo />
       </aside>
 
       <Sheet open={open} onOpenChange={setOpen}>
@@ -149,7 +150,7 @@ export function AppShell({
           <SheetHeader className="sr-only">
             <SheetTitle>Menu</SheetTitle>
           </SheetHeader>
-          <SidebarChrome onNavigate={() => setOpen(false)} />
+          <SidebarChrome user={user} onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
 

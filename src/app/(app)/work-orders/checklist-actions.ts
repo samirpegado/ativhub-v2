@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/current-user";
+import { requireAdmin } from "@/lib/auth/permissions";
 import { parseTaskList, type WorkOrderTask } from "@/lib/work-orders/tasks";
 
 type SaveChecklistResult =
@@ -24,7 +24,7 @@ export async function saveChecklist(
   }
   if (parsed.length === 0) return { error: "Adicione ao menos uma tarefa antes de salvar a lista." };
 
-  const { supabase, tenantId } = await requireTenant();
+  const { supabase, tenantId } = await requireAdmin();
   const { data, error } = await supabase
     .from("checklist")
     .insert({ tenant_id: tenantId, name: title })

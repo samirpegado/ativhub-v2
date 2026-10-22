@@ -1,4 +1,5 @@
 import { requireTenant } from "@/lib/auth/current-user";
+import { generateDuePreventiveWorkOrders } from "@/lib/preventive/queries";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import type { WorkOrderListQuery } from "@/lib/work-orders/list-params";
 import { readWorkOrderDetail, readWorkOrdersScreen } from "@/lib/work-orders/payload";
@@ -26,6 +27,7 @@ export async function listWorkOrderCategories() {
 
 export async function listWorkOrdersScreen(query: WorkOrderListQuery) {
   const { supabase } = await requireTenant();
+  await generateDuePreventiveWorkOrders();
   const { data, error } = await supabase.rpc("work_orders_screen", {
     p_search: query.search || undefined,
     p_statuses: query.statuses,

@@ -11,6 +11,22 @@ Use this file as a lightweight ADR log.
 - **Decision**: `TODO`
 - **Consequences**: `TODO`
 
+### ADR-0007 - Listas por RPC
+
+- **Status**: accepted
+- **Context**: A tela de ordens fazia várias consultas e a paginação no
+  navegador não combinava com filtro e busca. A função `work_orders_screen`
+  passou a receber busca, filtros, `limit` e `offset` e a devolver o payload
+  da tela inteiro. O clique usa `work_order_detail`.
+- **Decision**: Toda lista em tabela segue esse padrão. A RPC filtra, busca e
+  pagina no banco (no máximo 20 itens) e traz os dados completos da tela numa
+  query. O servidor do Next chama a função com a sessão do usuário. O detalhe
+  de um item clicado vem de outra RPC, também completa.
+- **Consequences**: Peças e conjuntos já usam esse padrão. Localizações,
+  ativos, pessoas, equipes e listas de verificação ainda paginam no navegador
+  sobre o conjunto carregado. O calendário de ordens continua pedindo a mesma
+  função sem filtro e sem paginação, só com a aba aberta.
+
 ### ADR-0006 - Build contido na VM
 
 - **Status**: accepted

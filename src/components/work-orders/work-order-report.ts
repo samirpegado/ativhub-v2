@@ -1,3 +1,6 @@
+import { formatQuantity } from "@/lib/inventory/format";
+import { formatBrl } from "@/lib/money/brl";
+import { partsTotal, serviceCharge } from "@/lib/work-orders/billing";
 import type { WorkOrderActivity } from "@/lib/work-orders/activity";
 import { formatDuration } from "@/lib/work-orders/activity";
 import type { WorkOrderRecord } from "@/lib/work-orders/queries";
@@ -64,13 +67,13 @@ function printHtml(html: string) {
 export function printWorkOrderReport(
   order: WorkOrderRecord,
   activity: WorkOrderActivity,
-  categoryName: string | null,
+  logoUrl: string | null,
 ) {
-
+  const service = serviceCharge(order, activity);
+  const partsCost = partsTotal(activity.parts);
   const rows = [
     ["Status", workOrderStatusLabel(order.status)],
     ["Prioridade", workOrderPriorityLabel(order.priority)],
-    ["Categoria", categoryName ?? "—"],
     ["Vencimento", formatWhen(order.dueDate)],
     ["Localização", order.locationName ?? "—"],
     ["Ativo", order.assetName ?? "—"],
@@ -85,6 +88,12 @@ export function printWorkOrderReport(
     .map(
       (task) =>
         `<li>${escapeHtml(task.label)}: <strong>${escapeHtml(taskAnswerLabel(task))}</strong></li>`,
+    )
+    .join("");
+  const parts = activity.parts
+    .map(
+      (part) =>
+        `<li>${escapeHtml(part.name)} — ${escapeHtml(formatQuantity(part.quantity, part.unit))} — ${escapeHtml(formatBrl(part.cost * part.quantity))}</li>`,
     )
     .join("");
   const labors = activity.labors
@@ -120,7 +129,11 @@ export function printWorkOrderReport(
   </style>
 </head>
 <body>
-  <p>AtivHub</p>
+  ${
+    logoUrl
+      ? `<img src="${escapeHtml(logoUrl)}" alt="Logo" style="max-height:64px;max-width:180px;object-fit:contain" />`
+      : "<p>AtivHub</p>"
+  }
   <h1>${escapeHtml(order.customId ? `${order.customId} · ` : "")}${escapeHtml(order.title)}</h1>
   <p>${escapeHtml(order.description ?? "")}</p>
   <table>
@@ -133,6 +146,16 @@ export function printWorkOrderReport(
   </table>
   <h2>Tarefas</h2>
   ${tasks ? `<ul>${tasks}</ul>` : "<p>Nenhuma tarefa.</p>"}
+  <h2>Peças</h2>
+  ${parts ? `<ul>${parts}</ul>` : "<p>Nenhuma peça.</p>"}
+  ${
+    order.billingMode === "NONE"
+      ? ""
+      : `<h2>Cobrança</h2>
+  <p>Serviço: ${escapeHtml(formatBrl(service))}</p>
+  <p>Peças: ${escapeHtml(formatBrl(partsCost))}</p>
+  <p><strong>Total: ${escapeHtml(formatBrl(service + partsCost))}</strong></p>`
+  }
   <h2>Mão de obra</h2>
   ${labors ? `<ul>${labors}</ul>` : "<p>Nenhum tempo lançado.</p>"}
   <p>Temporizador: ${escapeHtml(formatDuration(activity.timer?.durationSeconds ?? 0))}</p>

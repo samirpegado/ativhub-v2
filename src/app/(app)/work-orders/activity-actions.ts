@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/current-user";
+import { requireArea } from "@/lib/auth/permissions";
 import { parseUuid } from "@/lib/forms/parse";
 import type { WorkOrderActivity } from "@/lib/work-orders/activity";
 import { loadWorkOrderDetail, type WorkOrderRecord } from "@/lib/work-orders/queries";
@@ -14,7 +14,7 @@ import {
 
 type ActivityResult =
   | { error: string }
-  | { activity: WorkOrderActivity; order?: WorkOrderRecord };
+  | { activity: WorkOrderActivity; order?: WorkOrderRecord; logoUrl?: string | null };
 
 async function readActivity(workOrderId: string): Promise<WorkOrderActivity> {
   return (await loadWorkOrderDetail(workOrderId)).activity;
@@ -22,10 +22,23 @@ async function readActivity(workOrderId: string): Promise<WorkOrderActivity> {
 
 function refresh() {
   revalidatePath("/");
+  revalidatePath("/inventory");
 }
 
-async function ownedOrder(workOrderId: string) {
-  const context = await requireTenant();
+async function membershipRate(
+  supabase: Awaited<ReturnType<typeof requireArea>>["supabase"],
+  membershipId: string,
+) {
+  const { data } = await supabase
+    .from("membership")
+    .select("rate")
+    .eq("id", membershipId)
+    .maybeSingle();
+  return data?.rate ?? null;
+}
+
+async function ownedOrder(workOrderId: string, mode: "view" | "edit" = "edit") {
+  const context = await requireArea("work_orders", mode);
   if (!context.appUser.membershipId) {
     throw new Error("Usuário sem vínculo com a empresa.");
   }
@@ -36,9 +49,9 @@ async function ownedOrder(workOrderId: string) {
 
 export async function loadWorkOrderActivity(workOrderId: string): Promise<ActivityResult> {
   try {
-    const { workOrderId: id } = await ownedOrder(workOrderId);
+    const { workOrderId: id } = await ownedOrder(workOrderId, "view");
     const detail = await loadWorkOrderDetail(id);
-    return { activity: detail.activity, order: detail.order };
+    return { activity: detail.activity, order: detail.order, logoUrl: detail.logoUrl };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Não foi possível carregar a ordem.",
@@ -90,7 +103,7 @@ export async function toggleWorkOrderTimer(workOrderId: string): Promise<Activit
     const { supabase, tenantId, membershipId, workOrderId: id } = await ownedOrder(workOrderId);
     const { data: current, error: readError } = await supabase
       .from("labor")
-      .select("id, duration_seconds, started_at")
+      .select("id, duration_seconds, started_at, hourly_rate")
       .eq("work_order_id", id)
       .eq("membership_id", membershipId)
       .eq("logged", true)
@@ -106,6 +119,7 @@ export async function toggleWorkOrderTimer(workOrderId: string): Promise<Activit
         logged: true,
         duration_seconds: 0,
         started_at: now,
+        hourly_rate: await membershipRate(supabase, membershipId),
       });
       if (error) throw new Error("Não foi possível iniciar o temporizador.");
     } else if (current.started_at) {
@@ -118,6 +132,7 @@ export async function toggleWorkOrderTimer(workOrderId: string): Promise<Activit
         .update({
           duration_seconds: current.duration_seconds + extra,
           started_at: null,
+          hourly_rate: current.hourly_rate ?? (await membershipRate(supabase, membershipId)),
         })
         .eq("id", current.id);
       if (error) throw new Error("Não foi possível parar o temporizador.");
@@ -162,6 +177,7 @@ export async function addWorkOrderLabor(
       logged: false,
       duration_seconds: duration,
       started_at: `${workedOn}T12:00:00.000Z`,
+      hourly_rate: await membershipRate(supabase, membershipId),
     });
     if (error) throw new Error("Não foi possível adicionar o tempo.");
     return { activity: await readActivity(id) };
@@ -336,6 +352,74 @@ export async function addWorkOrderUpdate(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Não foi possível registrar a atualização.",
+    };
+  }
+}
+
+function parsePartQuantity(value: string) {
+  const raw = value.trim().replace(",", ".");
+  const amount = Number(raw);
+  if (!raw || !Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Informe a quantidade.");
+  }
+  return Math.round(amount * 1000) / 1000;
+}
+
+function stockError(error: { message: string }, fallback: string) {
+  const message = error.message;
+  if (
+    message.includes("Estoque insuficiente") ||
+    message.includes("Quantidade inválida") ||
+    message.includes("Peça não encontrada") ||
+    message.includes("Ordem não encontrada")
+  ) {
+    return message.replace(/^ERROR:\s*/i, "").split("\n")[0];
+  }
+  return fallback;
+}
+
+export async function addWorkOrderPart(
+  workOrderId: string,
+  partId: string,
+  quantity: string,
+): Promise<ActivityResult> {
+  try {
+    const { supabase, workOrderId: id } = await ownedOrder(workOrderId);
+    const part = parseUuid(partId);
+    if (!part) throw new Error("Selecione a peça.");
+    const { error } = await supabase.rpc("consume_work_order_part", {
+      p_work_order_id: id,
+      p_part_id: part,
+      p_quantity: parsePartQuantity(quantity),
+    });
+    if (error) throw new Error(stockError(error, "Não foi possível adicionar a peça."));
+    refresh();
+    return { activity: await readActivity(id) };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Não foi possível adicionar a peça.",
+    };
+  }
+}
+
+export async function removeWorkOrderPart(
+  workOrderId: string,
+  lineId: string,
+): Promise<ActivityResult> {
+  try {
+    const { supabase, workOrderId: id } = await ownedOrder(workOrderId);
+    const line = parseUuid(lineId);
+    if (!line) throw new Error("Peça inválida.");
+    const { error } = await supabase.rpc("return_work_order_part", {
+      p_work_order_id: id,
+      p_line_id: line,
+    });
+    if (error) throw new Error(stockError(error, "Não foi possível remover a peça."));
+    refresh();
+    return { activity: await readActivity(id) };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Não foi possível remover a peça.",
     };
   }
 }

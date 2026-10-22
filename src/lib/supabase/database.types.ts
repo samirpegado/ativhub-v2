@@ -720,10 +720,83 @@ export type Database = {
           },
         ]
       }
+      part_set: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_set_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      part_set_item: {
+        Row: {
+          part_id: string
+          part_set_id: string
+          tenant_id: string
+        }
+        Insert: {
+          part_id: string
+          part_set_id: string
+          tenant_id: string
+        }
+        Update: {
+          part_id?: string
+          part_set_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "part_set_item_part_id_fkey"
+            columns: ["part_id"]
+            isOneToOne: false
+            referencedRelation: "part"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "part_set_item_part_set_id_fkey"
+            columns: ["part_set_id"]
+            isOneToOne: false
+            referencedRelation: "part_set"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "part_set_item_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pm_task_template: {
         Row: {
           id: string
           label: string
+          options: Json
           order_index: number
           pm_id: string
           task_type: string
@@ -732,6 +805,7 @@ export type Database = {
         Insert: {
           id?: string
           label: string
+          options?: Json
           order_index?: number
           pm_id: string
           task_type?: string
@@ -740,6 +814,7 @@ export type Database = {
         Update: {
           id?: string
           label?: string
+          options?: Json
           order_index?: number
           pm_id?: string
           task_type?: string
@@ -896,6 +971,8 @@ export type Database = {
           location_id: string | null
           primary_user_id: string | null
           priority: string
+          requester_name: string | null
+          requester_phone: string | null
           tenant_id: string
           title: string
           work_order_id: string | null
@@ -912,6 +989,8 @@ export type Database = {
           location_id?: string | null
           primary_user_id?: string | null
           priority?: string
+          requester_name?: string | null
+          requester_phone?: string | null
           tenant_id: string
           title: string
           work_order_id?: string | null
@@ -928,6 +1007,8 @@ export type Database = {
           location_id?: string | null
           primary_user_id?: string | null
           priority?: string
+          requester_name?: string | null
+          requester_phone?: string | null
           tenant_id?: string
           title?: string
           work_order_id?: string | null
@@ -1264,6 +1345,7 @@ export type Database = {
         Row: {
           archived: boolean
           asset_id: string | null
+          billing_mode: string
           category_id: string | null
           completed_by: string | null
           completed_on: string | null
@@ -1273,6 +1355,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           estimated_duration: number | null
+          service_amount: number | null
           estimated_start_date: string | null
           feedback: string | null
           first_time_to_react: string | null
@@ -1293,6 +1376,7 @@ export type Database = {
         Insert: {
           archived?: boolean
           asset_id?: string | null
+          billing_mode?: string
           category_id?: string | null
           completed_by?: string | null
           completed_on?: string | null
@@ -1302,6 +1386,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           estimated_duration?: number | null
+          service_amount?: number | null
           estimated_start_date?: string | null
           feedback?: string | null
           first_time_to_react?: string | null
@@ -1322,6 +1407,7 @@ export type Database = {
         Update: {
           archived?: boolean
           asset_id?: string | null
+          billing_mode?: string
           category_id?: string | null
           completed_by?: string | null
           completed_on?: string | null
@@ -1331,6 +1417,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           estimated_duration?: number | null
+          service_amount?: number | null
           estimated_start_date?: string | null
           feedback?: string | null
           first_time_to_react?: string | null
@@ -1555,7 +1642,42 @@ export type Database = {
         Args: { p_first_name: string; p_last_name: string; p_name: string }
         Returns: string
       }
+      consume_work_order_part: {
+        Args: { p_part_id: string; p_quantity: number; p_work_order_id: string }
+        Returns: undefined
+      }
       current_tenant_id: { Args: never; Returns: string }
+      generate_due_preventive_work_orders: { Args: never; Returns: number }
+      preventive_detail: { Args: { p_id: string }; Returns: Json }
+      preventive_screen: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_priority?: string
+          p_search?: string
+        }
+        Returns: Json
+      }
+      refresh_preventive_schedule: { Args: { p_id: string }; Returns: undefined }
+      part_detail: { Args: { p_part_id: string }; Returns: Json }
+      part_set_detail: { Args: { p_set_id: string }; Returns: Json }
+      part_sets_screen: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: Json
+      }
+      return_work_order_part: {
+        Args: { p_line_id: string; p_work_order_id: string }
+        Returns: undefined
+      }
+      parts_screen: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_stock?: string
+        }
+        Returns: Json
+      }
       work_orders_screen: {
         Args: {
           p_include_calendar?: boolean
@@ -1573,6 +1695,38 @@ export type Database = {
         Returns: string
       }
       seed_default_roles: { Args: { p_tenant_id: string }; Returns: undefined }
+      vendors_screen: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: Json
+      }
+      customers_screen: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: Json
+      }
+      requests_screen: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      approve_request: { Args: { p_request_id: string }; Returns: string }
+      lookup_public_asset: {
+        Args: { p_asset_id?: string; p_barcode?: string }
+        Returns: Json
+      }
+      submit_public_request: {
+        Args: {
+          p_asset_id: string
+          p_description: string
+          p_name: string
+          p_phone: string
+          p_pin: string
+        }
+        Returns: string
+      }
       switch_tenant: { Args: { p_tenant_id: string }; Returns: undefined }
     }
     Enums: {

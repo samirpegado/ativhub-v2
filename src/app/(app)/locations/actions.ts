@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireTenant } from "@/lib/auth/current-user";
+import { requireArea } from "@/lib/auth/permissions";
 import {
   addressFromForm,
   deleteError,
@@ -26,7 +26,7 @@ export async function createLocation(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase, tenantId } = await requireTenant();
+  const { supabase, tenantId } = await requireArea("locations", "edit");
 
   try {
     const fields = readLocationFields(formData);
@@ -52,7 +52,7 @@ export async function updateLocation(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase } = await requireTenant();
+  const { supabase } = await requireArea("locations", "edit");
 
   try {
     const id = parseUuid(formData.get("id"));
@@ -80,7 +80,7 @@ export async function deleteLocation(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase } = await requireTenant();
+  const { supabase } = await requireArea("locations", "edit");
 
   try {
     const id = parseUuid(formData.get("id"));

@@ -25,7 +25,8 @@ export function AssetQrDialog({
   useEffect(() => {
     if (!assetId) return;
     let cancelled = false;
-    void QRCode.toDataURL(assetId, {
+    const origin = window.location.origin;
+    void QRCode.toDataURL(`${origin}/s/${assetId}`, {
       width: 240,
       margin: 1,
       errorCorrectionLevel: "M",

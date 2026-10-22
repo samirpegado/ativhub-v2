@@ -4,7 +4,11 @@ import type { LocationOption } from "@/lib/locations/queries";
 import type { PersonRecord, TeamRecord } from "@/lib/people/queries";
 import type { Database } from "@/lib/supabase/database.types";
 import { signStoragePaths } from "@/lib/storage/signed-url";
-import type { WorkOrderActivity } from "@/lib/work-orders/activity";
+import type {
+  WorkOrderActivity,
+  WorkOrderPartLine,
+  WorkOrderPartOption,
+} from "@/lib/work-orders/activity";
 import { isTaskType, type WorkOrderTask } from "@/lib/work-orders/tasks";
 
 export type WorkOrderPerson = {
@@ -34,6 +38,8 @@ export type WorkOrderRecord = {
   primaryUser: WorkOrderPerson | null;
   assignees: WorkOrderPerson[];
   categoryId: string | null;
+  billingMode: "NONE" | "HOURLY" | "FIXED";
+  serviceAmount: number | null;
   assigneeIds: string[];
   tasks: WorkOrderTask[];
   firstTimeToReact: string | null;
@@ -74,6 +80,7 @@ export type WorkOrdersScreen = {
 export type WorkOrderDetail = {
   order: WorkOrderRecord;
   activity: WorkOrderActivity;
+  logoUrl: string | null;
 };
 
 type Client = SupabaseClient<Database>;
@@ -158,6 +165,9 @@ function mapOrder(
     primaryUserName: primary?.name ?? null,
     primaryUser: primary,
     categoryId: text(row.categoryId),
+    billingMode:
+      row.billingMode === "HOURLY" || row.billingMode === "FIXED" ? row.billingMode : "NONE",
+    serviceAmount: typeof row.serviceAmount === "number" ? row.serviceAmount : null,
     firstTimeToReact: text(row.firstTimeToReact),
     assigneeIds: assignees.map((person) => person.id),
     assignees,
@@ -182,6 +192,35 @@ function mapOrder(
 function countOf(value: unknown) {
   const count = typeof value === "number" ? value : Number(value);
   return Number.isFinite(count) ? count : 0;
+}
+
+function amount(value: unknown) {
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function mapPartOption(value: unknown): WorkOrderPartOption | null {
+  const row = asRecord(value);
+  const id = text(row?.id);
+  const name = text(row?.name);
+  if (!row || !id || !name) return null;
+  return {
+    id,
+    name,
+    unit: text(row.unit),
+    cost: amount(row.cost),
+    quantity: amount(row.quantity),
+    nonStock: row.nonStock === true,
+  };
+}
+
+function mapPartLine(value: unknown): WorkOrderPartLine | null {
+  const row = asRecord(value);
+  const option = mapPartOption(row);
+  const id = text(row?.id);
+  const partId = text(row?.partId);
+  if (!row || !option || !id || !partId) return null;
+  return { ...option, id, partId };
 }
 
 export async function readWorkOrdersScreen(supabase: Client, data: unknown): Promise<WorkOrdersScreen> {
@@ -320,10 +359,12 @@ export async function readWorkOrderDetail(supabase: Client, data: unknown): Prom
   if (!detail || !orderRow) throw new Error("Não foi possível carregar os detalhes da ordem.");
 
   const fileRows = asList(detail.files).map((item) => asRecord(item));
+  const logoPath = text(detail.logoPath);
   const imagePaths = [
     ...new Set([
       ...imagePathsFromOrder(orderRow),
       ...fileRows.map((file) => text(file?.path)).filter((path): path is string => Boolean(path)),
+      ...(logoPath ? [logoPath] : []),
     ]),
   ];
   const signed = await signStoragePaths(supabase, imagePaths);
@@ -337,6 +378,7 @@ export async function readWorkOrderDetail(supabase: Client, data: unknown): Prom
         ? {
             durationSeconds: typeof timer.durationSeconds === "number" ? timer.durationSeconds : 0,
             startedAt: text(timer.startedAt),
+            hourlyRate: typeof timer.hourlyRate === "number" ? timer.hourlyRate : null,
           }
         : null,
       labors: asList(detail.labors).flatMap((item) => {
@@ -348,6 +390,7 @@ export async function readWorkOrderDetail(supabase: Client, data: unknown): Prom
             id,
             durationSeconds: typeof row.durationSeconds === "number" ? row.durationSeconds : 0,
             workedOn: text(row.workedOn),
+            hourlyRate: typeof row.hourlyRate === "number" ? row.hourlyRate : null,
             author: text(row.author) ?? "Usuário",
           },
         ];
@@ -372,6 +415,15 @@ export async function readWorkOrderDetail(supabase: Client, data: unknown): Prom
           },
         ];
       }),
+      parts: asList(detail.parts).flatMap((item) => {
+        const line = mapPartLine(item);
+        return line ? [line] : [];
+      }),
+      partOptions: asList(detail.partOptions).flatMap((item) => {
+        const option = mapPartOption(item);
+        return option ? [option] : [];
+      }),
     },
+    logoUrl: logoPath ? (urls.get(logoPath) ?? null) : null,
   };
 }

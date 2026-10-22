@@ -46,7 +46,6 @@ import type { MutationState } from "@/lib/forms/state";
 import type { PersonRecord, TeamRecord } from "@/lib/people/queries";
 import { workOrderListHref, type WorkOrderListQuery } from "@/lib/work-orders/list-params";
 import type {
-  CategoryOption,
   WorkOrderCalendarItem,
   WorkOrderPerson,
   WorkOrderRecord,
@@ -98,7 +97,6 @@ export function WorkOrdersView({
   assets,
   people,
   teams,
-  categories,
   checklists,
   tenantId,
 }: {
@@ -111,7 +109,6 @@ export function WorkOrdersView({
   assets: AssetOption[];
   people: PersonRecord[];
   teams: TeamRecord[];
-  categories: CategoryOption[];
   checklists: ChecklistRecord[];
   tenantId: string;
 }) {
@@ -429,7 +426,6 @@ export function WorkOrdersView({
             assets={assets}
             people={people}
             teams={teams}
-            categories={categories}
             checklists={checklists}
             onCancel={close}
             onSuccess={close}
@@ -440,7 +436,6 @@ export function WorkOrdersView({
       <WorkOrderDrawer
         orderId={openId}
         order={orders.find((order) => order.id === openId) ?? null}
-        categories={categories}
         tenantId={tenantId}
         open={openId !== null}
         onOpenChange={(next) => {

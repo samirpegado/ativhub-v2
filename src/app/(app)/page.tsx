@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { WorkOrdersView } from "@/components/work-orders/work-orders-view";
-import { requireTenant } from "@/lib/auth/current-user";
+import { requireArea } from "@/lib/auth/permissions";
 import {
   parseWorkOrderListQuery,
   workOrderListHref,
@@ -26,10 +26,8 @@ export default async function HomePage({
 }) {
   const params = await searchParams;
   const query = parseWorkOrderListQuery(params);
-  const [{ tenantId }, screen] = await Promise.all([
-    requireTenant(),
-    listWorkOrdersScreen(query),
-  ]);
+  const { tenantId } = await requireArea("work_orders", "view", { redirect: true });
+  const screen = await listWorkOrdersScreen(query);
   const pageCount = workOrderPageCount(screen.total);
   if (query.page > pageCount) {
     redirect(workOrderListHref({ ...query, page: pageCount }));
@@ -46,7 +44,6 @@ export default async function HomePage({
       assets={screen.assets}
       people={screen.people}
       teams={screen.teams}
-      categories={screen.categories}
       checklists={screen.checklists}
       tenantId={tenantId}
     />
