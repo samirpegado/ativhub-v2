@@ -11,6 +11,13 @@ Use this file as a lightweight ADR log.
 - **Decision**: `TODO`
 - **Consequences**: `TODO`
 
+### ADR-0008 - Seleção em massa no cliente
+
+- **Status**: accepted
+- **Context**: Ativos, ordens e preventivas precisam excluir vários registros de uma vez.
+- **Decision**: A seleção fica no cliente (`useRowSelection`) e vale só para a página visível. A barra chama um server action com os IDs. A action exige edição na área e apaga com `delete().in("id", ids)`, no máximo 100. O RLS continua isolando o tenant. Não há RPC nova.
+- **Consequences**: A mesma barra recebe as próximas ações em grupo. A mudança de data das ordens fica para a fase G.
+
 ### ADR-0007 - Listas por RPC
 
 - **Status**: accepted

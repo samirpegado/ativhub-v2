@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoginForm } from "./login-form";
 
@@ -14,9 +15,14 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ email?: string; next?: string }>;
+  searchParams: Promise<{ email?: string; next?: string; verified?: string; reset?: string }>;
 }) {
-  const { email, next } = await searchParams;
+  const { email, next, verified, reset } = await searchParams;
+  const notice = verified
+    ? "E-mail confirmado. Entre com a senha."
+    : reset
+      ? "Senha atualizada. Entre com a senha nova."
+      : null;
 
   return (
     <main className="flex min-h-full flex-1 items-center justify-center p-6">
@@ -34,6 +40,11 @@ export default async function LoginPage({
                 Preencha os campos abaixo para entrar em sua conta.
               </p>
             </div>
+            {notice ? (
+              <Alert className="mb-4">
+                <AlertDescription>{notice}</AlertDescription>
+              </Alert>
+            ) : null}
             <LoginForm defaultEmail={email ?? ""} next={next ?? "/"} />
             <p className="mt-8 text-sm">
               <span className="font-bold">Ainda não tem uma conta?</span>{" "}

@@ -5,6 +5,14 @@ export const WORK_ORDER_STATUSES = [
   { value: "COMPLETE", label: "Concluído" },
 ] as const;
 
+export const WORK_ORDER_TYPES = [
+  { value: "PREVENTIVE", label: "Preventiva" },
+  { value: "CORRECTIVE", label: "Corretiva" },
+  { value: "PREDICTIVE", label: "Preditiva" },
+] as const;
+
+export type WorkOrderType = (typeof WORK_ORDER_TYPES)[number]["value"];
+
 export const WORK_ORDER_PRIORITIES = [
   { value: "NONE", label: "Nenhuma" },
   { value: "LOW", label: "Baixa" },
@@ -17,6 +25,19 @@ export type WorkOrderPriority = (typeof WORK_ORDER_PRIORITIES)[number]["value"];
 
 export function workOrderStatusLabel(status: string) {
   return WORK_ORDER_STATUSES.find((item) => item.value === status)?.label ?? status;
+}
+
+export function workOrderTypeLabel(type: string) {
+  return WORK_ORDER_TYPES.find((item) => item.value === type)?.label ?? type;
+}
+
+export function isWorkOrderType(value: string): value is WorkOrderType {
+  return WORK_ORDER_TYPES.some((item) => item.value === value);
+}
+
+export function workOrderIsOverdue(order: { dueDate: string | null; status: string }) {
+  if (!order.dueDate || order.status === "COMPLETE") return false;
+  return new Date(order.dueDate).getTime() < Date.now();
 }
 
 export function workOrderPriorityLabel(priority: string) {

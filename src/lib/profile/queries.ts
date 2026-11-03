@@ -17,7 +17,7 @@ export type ProfileData = {
 };
 
 export async function getProfile(): Promise<ProfileData> {
-  const { supabase, user, tenantId } = await requireTenant();
+  const { supabase, user, tenantId } = await requireTenant({ allowExpired: true });
   const { data, error } = await supabase
     .from("membership")
     .select("id, first_name, last_name, phone, job_title, image_url, role:role_id(code, name)")

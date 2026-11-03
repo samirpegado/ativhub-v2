@@ -1,8 +1,11 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, Loader2, Plus, X } from "lucide-react";
+import { CategoryForm } from "@/components/categories/category-form";
+import { FormDialog } from "@/components/forms/form-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +13,7 @@ import { CurrencyInput } from "@/components/forms/currency-input";
 import { Field } from "@/components/forms/field";
 import { FormActions } from "@/components/forms/form-actions";
 import { ASSET_STATUSES } from "@/lib/assets/status";
+import type { AssetCategory } from "@/lib/categories/queries";
 import type { LocationOption } from "@/lib/locations/queries";
 import type { MutationState } from "@/lib/forms/state";
 import { createClient } from "@/lib/supabase/client";
@@ -29,6 +33,7 @@ type AssetValues = {
   name: string;
   description: string | null;
   location_id: string | null;
+  category_id: string | null;
   status: string;
   model: string | null;
   manufacturer: string | null;
@@ -46,12 +51,16 @@ type AssetValues = {
 export function AssetForm({
   asset,
   locations,
+  categories,
+  canManageCategories,
   tenantId,
   onCancel,
   onSuccess,
 }: {
   asset?: AssetValues;
   locations: LocationOption[];
+  categories: AssetCategory[];
+  canManageCategories: boolean;
   tenantId: string;
   onCancel: () => void;
   onSuccess: () => void;
@@ -65,6 +74,9 @@ export function AssetForm({
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(asset?.imageUrl ?? null);
+  const [categoryOptions, setCategoryOptions] = useState(categories);
+  const [categoryId, setCategoryId] = useState(asset?.category_id ?? "");
+  const [creatingCategory, setCreatingCategory] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -124,6 +136,7 @@ export function AssetForm({
   const busy = pending || isPending || uploading;
 
   return (
+    <>
     <form onSubmit={onSubmit} className="space-y-5">
       {asset?.id ? <input type="hidden" name="id" value={asset.id} /> : null}
       {state?.error ? (
@@ -230,6 +243,42 @@ export function AssetForm({
             ))}
           </NativeSelect>
         </Field>
+        <Field label="Categoria" htmlFor="category_id">
+          <div className="flex gap-2">
+            <NativeSelect
+              id="category_id"
+              name="category_id"
+              className="h-9"
+              value={categoryId}
+              onChange={(event) => setCategoryId(event.target.value)}
+            >
+              <option value="">Sem categoria</option>
+              {categoryOptions.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </NativeSelect>
+            {canManageCategories ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-9 shrink-0"
+                onClick={() => setCreatingCategory(true)}
+              >
+                <Plus className="size-4" />
+                Nova
+              </Button>
+            ) : null}
+          </div>
+        </Field>
+        <Field
+          label="Local de instalação"
+          htmlFor="area"
+          hint="Onde o ativo está instalado ou guardado. Ex.: Bloco A, Salão de festas."
+        >
+          <Input id="area" name="area" defaultValue={asset?.area ?? ""} className="h-9" />
+        </Field>
         <Field label="Modelo" htmlFor="model">
           <Input id="model" name="model" defaultValue={asset?.model ?? ""} className="h-9" />
         </Field>
@@ -259,9 +308,6 @@ export function AssetForm({
         </Field>
         <Field label="Potência" htmlFor="power">
           <Input id="power" name="power" defaultValue={asset?.power ?? ""} className="h-9" />
-        </Field>
-        <Field label="Área" htmlFor="area">
-          <Input id="area" name="area" defaultValue={asset?.area ?? ""} className="h-9" />
         </Field>
         <Field label="Custo de aquisição" htmlFor="acquisition_cost">
           <CurrencyInput
@@ -313,5 +359,28 @@ export function AssetForm({
 
       <FormActions pending={busy} onCancel={onCancel} />
     </form>
+    <FormDialog
+      open={creatingCategory}
+      onOpenChange={setCreatingCategory}
+      title="Nova categoria"
+      description="A categoria fica disponível neste ativo e em Configurações."
+    >
+      <CategoryForm
+        key={creatingCategory ? "open" : "closed"}
+        onCancel={() => setCreatingCategory(false)}
+        onSuccess={(created) => {
+          if (created) {
+            setCategoryOptions((current) =>
+              [...current, { ...created, description: null }].sort((a, b) =>
+                a.name.localeCompare(b.name, "pt-BR"),
+              ),
+            );
+            setCategoryId(created.id);
+          }
+          setCreatingCategory(false);
+        }}
+      />
+    </FormDialog>
+    </>
   );
 }

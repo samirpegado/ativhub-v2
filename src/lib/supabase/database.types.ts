@@ -792,6 +792,39 @@ export type Database = {
           },
         ]
       }
+      plan: {
+        Row: {
+          amount: number
+          asaas_plan_ref: string | null
+          code: string
+          created_at: string
+          id: string
+          interval: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          amount: number
+          asaas_plan_ref?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          interval?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          amount?: number
+          asaas_plan_ref?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          interval?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       pm_task_template: {
         Row: {
           id: string
@@ -1151,6 +1184,63 @@ export type Database = {
           },
         ]
       }
+      subscription: {
+        Row: {
+          asaas_customer_id: string | null
+          asaas_payment_link_id: string | null
+          asaas_subscription_id: string | null
+          checkout_env: string | null
+          checkout_url: string | null
+          current_period_end: string | null
+          plan_id: string
+          status: string
+          tenant_id: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          asaas_customer_id?: string | null
+          asaas_payment_link_id?: string | null
+          asaas_subscription_id?: string | null
+          checkout_env?: string | null
+          checkout_url?: string | null
+          current_period_end?: string | null
+          plan_id: string
+          status?: string
+          tenant_id: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asaas_customer_id?: string | null
+          asaas_payment_link_id?: string | null
+          asaas_subscription_id?: string | null
+          checkout_env?: string | null
+          checkout_url?: string | null
+          current_period_end?: string | null
+          plan_id?: string
+          status?: string
+          tenant_id?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plan"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task: {
         Row: {
           asset_id: string | null
@@ -1341,6 +1431,12 @@ export type Database = {
           },
         ]
       }
+      pm_asset: {
+        Row: { pm_id: string; asset_id: string }
+        Insert: { pm_id: string; asset_id: string }
+        Update: { pm_id?: string; asset_id?: string }
+        Relationships: []
+      }
       work_order: {
         Row: {
           archived: boolean
@@ -1371,6 +1467,8 @@ export type Database = {
           team_id: string | null
           tenant_id: string
           title: string
+          type: string
+          customer_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1402,6 +1500,8 @@ export type Database = {
           team_id?: string | null
           tenant_id: string
           title: string
+          type?: string
+          customer_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1433,6 +1533,8 @@ export type Database = {
           team_id?: string | null
           tenant_id?: string
           title?: string
+          type?: string
+          customer_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1638,6 +1740,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      asset_detail: { Args: { p_asset_id: string }; Returns: Json }
       bootstrap_tenant: {
         Args: { p_first_name: string; p_last_name: string; p_name: string }
         Returns: string
@@ -1682,10 +1785,13 @@ export type Database = {
         Args: {
           p_include_calendar?: boolean
           p_limit?: number
+          p_location_ids?: string[]
           p_offset?: number
+          p_overdue?: boolean
           p_priorities?: string[]
           p_search?: string
           p_statuses?: string[]
+          p_types?: string[]
         }
         Returns: Json
       }

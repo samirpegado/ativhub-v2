@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardCheck, FileText, Loader2, Timer, Trash2, X } from "lucide-react";
 import {
@@ -17,6 +17,8 @@ import {
 } from "@/app/(app)/work-orders/activity-actions";
 import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-dialog";
 import { printWorkOrderReport } from "@/components/work-orders/work-order-report";
+import { sendWorkOrderReport } from "@/app/(app)/work-orders/report-actions";
+import { FormDialog } from "@/components/forms/form-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -40,7 +42,9 @@ import {
 import type { WorkOrderRecord } from "@/lib/work-orders/queries";
 import {
   WORK_ORDER_STATUSES,
+  workOrderIsOverdue,
   workOrderPriorityLabel,
+  workOrderTypeLabel,
 } from "@/lib/work-orders/status";
 import { taskAnswerLabel } from "@/lib/work-orders/tasks";
 import { cn } from "@/lib/utils";
@@ -96,6 +100,11 @@ export function WorkOrderDrawer({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<"details" | "updates">("details");
+  const [mailOpen, setMailOpen] = useState(false);
+  const [mailTo, setMailTo] = useState("");
+  const [mailName, setMailName] = useState("");
+  const [mailError, setMailError] = useState<string | null>(null);
+  const [mailPending, startMail] = useTransition();
   const [activity, setActivity] = useState<WorkOrderActivity>(EMPTY_ACTIVITY);
   const [loaded, setLoaded] = useState<WorkOrderRecord | null>(null);
   const [detailReady, setDetailReady] = useState(false);
@@ -276,7 +285,17 @@ export function WorkOrderDrawer({
           <SheetDescription>
             {record.customId ?? "Ordem de serviço"}
           </SheetDescription>
-          <SheetTitle className="text-xl font-bold">{record.title}</SheetTitle>
+          <SheetTitle className="text-xl font-bold">
+            {record.title}
+            <span className="ml-2 align-middle text-xs font-semibold text-muted-foreground">
+              {workOrderTypeLabel(record.type)}
+            </span>
+            {workOrderIsOverdue(record) ? (
+              <span className="ml-2 align-middle rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                Em atraso
+              </span>
+            ) : null}
+          </SheetTitle>
           {record.description ? (
             <p className="text-sm text-muted-foreground">{record.description}</p>
           ) : null}
@@ -311,6 +330,19 @@ export function WorkOrderDrawer({
             >
               <FileText />
               Relatório PDF
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9"
+              onClick={() => {
+                setMailTo(record.customerEmail ?? "");
+                setMailName(record.customerName ?? "");
+                setMailError(null);
+                setMailOpen(true);
+              }}
+            >
+              Enviar por e-mail
             </Button>
             <Button type="button" variant="ghost" className="h-9" onClick={() => onEdit(record)}>
               Editar
@@ -569,6 +601,34 @@ export function WorkOrderDrawer({
         </div>
       </SheetContent>
     </Sheet>
+    <FormDialog
+      open={mailOpen}
+      onOpenChange={setMailOpen}
+      title="Enviar relatório"
+      description="O e-mail leva o resumo da ordem em HTML. O PDF continua na impressão."
+    >
+      <form
+        className="space-y-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          startMail(async () => {
+            const result = await sendWorkOrderReport(record.id, mailTo, mailName);
+            if (result.error) {
+              setMailError(result.error);
+              return;
+            }
+            setMailOpen(false);
+          });
+        }}
+      >
+        {mailError ? <p className="text-sm text-destructive">{mailError}</p> : null}
+        <Input placeholder="Nome" value={mailName} onChange={(event) => setMailName(event.target.value)} className="h-9" />
+        <Input type="email" required placeholder="E-mail" value={mailTo} onChange={(event) => setMailTo(event.target.value)} className="h-9" />
+        <div className="flex justify-end">
+          <Button type="submit" disabled={mailPending}>Enviar</Button>
+        </div>
+      </form>
+    </FormDialog>
     <WorkOrderPartsDialog
       open={partsOpen}
       workOrderId={record.id}

@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { requireArea } from "@/lib/auth/permissions";
 import { emptyToNull } from "@/lib/address/format";
 import { ASSET_STATUSES } from "@/lib/assets/status";
+import { ASSET_CATEGORY_TYPE } from "@/lib/categories/queries";
 import {
   deleteError,
   mutationError,
   parseDate,
+  parseIdList,
   parseMoney,
   parseUuid,
 } from "@/lib/forms/parse";
@@ -46,7 +48,22 @@ function readAssetFields(formData: FormData) {
       formData.get("warranty_expiration_date"),
     ),
     additional_infos: emptyToNull(formData.get("additional_infos")),
+    category_id: parseUuid(formData.get("category_id")),
   };
+}
+
+async function assertAssetCategory(
+  supabase: Awaited<ReturnType<typeof requireArea>>["supabase"],
+  categoryId: string | null,
+) {
+  if (!categoryId) return;
+  const { data } = await supabase
+    .from("category")
+    .select("id")
+    .eq("id", categoryId)
+    .eq("type", ASSET_CATEGORY_TYPE)
+    .maybeSingle();
+  if (!data) throw new Error("Categoria inválida.");
 }
 
 const IMAGE_PATH =
@@ -75,6 +92,7 @@ export async function createAsset(
 
   try {
     const fields = readAssetFields(formData);
+    await assertAssetCategory(supabase, fields.category_id);
     const { error } = await supabase.from("asset").insert({
       tenant_id: tenantId,
       ...fields,
@@ -108,6 +126,7 @@ export async function updateAsset(
       ...readAssetFields(formData),
       ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
     };
+    await assertAssetCategory(supabase, fields.category_id);
     const { error } = await supabase.from("asset").update(fields).eq("id", id);
     if (error) return { error: mutationError(error) };
   } catch (error) {
@@ -144,4 +163,20 @@ export async function deleteAsset(
   }
 
   revalidatePath("/assets");
+  return { success: true };
+}
+
+export async function deleteAssets(ids: string[]): Promise<MutationState> {
+  const { supabase } = await requireArea("assets", "edit");
+  try {
+    const unique = parseIdList(ids);
+    const { error } = await supabase.from("asset").delete().in("id", unique);
+    if (error) return { error: deleteError(error) };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Não foi possível excluir os ativos.",
+    };
+  }
+  revalidatePath("/assets");
+  return { success: true };
 }

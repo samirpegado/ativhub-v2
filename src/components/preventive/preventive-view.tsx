@@ -3,11 +3,14 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { deletePreventive } from "@/app/(app)/preventive/actions";
+import { deletePreventive, deletePreventives } from "@/app/(app)/preventive/actions";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { BulkActionBar } from "@/components/lists/bulk-action-bar";
+import { RowCheckbox } from "@/components/lists/row-checkbox";
 import { PreventiveDrawer } from "@/components/preventive/preventive-drawer";
 import { PreventiveForm } from "@/components/preventive/preventive-form";
 import { TablePagination } from "@/components/lists/table-pagination";
+import { useRowSelection } from "@/components/lists/use-row-selection";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,9 +28,11 @@ import { cn } from "@/lib/utils";
 export function PreventiveView({
   query,
   screen,
+  canEdit,
 }: {
   query: PreventiveListQuery;
   screen: PreventiveScreen;
+  canEdit: boolean;
 }) {
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
@@ -35,6 +40,7 @@ export function PreventiveView({
   const [editing, setEditing] = useState<PreventiveRecord | "new" | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [state, remove, pending] = useActionState<MutationState, FormData>(deletePreventive, undefined);
+  const selection = useRowSelection(screen.items.map((item) => item.id));
 
   useEffect(() => {
     setSearch(query.search);
@@ -126,6 +132,24 @@ export function PreventiveView({
             </Alert>
           </div>
         ) : null}
+        {canEdit ? (
+          <BulkActionBar
+            count={selection.count}
+            ids={selection.ids}
+            onClear={selection.clear}
+            actions={[
+              {
+                label: "Excluir",
+                destructive: true,
+                confirm: (count) =>
+                  count === 1
+                    ? "Excluir o agendamento selecionado? As ordens já criadas permanecem."
+                    : `Excluir ${count} agendamentos? As ordens já criadas permanecem.`,
+                run: deletePreventives,
+              },
+            ]}
+          />
+        ) : null}
         <Separator />
         {screen.items.length === 0 ? (
           <div className="px-6 py-16 text-center">
@@ -145,6 +169,16 @@ export function PreventiveView({
             <table className="w-full min-w-[960px] text-left text-sm">
               <thead className="bg-muted">
                 <tr className="text-muted-foreground">
+                  {canEdit ? (
+                    <th className="w-10 px-4 py-3">
+                      <RowCheckbox
+                        checked={selection.allPage}
+                        indeterminate={selection.somePage}
+                        label="Selecionar os agendamentos desta página"
+                        onChange={selection.togglePage}
+                      />
+                    </th>
+                  ) : null}
                   {["Nome", "Ordem", "Prioridade", "Próxima", "Trabalhador", "Local", "Ativo"].map(
                     (header) => (
                       <th key={header} className="px-4 py-3 text-xs font-semibold tracking-wide uppercase">
@@ -164,6 +198,15 @@ export function PreventiveView({
                     className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
                     onClick={() => setOpenId(item.id)}
                   >
+                    {canEdit ? (
+                      <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                        <RowCheckbox
+                          checked={selection.isSelected(item.id)}
+                          label={`Selecionar ${item.name}`}
+                          onChange={() => selection.toggle(item.id)}
+                        />
+                      </td>
+                    ) : null}
                     <td className="px-4 py-3 font-medium">
                       {item.customId ? (
                         <span className="mr-2 text-muted-foreground">{item.customId}</span>

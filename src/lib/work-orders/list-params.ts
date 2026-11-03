@@ -1,8 +1,10 @@
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import {
   WORK_ORDER_PRIORITIES,
+  WORK_ORDER_TYPES,
   isWorkOrderPriority,
   isWorkOrderStatus,
+  isWorkOrderType,
 } from "@/lib/work-orders/status";
 
 export const DEFAULT_WORK_ORDER_STATUSES = ["OPEN", "IN_PROGRESS", "ON_HOLD"];
@@ -12,6 +14,9 @@ export type WorkOrderListQuery = {
   search: string;
   statuses: string[];
   priorities: string[];
+  locationIds: string[];
+  types: string[];
+  overdue: boolean;
   page: number;
   offset: number;
   calendar: boolean;
@@ -32,10 +37,15 @@ function parseSelection(
   return [...new Set(value.split(",").map((item) => item.trim()).filter(accept))];
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function parseWorkOrderListQuery(input: {
   q?: string;
   status?: string;
   priority?: string;
+  location?: string;
+  type?: string;
+  overdue?: string;
   page?: string;
   view?: string;
 }): WorkOrderListQuery {
@@ -49,6 +59,9 @@ export function parseWorkOrderListQuery(input: {
       isWorkOrderPriority,
       DEFAULT_WORK_ORDER_PRIORITIES,
     ),
+    locationIds: parseSelection(input.location, (item) => UUID.test(item), []),
+    types: parseSelection(input.type, isWorkOrderType, WORK_ORDER_TYPES.map((item) => item.value)),
+    overdue: input.overdue === "1",
     page,
     offset: (page - 1) * LIST_PAGE_SIZE,
     calendar: input.view === "calendar",
@@ -59,6 +72,9 @@ export function workOrderListHref(query: {
   search: string;
   statuses: string[];
   priorities: string[];
+  locationIds: string[];
+  types: string[];
+  overdue: boolean;
   page: number;
   calendar?: boolean;
 }) {
@@ -71,6 +87,11 @@ export function workOrderListHref(query: {
   if (!sameSelection(query.priorities, DEFAULT_WORK_ORDER_PRIORITIES)) {
     params.set("priority", query.priorities.join(","));
   }
+  if (query.locationIds.length > 0) params.set("location", query.locationIds.join(","));
+  if (!sameSelection(query.types, WORK_ORDER_TYPES.map((item) => item.value))) {
+    params.set("type", query.types.join(","));
+  }
+  if (query.overdue) params.set("overdue", "1");
   if (query.page > 1) params.set("page", String(query.page));
   if (query.calendar) params.set("view", "calendar");
   const qs = params.toString();

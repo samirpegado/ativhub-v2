@@ -20,6 +20,7 @@ import type { WorkOrderRecord } from "@/lib/work-orders/queries";
 import {
   WORK_ORDER_PRIORITIES,
   WORK_ORDER_STATUSES,
+  WORK_ORDER_TYPES,
 } from "@/lib/work-orders/status";
 import {
   createWorkOrder,
@@ -52,6 +53,7 @@ export function WorkOrderForm({
   people,
   teams,
   checklists,
+  customers,
   initialDueDate,
   onCancel,
   onSuccess,
@@ -63,6 +65,7 @@ export function WorkOrderForm({
   people: PersonRecord[];
   teams: TeamRecord[];
   checklists: ChecklistRecord[];
+  customers: { id: string; name: string; email: string | null }[];
   onCancel: () => void;
   onSuccess: () => void;
 }) {
@@ -197,6 +200,25 @@ export function WorkOrderForm({
             {people.map((person) => (
               <option key={person.id} value={person.id}>
                 {personLabel(person)}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field label="Tipo" htmlFor="type">
+          <NativeSelect id="type" name="type" className="h-9" defaultValue={order?.type ?? "CORRECTIVE"}>
+            {WORK_ORDER_TYPES.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field label="Cliente" htmlFor="customer_id">
+          <NativeSelect id="customer_id" name="customer_id" className="h-9" defaultValue={order?.customerId ?? ""}>
+            <option value="">Nenhum</option>
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
               </option>
             ))}
           </NativeSelect>

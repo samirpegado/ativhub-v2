@@ -13,3 +13,11 @@ export type AssetStatus = (typeof ASSET_STATUSES)[number]["value"];
 export function assetStatusLabel(status: string) {
   return ASSET_STATUSES.find((item) => item.value === status)?.label ?? status;
 }
+
+export function assetStatusClass(status: string) {
+  if (status === "OPERATIONAL") return "bg-emerald-500/15 text-emerald-700";
+  if (status === "DOWN" || status === "EMERGENCY_SHUTDOWN") return "bg-destructive/10 text-destructive";
+  if (status === "STANDBY" || status === "INSPECTION_SCHEDULED") return "bg-amber-500/15 text-amber-800";
+  if (status === "MODERNIZATION" || status === "COMMISSIONING") return "bg-sky-500/15 text-sky-800";
+  return "bg-muted text-muted-foreground";
+}

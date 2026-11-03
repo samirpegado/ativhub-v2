@@ -8,6 +8,7 @@ import { taskAnswerLabel } from "@/lib/work-orders/tasks";
 import {
   workOrderPriorityLabel,
   workOrderStatusLabel,
+  workOrderTypeLabel,
 } from "@/lib/work-orders/status";
 
 function escapeHtml(value: string) {
@@ -72,6 +73,7 @@ export function printWorkOrderReport(
   const service = serviceCharge(order, activity);
   const partsCost = partsTotal(activity.parts);
   const rows = [
+    ["Tipo", workOrderTypeLabel(order.type)],
     ["Status", workOrderStatusLabel(order.status)],
     ["Prioridade", workOrderPriorityLabel(order.priority)],
     ["Vencimento", formatWhen(order.dueDate)],

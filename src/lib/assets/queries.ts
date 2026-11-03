@@ -1,4 +1,5 @@
 import { requireTenant } from "@/lib/auth/current-user";
+import { readAssetDetail } from "@/lib/assets/detail";
 import { relationName } from "@/lib/forms/parse";
 import { signStoragePaths } from "@/lib/storage/signed-url";
 
@@ -9,6 +10,8 @@ export type AssetRecord = {
   description: string | null;
   location_id: string | null;
   locationName: string | null;
+  category_id: string | null;
+  categoryName: string | null;
   status: string;
   model: string | null;
   manufacturer: string | null;
@@ -44,7 +47,7 @@ export async function listAssets() {
   const { data, error } = await supabase
     .from("asset")
     .select(
-      "id, custom_id, name, description, location_id, status, model, manufacturer, serial_number, bar_code, power, area, acquisition_cost, in_service_date, warranty_expiration_date, additional_infos, image_url, location:location_id(name)",
+      "id, custom_id, name, description, location_id, category_id, status, model, manufacturer, serial_number, bar_code, power, area, acquisition_cost, in_service_date, warranty_expiration_date, additional_infos, image_url, location:location_id(name), category:category_id(name)",
     )
     .eq("archived", false)
     .order("name");
@@ -68,6 +71,10 @@ export async function listAssets() {
     locationName: relationName(
       row.location as { name: string } | { name: string }[] | null,
     ),
+    category_id: row.category_id,
+    categoryName: relationName(
+      row.category as { name: string } | { name: string }[] | null,
+    ),
     status: row.status,
     model: row.model,
     manufacturer: row.manufacturer,
@@ -82,4 +89,11 @@ export async function listAssets() {
     image_url: row.image_url,
     imageUrl: imageUrls[index] ?? null,
   })) satisfies AssetRecord[];
+}
+
+export async function loadAssetDetail(assetId: string) {
+  const { supabase } = await requireTenant();
+  const { data, error } = await supabase.rpc("asset_detail", { p_asset_id: assetId });
+  if (error || data == null) throw new Error("Não foi possível carregar o ativo.");
+  return readAssetDetail(supabase, data);
 }

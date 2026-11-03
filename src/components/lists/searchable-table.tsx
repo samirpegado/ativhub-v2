@@ -1,7 +1,10 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useState, type ReactNode } from "react";
+import { BulkActionBar, type BulkAction } from "@/components/lists/bulk-action-bar";
+import { RowCheckbox } from "@/components/lists/row-checkbox";
 import { TablePagination } from "@/components/lists/table-pagination";
+import { useRowSelection } from "@/components/lists/use-row-selection";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import { Pencil, Plus, QrCode, Search, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -23,7 +26,11 @@ export function SearchableTable({
   onCreate,
   onEdit,
   onQr,
+  onOpen,
+  extraActions,
   manage = true,
+  selectable = false,
+  bulkActions = [],
 }: {
   createLabel: string;
   emptyTitle: string;
@@ -34,7 +41,7 @@ export function SearchableTable({
     id: string;
     name: string;
     searchText: string;
-    cells: string[];
+    cells: ReactNode[];
   }[];
   deleteAction: (
     prev: MutationState,
@@ -44,7 +51,11 @@ export function SearchableTable({
   onCreate: () => void;
   onEdit: (id: string) => void;
   onQr?: (id: string) => void;
+  onOpen?: (id: string) => void;
+  extraActions?: ReactNode;
   manage?: boolean;
+  selectable?: boolean;
+  bulkActions?: BulkAction[];
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -63,10 +74,13 @@ export function SearchableTable({
     (currentPage - 1) * LIST_PAGE_SIZE,
     currentPage * LIST_PAGE_SIZE,
   );
+  const selection = useRowSelection(pageRows.map((row) => row.id));
+  const showSelection = selectable && manage && bulkActions.length > 0;
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-end gap-3">
+        {extraActions}
         {manage ? (
           <Button type="button" className="h-9 font-semibold" onClick={onCreate}>
             <Plus />
@@ -97,6 +111,14 @@ export function SearchableTable({
             </Alert>
           </div>
         ) : null}
+        {showSelection ? (
+          <BulkActionBar
+            count={selection.count}
+            ids={selection.ids}
+            actions={bulkActions}
+            onClear={selection.clear}
+          />
+        ) : null}
         <Separator />
         {filtered.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
@@ -112,6 +134,16 @@ export function SearchableTable({
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="bg-muted">
                 <tr className="text-muted-foreground">
+                  {showSelection ? (
+                    <th className="w-10 px-4 py-3">
+                      <RowCheckbox
+                        checked={selection.allPage}
+                        indeterminate={selection.somePage}
+                        label="Selecionar os registros desta página"
+                        onChange={selection.togglePage}
+                      />
+                    </th>
+                  ) : null}
                   {headers.map((header) => (
                     <th
                       key={header}
@@ -129,7 +161,24 @@ export function SearchableTable({
               </thead>
               <tbody>
                 {pageRows.map((row) => (
-                  <tr key={row.id} className="border-b last:border-0">
+                  <tr
+                    key={row.id}
+                    className={
+                      onOpen
+                        ? "cursor-pointer border-b last:border-0 hover:bg-muted/40"
+                        : "border-b last:border-0"
+                    }
+                    onClick={onOpen ? () => onOpen(row.id) : undefined}
+                  >
+                    {showSelection ? (
+                      <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                        <RowCheckbox
+                          checked={selection.isSelected(row.id)}
+                          label={`Selecionar ${row.name}`}
+                          onChange={() => selection.toggle(row.id)}
+                        />
+                      </td>
+                    ) : null}
                     {row.cells.map((cell, index) => (
                       <td
                         key={index}
@@ -145,7 +194,7 @@ export function SearchableTable({
                       </td>
                     ))}
                     {manage ? (
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                       <div className="flex items-center justify-center gap-1">
                         {onQr ? (
                           <Button

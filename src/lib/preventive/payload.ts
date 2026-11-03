@@ -24,6 +24,7 @@ export type PreventiveRecord = {
   locationId: string | null;
   locationName: string | null;
   assetId: string | null;
+  assetIds: string[];
   assetName: string | null;
   teamId: string | null;
   teamName: string | null;
@@ -140,6 +141,7 @@ function mapSchedule(value: unknown): PreventiveRecord | null {
     locationId: text(row.locationId),
     locationName: text(row.locationName),
     assetId: text(row.assetId),
+    assetIds: asList(row.assetIds).filter((item): item is string => typeof item === "string"),
     assetName: text(row.assetName),
     teamId: text(row.teamId),
     teamName: text(row.teamName),

@@ -5,11 +5,12 @@ import { requireArea } from "@/lib/auth/permissions";
 import { isBillingMode } from "@/lib/work-orders/billing";
 import { ASSET_STATUSES } from "@/lib/assets/status";
 import { emptyToNull } from "@/lib/address/format";
-import { deleteError, mutationError, parseMoney, parseUuid } from "@/lib/forms/parse";
+import { deleteError, mutationError, parseIdList, parseMoney, parseUuid } from "@/lib/forms/parse";
 import type { MutationState } from "@/lib/forms/state";
 import {
   isWorkOrderPriority,
   isWorkOrderStatus,
+  isWorkOrderType,
   statusTimestamps,
   type WorkOrderStatus,
 } from "@/lib/work-orders/status";
@@ -75,6 +76,9 @@ async function readFields(
   const priority = String(formData.get("priority") ?? "NONE");
   if (!isWorkOrderStatus(status)) throw new Error("Status inválido.");
   if (!isWorkOrderPriority(priority)) throw new Error("Prioridade inválida.");
+  const type = String(formData.get("type") ?? "CORRECTIVE");
+  if (!isWorkOrderType(type)) throw new Error("Tipo inválido.");
+  const customerId = parseUuid(formData.get("customer_id"));
 
   const locationId = parseUuid(formData.get("location_id"));
   const assetId = parseUuid(formData.get("asset_id"));
@@ -96,11 +100,22 @@ async function readFields(
     }
   }
 
+  if (customerId) {
+    const { data: customer } = await supabase
+      .from("customer")
+      .select("id")
+      .eq("id", customerId)
+      .maybeSingle();
+    if (!customer) throw new Error("Cliente inválido.");
+  }
+
   return {
     title,
     description: emptyToNull(formData.get("description")),
     status,
     priority,
+    type,
+    customer_id: customerId,
     due_date: parseDateTime(formData.get("due_date"), "Data de vencimento"),
     estimated_start_date: parseDateTime(
       formData.get("estimated_start_date"),
@@ -310,4 +325,42 @@ export async function deleteWorkOrder(
   }
 
   refreshOrders();
+  return { success: true };
+}
+
+export async function deleteWorkOrders(ids: string[]): Promise<MutationState> {
+  const { supabase } = await requireArea("work_orders", "edit");
+  try {
+    const unique = parseIdList(ids);
+    const { error } = await supabase.from("work_order").update({ archived: true }).in("id", unique);
+    if (error) return { error: deleteError(error) };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Não foi possível excluir as ordens.",
+    };
+  }
+  refreshOrders();
+  return { success: true };
+}
+
+export async function updateWorkOrderDates(
+  ids: string[],
+  field: "start" | "due",
+  value: string,
+): Promise<MutationState> {
+  const { supabase } = await requireArea("work_orders", "edit");
+  try {
+    const unique = parseIdList(ids);
+    const parsed = parseDateTime(value, field === "start" ? "Data de início" : "Data de vencimento");
+    if (!parsed) throw new Error("Informe a data.");
+    const patch = field === "start" ? { estimated_start_date: parsed } : { due_date: parsed };
+    const { error } = await supabase.from("work_order").update(patch).in("id", unique);
+    if (error) return { error: mutationError(error) };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Não foi possível alterar as datas.",
+    };
+  }
+  refreshOrders();
+  return { success: true };
 }

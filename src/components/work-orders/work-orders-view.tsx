@@ -5,7 +5,10 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { ClipboardCheck, Pencil, Plus, Search, Signal, Trash2 } from "lucide-react";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { BulkActionBar } from "@/components/lists/bulk-action-bar";
+import { RowCheckbox } from "@/components/lists/row-checkbox";
 import { TablePagination } from "@/components/lists/table-pagination";
+import { useRowSelection } from "@/components/lists/use-row-selection";
 import { WorkOrderDrawer } from "@/components/work-orders/work-order-drawer";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
@@ -39,7 +42,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { deleteWorkOrder } from "@/app/(app)/work-orders/actions";
+import { deleteWorkOrder, deleteWorkOrders, updateWorkOrderDates } from "@/app/(app)/work-orders/actions";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import type { LocationOption } from "@/lib/locations/queries";
 import type { MutationState } from "@/lib/forms/state";
@@ -53,8 +56,11 @@ import type {
 import {
   WORK_ORDER_PRIORITIES,
   WORK_ORDER_STATUSES,
+  WORK_ORDER_TYPES,
+  workOrderIsOverdue,
   workOrderPriorityLabel,
   workOrderStatusLabel,
+  workOrderTypeLabel,
 } from "@/lib/work-orders/status";
 import { cn } from "@/lib/utils";
 
@@ -98,6 +104,8 @@ export function WorkOrdersView({
   people,
   teams,
   checklists,
+  customers,
+  canEdit,
   tenantId,
 }: {
   query: WorkOrderListQuery;
@@ -110,6 +118,8 @@ export function WorkOrdersView({
   people: PersonRecord[];
   teams: TeamRecord[];
   checklists: ChecklistRecord[];
+  customers: { id: string; name: string; email: string | null }[];
+  canEdit: boolean;
   tenantId: string;
 }) {
   const router = useRouter();
@@ -118,12 +128,16 @@ export function WorkOrdersView({
   const [initialDue, setInitialDue] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [answering, setAnswering] = useState<WorkOrderRecord | null>(null);
+  const [dateField, setDateField] = useState<"start" | "due" | null>(null);
+  const [dateValue, setDateValue] = useState("");
+  const [dateError, setDateError] = useState<string | null>(null);
   const [search, setSearch] = useState(query.search);
   const [state, formAction, pending] = useActionState<MutationState, FormData>(
     deleteWorkOrder,
     undefined,
   );
   const view = query.calendar ? "calendar" : "list";
+  const selection = useRowSelection(view === "list" ? orders.map((order) => order.id) : []);
   const close = useCallback(() => {
     setEditing(null);
     setInitialDue(null);
@@ -159,6 +173,9 @@ export function WorkOrdersView({
           search,
           statuses: query.statuses,
           priorities: query.priorities,
+          locationIds: query.locationIds,
+          types: query.types,
+          overdue: query.overdue,
           page: query.page,
           calendar: query.calendar,
           ...next,
@@ -250,6 +267,48 @@ export function WorkOrdersView({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-9">Tipo</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {WORK_ORDER_TYPES.map((item) => (
+                <DropdownMenuCheckboxItem
+                  key={item.value}
+                  checked={query.types.includes(item.value)}
+                  onCheckedChange={() => visit({ types: toggle(query.types, item.value), page: 1 })}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  {item.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-9">Local</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {locations.map((location) => (
+                <DropdownMenuCheckboxItem
+                  key={location.id}
+                  checked={query.locationIds.includes(location.id)}
+                  onCheckedChange={() => visit({ locationIds: toggle(query.locationIds, location.id), page: 1 })}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  {location.name}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            type="button"
+            variant={query.overdue ? "default" : "outline"}
+            className="h-9"
+            onClick={() => visit({ overdue: !query.overdue, page: 1 })}
+          >
+            Em atraso
+          </Button>
           <div className="relative min-w-40 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -267,6 +326,26 @@ export function WorkOrdersView({
               <AlertDescription>{state.error}</AlertDescription>
             </Alert>
           </div>
+        ) : null}
+        {view === "list" && canEdit ? (
+          <BulkActionBar
+            count={selection.count}
+            ids={selection.ids}
+            onClear={selection.clear}
+            actions={[
+              { label: "Data de início", onSelect: () => { setDateError(null); setDateValue(""); setDateField("start"); } },
+              { label: "Data de vencimento", onSelect: () => { setDateError(null); setDateValue(""); setDateField("due"); } },
+              {
+                label: "Excluir",
+                destructive: true,
+                confirm: (count) =>
+                  count === 1
+                    ? "Arquivar a ordem selecionada? Ela sai da lista."
+                    : `Arquivar ${count} ordens? Elas saem da lista.`,
+                run: deleteWorkOrders,
+              },
+            ]}
+          />
         ) : null}
         {view === "list" ? <Separator /> : null}
         {view === "calendar" ? (
@@ -297,6 +376,16 @@ export function WorkOrdersView({
             <table className="w-full min-w-[1080px] text-left text-sm">
               <thead className="bg-muted">
                 <tr className="text-muted-foreground">
+                  {canEdit ? (
+                    <th className="w-10 px-4 py-3">
+                      <RowCheckbox
+                        checked={selection.allPage}
+                        indeterminate={selection.somePage}
+                        label="Selecionar as ordens desta página"
+                        onChange={selection.togglePage}
+                      />
+                    </th>
+                  ) : null}
                   {["ID", "Status", "Título", "Prioridade", "Trabalhador", "Responsáveis", "Localização", "Ativo", "Vencimento"].map(
                     (header) => (
                       <th
@@ -319,6 +408,15 @@ export function WorkOrdersView({
                     className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
                     onClick={() => setOpenId(order.id)}
                   >
+                    {canEdit ? (
+                      <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                        <RowCheckbox
+                          checked={selection.isSelected(order.id)}
+                          label={`Selecionar ${order.title}`}
+                          onChange={() => selection.toggle(order.id)}
+                        />
+                      </td>
+                    ) : null}
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                       {order.customId ?? "—"}
                     </td>
@@ -328,7 +426,17 @@ export function WorkOrdersView({
                         {workOrderStatusLabel(order.status)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-semibold">{order.title}</td>
+                    <td className="px-4 py-3 font-semibold">
+                      <span className="mr-2 inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-semibold">
+                        {workOrderTypeLabel(order.type)}
+                      </span>
+                      {order.title}
+                      {workOrderIsOverdue(order) ? (
+                        <span className="ml-2 inline-flex rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
+                          Em atraso
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={cn(
@@ -427,6 +535,7 @@ export function WorkOrdersView({
             people={people}
             teams={teams}
             checklists={checklists}
+            customers={customers}
             onCancel={close}
             onSuccess={close}
           />
@@ -447,6 +556,54 @@ export function WorkOrdersView({
         }}
         onAnswer={setAnswering}
       />
+
+      <FormDialog
+        open={dateField !== null}
+        onOpenChange={(open) => {
+          if (!open) setDateField(null);
+        }}
+        title={dateField === "start" ? "Alterar data de início" : "Alterar data de vencimento"}
+        description="A data vale para as ordens selecionadas nesta página."
+      >
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!dateField) return;
+            const field = dateField;
+            startNavigation(async () => {
+              const result = await updateWorkOrderDates(selection.ids, field, dateValue);
+              if (result?.error) {
+                setDateError(result.error);
+                return;
+              }
+              selection.clear();
+              setDateField(null);
+            });
+          }}
+        >
+          {dateError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{dateError}</AlertDescription>
+            </Alert>
+          ) : null}
+          <Input
+            type="datetime-local"
+            required
+            value={dateValue}
+            onChange={(event) => setDateValue(event.target.value)}
+            className="h-9"
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setDateField(null)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={navigating || selection.count === 0}>
+              Aplicar
+            </Button>
+          </div>
+        </form>
+      </FormDialog>
 
       <WorkOrderTasksDialog
         order={answering}

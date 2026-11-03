@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   Building2,
   ChevronRight,
+  CreditCard,
   LockOpen,
   UserRound,
 } from "lucide-react";
@@ -96,6 +97,13 @@ export function UserMenu({ user }: { user: AppUser }) {
               icon={Building2}
               label="Minha empresa"
               onSelect={() => router.push("/company")}
+            />
+          ) : null}
+          {user.isAdmin ? (
+            <MenuRow
+              icon={CreditCard}
+              label="Assinatura"
+              onSelect={() => router.push("/subscription")}
             />
           ) : null}
         </div>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireArea } from "@/lib/auth/permissions";
 import { emptyToNull } from "@/lib/address/format";
-import { deleteError, mutationError, parseUuid } from "@/lib/forms/parse";
+import { deleteError, mutationError, parseIdList, parseUuid } from "@/lib/forms/parse";
 import type { MutationState } from "@/lib/forms/state";
 import { loadPreventiveDetail } from "@/lib/preventive/queries";
 import { isRecurrenceBase, isRecurrenceType } from "@/lib/preventive/schedule";
@@ -103,20 +103,26 @@ async function readFields(
   }
 
   const locationId = parseUuid(formData.get("location_id"));
-  const assetId = parseUuid(formData.get("asset_id"));
+  const assetIds = [
+    ...new Set(
+      formData
+        .getAll("asset_ids")
+        .map((value) => parseUuid(value))
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
   const teamId = parseUuid(formData.get("team_id"));
   const primaryUserId = parseUuid(formData.get("primary_user_id"));
 
-  if (assetId) {
-    const { data: asset } = await supabase
+  if (assetIds.length > 0) {
+    const { data: assets } = await supabase
       .from("asset")
       .select("id, location_id")
-      .eq("id", assetId)
       .eq("tenant_id", tenantId)
-      .maybeSingle();
-    if (!asset) throw new Error("Ativo inválido.");
-    if (locationId && asset.location_id && asset.location_id !== locationId) {
-      throw new Error("O ativo não pertence à localização selecionada.");
+      .in("id", assetIds);
+    if ((assets ?? []).length !== assetIds.length) throw new Error("Há um ativo inválido.");
+    if (locationId && (assets ?? []).some((asset) => asset.location_id && asset.location_id !== locationId)) {
+      throw new Error("Um dos ativos não pertence à localização selecionada.");
     }
   }
 
@@ -134,11 +140,24 @@ async function readFields(
     due_date_delay: parseDelay(formData.get("due_date_delay")),
     estimated_duration: parseDuration(formData.get("estimated_duration")),
     location_id: locationId,
-    asset_id: assetId,
+    asset_id: assetIds[0] ?? null,
+    assetIds,
     team_id: teamId,
     primary_user_id: primaryUserId,
     tasks: readTasks(formData),
   };
+}
+
+async function replaceAssets(
+  supabase: Awaited<ReturnType<typeof requireArea>>["supabase"],
+  scheduleId: string,
+  assetIds: string[],
+) {
+  const { error: clearError } = await supabase.from("pm_asset").delete().eq("pm_id", scheduleId);
+  if (clearError) throw new Error("Não foi possível salvar os ativos.");
+  if (assetIds.length === 0) return;
+  const { error } = await supabase.from("pm_asset").insert(assetIds.map((assetId) => ({ pm_id: scheduleId, asset_id: assetId })));
+  if (error) throw new Error("Não foi possível salvar os ativos.");
 }
 
 async function replaceTasks(
@@ -184,13 +203,14 @@ export async function createPreventive(
 ): Promise<MutationState> {
   const { supabase, tenantId } = await requireArea("preventive", "edit");
   try {
-    const { tasks, ...columns } = await readFields(formData, supabase, tenantId);
+    const { tasks, assetIds, ...columns } = await readFields(formData, supabase, tenantId);
     const { data, error } = await supabase
       .from("preventive_maintenance")
       .insert({ tenant_id: tenantId, ...columns })
       .select("id")
       .single();
     if (error || !data) return { error: error ? mutationError(error) : "Não foi possível criar o agendamento." };
+    await replaceAssets(supabase, data.id, assetIds);
     await replaceTasks(supabase, tenantId, data.id, tasks);
     await syncSchedule(supabase, data.id);
   } catch (error) {
@@ -210,9 +230,10 @@ export async function updatePreventive(
   try {
     const id = parseUuid(formData.get("id"));
     if (!id) throw new Error("Agendamento inválido.");
-    const { tasks, ...columns } = await readFields(formData, supabase, tenantId);
+    const { tasks, assetIds, ...columns } = await readFields(formData, supabase, tenantId);
     const { error } = await supabase.from("preventive_maintenance").update(columns).eq("id", id);
     if (error) return { error: mutationError(error) };
+    await replaceAssets(supabase, id, assetIds);
     await replaceTasks(supabase, tenantId, id, tasks);
     await syncSchedule(supabase, id);
   } catch (error) {
@@ -237,6 +258,21 @@ export async function deletePreventive(
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Não foi possível excluir o agendamento.",
+    };
+  }
+  refresh();
+  return { success: true };
+}
+
+export async function deletePreventives(ids: string[]): Promise<MutationState> {
+  const { supabase } = await requireArea("preventive", "edit");
+  try {
+    const unique = parseIdList(ids);
+    const { error } = await supabase.from("preventive_maintenance").delete().in("id", unique);
+    if (error) return { error: deleteError(error) };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Não foi possível excluir os agendamentos.",
     };
   }
   refresh();

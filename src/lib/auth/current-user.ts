@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { areasFromPermissions, type AreaAccess } from "@/lib/auth/areas";
+import { loadSubscription } from "@/lib/billing/access";
 import { createClient } from "@/lib/supabase/server";
 import { signStoragePath } from "@/lib/storage/signed-url";
 
@@ -33,6 +34,9 @@ export const requireUser = cache(async function requireUser(): Promise<AppUser> 
   const { supabase, user } = await getSessionUser();
   if (!user) {
     redirect("/login");
+  }
+  if (!user.email_confirmed_at) {
+    redirect("/auth/verify");
   }
 
   const tenantId = user.app_metadata?.tenant_id as string | undefined;
@@ -92,7 +96,9 @@ export const requireUser = cache(async function requireUser(): Promise<AppUser> 
   };
 });
 
-export const requireTenant = cache(async function requireTenant() {
+export const requireTenant = cache(async function requireTenant(options?: {
+  allowExpired?: boolean;
+}) {
   const { supabase, user } = await getSessionUser();
   if (!user) {
     redirect("/login");
@@ -101,6 +107,11 @@ export const requireTenant = cache(async function requireTenant() {
   const appUser = await requireUser();
   if (!appUser.tenantId) {
     throw new Error("Usuário sem tenant ativo.");
+  }
+
+  if (!options?.allowExpired) {
+    const access = await loadSubscription(supabase, appUser.tenantId);
+    if (!access.allowed) redirect("/subscription");
   }
 
   return { supabase, user, tenantId: appUser.tenantId, appUser };

@@ -43,6 +43,20 @@ Describe the real structural organization of the repository and the architectura
   só como modelo visual/UX — não entra no build, no tsconfig nem no git.
 - Schema e RLS no Supabase projeto `ativhub`; SQL versionado em
   `supabase/migrations/`.
+- E-mail transacional sai só da edge `send-email`, que lê `email_template`
+  (global, sem tenant) e chama a Brevo. O Next não fala com a Brevo. A função
+  aceita apenas a service role. `email_dispatch` guarda a chave de idempotência,
+  sem o corpo da mensagem.
+- O cadastro em `/register` chama a edge `account-access`, que cria o usuário
+  sem confirmar o e-mail, a empresa e o papel de administrador. O link e o código
+  ficam hasheados em `adm_otp_emails` por 3 horas. O app só abre depois de
+  `email_confirmed_at`. A recuperação de senha usa a mesma tabela.
+- Cada empresa nasce com 14 dias de teste no plano `STANDARD` (R$ 99,90/mês).
+  O catálogo fica em `plan` e a situação em `subscription`. O administrador abre
+  o link do Asaas em `/subscription`. A edge `asaas-create-checkout` usa
+  `ASAAS_IS_PROD` (padrão falso, sandbox). O webhook `asaas-webhook` confirma o
+  pagamento. Sem teste vigente ou assinatura ativa, só `/subscription`, o perfil
+  e o logout continuam disponíveis.
 - Auth via `@supabase/ssr` (cookies) + `src/proxy.ts` (convenção Next 16).
 - Tenant ativo em `auth.jwt().app_metadata.tenant_id`, lido por
   `current_tenant_id()`.
@@ -60,6 +74,7 @@ Describe the real structural organization of the repository and the architectura
   `work_order_detail()` no servidor para o painel. Toda lista em tabela deve seguir esse padrão:
   filtros, busca e paginação na RPC, com a query devolvendo os dados completos da tela.
   Localizações, ativos, pessoas, equipes e listas de verificação ainda paginam 20 itens no navegador.
+  Ativos, ordens e preventivas marcam os registros da página e excluem o lote por server action.
   A aba Calendário
   usa FullCalendar: o evento fica no início estimado, ou no vencimento quando
   não há início. O clique abre o detalhe; um dia vazio abre uma ordem nova
@@ -90,10 +105,19 @@ Describe the real structural organization of the repository and the architectura
   ao ser usada. Conjunto agrupa
   peças e o custo é a soma dos custos unitários.
 - `/parties` lista fornecedores e contratantes. `/requests` lista solicitações.
-  `/settings` (só administrador) edita os quatro papéis e as listas de verificação,
-  cada um na sua aba. `/checklists` redireciona para a aba de listas. Minha empresa fica em `/company`, aberta pelo
+  `/settings` (só administrador) edita os quatro papéis, as listas de verificação e as
+  categorias de ativo (`category.type = ASSET`), cada um na sua aba. `/checklists`
+  redireciona para a aba de listas. A categoria do ativo também se cria no formulário
+  do ativo. Minha empresa fica em `/company`, aberta pelo
   menu do perfil, não pela barra lateral. O QR do ativo abre `/s/{id}` sem login.
 - CRUD autenticado em `/locations` e `/assets` (lista + modal de criar/editar).
   Endereço de localização em campos separados; `address` é o texto formatado.
   A imagem do ativo fica em `attachments/{tenant}/assets/` e o caminho em
-  `asset.image_url`.
+  `asset.image_url`. `asset.category_id` aponta para uma categoria do tipo `ASSET`.
+  O campo `asset.area` aparece como local de instalação. O clique no ativo abre o
+  histórico em `asset_detail`: ordens com custo de peças e mão de obra, e paradas.
+  A planilha de ativos é CSV, importada e exportada na própria lista.
+  A ordem tem tipo (preventiva, corretiva, preditiva), cliente opcional e sinal de atraso.
+  A lista filtra por localização, tipo e atraso. Datas de início e vencimento mudam em lote;
+  a exclusão em lote arquiva. O relatório da ordem também sai por e-mail.
+  A preventiva guarda vários ativos em `pm_asset` e gera uma ordem para cada um.

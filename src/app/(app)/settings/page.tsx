@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SettingsView } from "@/components/settings/settings-view";
 import { requireAdminPage } from "@/lib/auth/permissions";
 import { areasFromPermissions, type AreaAccess } from "@/lib/auth/areas";
+import { listAssetCategories } from "@/lib/categories/queries";
 import { listChecklists } from "@/lib/checklists/queries";
 import { ASSIGNABLE_ROLES } from "@/lib/people/roles";
 
@@ -11,9 +12,10 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   const { supabase } = await requireAdminPage();
-  const [{ data, error }, checklists] = await Promise.all([
+  const [{ data, error }, checklists, categories] = await Promise.all([
     supabase.from("role").select("id, code, name, description, permissions").order("name"),
     listChecklists(),
+    listAssetCategories(),
   ]);
   if (error) throw new Error("Não foi possível carregar as funções.");
 
@@ -29,5 +31,5 @@ export default async function SettingsPage() {
       areas: areasFromPermissions(role.code, role.permissions, role.code === "ADMIN") satisfies AreaAccess,
     }));
 
-  return <SettingsView roles={roles} checklists={checklists} />;
+  return <SettingsView roles={roles} checklists={checklists} categories={categories} />;
 }

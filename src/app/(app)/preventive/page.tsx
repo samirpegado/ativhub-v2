@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PreventiveView } from "@/components/preventive/preventive-view";
+import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
 import {
   parsePreventiveQuery,
@@ -19,12 +20,14 @@ export default async function PreventivePage({
   searchParams: Promise<{ q?: string; priority?: string; page?: string }>;
 }) {
   const query = parsePreventiveQuery(await searchParams);
-  await requireArea("preventive", "view", { redirect: true });
+  const { appUser } = await requireArea("preventive", "view", { redirect: true });
   const screen = await listPreventiveScreen(query);
   const pageCount = preventivePageCount(screen.total);
   if (query.page > pageCount) {
     redirect(preventiveHref({ ...query, page: pageCount }));
   }
 
-  return <PreventiveView query={query} screen={screen} />;
+  return (
+    <PreventiveView query={query} screen={screen} canEdit={can(appUser, "preventive", "edit")} />
+  );
 }

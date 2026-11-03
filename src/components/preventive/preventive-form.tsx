@@ -72,7 +72,9 @@ export function PreventiveForm({
   );
   const [days, setDays] = useState<number[]>(schedule?.daysOfWeek ?? []);
   const [locationId, setLocationId] = useState(schedule?.locationId ?? "");
-  const [assetId, setAssetId] = useState(schedule?.assetId ?? "");
+  const [assetIds, setAssetIds] = useState<string[]>(
+    schedule?.assetIds?.length ? schedule.assetIds : schedule?.assetId ? [schedule.assetId] : [],
+  );
   const [tasks, setTasks] = useState<WorkOrderTask[]>(schedule?.tasks ?? []);
 
   useEffect(() => {
@@ -286,8 +288,10 @@ export function PreventiveForm({
             onChange={(event) => {
               const next = event.target.value;
               setLocationId(next);
-              const asset = assets.find((item) => item.id === assetId);
-              if (asset && next && asset.location_id !== next) setAssetId("");
+              if (!next) return;
+              setAssetIds((current) =>
+                current.filter((id) => assets.find((item) => item.id === id)?.location_id === next),
+              );
             }}
           >
             <option value="">Nenhuma</option>
@@ -299,27 +303,33 @@ export function PreventiveForm({
             ))}
           </NativeSelect>
         </Field>
-        <Field label="Ativo" htmlFor="asset_id">
-          <NativeSelect
-            id="asset_id"
-            name="asset_id"
-            className="h-9"
-            value={assetId}
-            onChange={(event) => {
-              const next = event.target.value;
-              setAssetId(next);
-              const asset = assets.find((item) => item.id === next);
-              if (asset?.location_id) setLocationId(asset.location_id);
-            }}
-          >
-            <option value="">Nenhum</option>
-            {visibleAssets.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.custom_id ? `${asset.custom_id} · ` : ""}
-                {asset.name}
-              </option>
-            ))}
-          </NativeSelect>
+        <Field label="Ativos" htmlFor="asset_ids" hint="Cada ativo gera a própria ordem quando o agendamento vence.">
+          <div id="asset_ids" className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
+            {visibleAssets.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum ativo nesta localização.</p>
+            ) : (
+              visibleAssets.map((asset) => (
+                <label key={asset.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="asset_ids"
+                    value={asset.id}
+                    checked={assetIds.includes(asset.id)}
+                    onChange={(event) => {
+                      setAssetIds((current) =>
+                        event.target.checked
+                          ? [...current, asset.id]
+                          : current.filter((id) => id !== asset.id),
+                      );
+                      if (event.target.checked && asset.location_id) setLocationId(asset.location_id);
+                    }}
+                  />
+                  {asset.custom_id ? `${asset.custom_id} · ` : ""}
+                  {asset.name}
+                </label>
+              ))
+            )}
+          </div>
         </Field>
       </div>
       <TaskEditor tasks={tasks} checklists={checklists} onChange={setTasks} />

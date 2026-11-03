@@ -35,6 +35,9 @@ export async function listWorkOrdersScreen(query: WorkOrderListQuery) {
     p_limit: LIST_PAGE_SIZE,
     p_offset: query.offset,
     p_include_calendar: query.calendar,
+    p_location_ids: query.locationIds.length > 0 ? query.locationIds : undefined,
+    p_types: query.types.length > 0 ? query.types : undefined,
+    p_overdue: query.overdue,
   });
 
   if (error) throw new Error("Não foi possível carregar as ordens de serviço.");

@@ -52,6 +52,7 @@ function isActivePath(pathname: string, href: string) {
 function pageTitle(pathname: string) {
   if (pathname.startsWith("/profile")) return "Minha conta";
   if (pathname.startsWith("/company")) return "Minha empresa";
+  if (pathname.startsWith("/subscription")) return "Assinatura";
   const match = navItems.find((item) => isActivePath(pathname, item.href));
   return match?.label ?? "AtivHub";
 }

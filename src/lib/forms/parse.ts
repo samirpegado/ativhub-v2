@@ -14,6 +14,25 @@ export function parseUuid(value: FormDataEntryValue | null) {
   return text;
 }
 
+export function parseIdList(ids: string[]) {
+  if (!Array.isArray(ids) || ids.length === 0) {
+    throw new Error("Selecione ao menos um registro.");
+  }
+  if (ids.length > 100) {
+    throw new Error("Selecione no máximo 100 registros por vez.");
+  }
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of ids) {
+    const text = String(raw ?? "").trim();
+    if (!UUID_RE.test(text)) throw new Error("Identificador inválido.");
+    if (seen.has(text)) continue;
+    seen.add(text);
+    unique.push(text);
+  }
+  return unique;
+}
+
 export function parsePostalCode(value: FormDataEntryValue | null) {
   const digits = digitsOnly(String(value ?? ""));
   if (!digits) return null;

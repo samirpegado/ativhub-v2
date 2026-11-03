@@ -17,7 +17,7 @@ export async function updateProfile(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase, user, appUser } = await requireTenant();
+  const { supabase, user, appUser } = await requireTenant({ allowExpired: true });
   const firstName = String(formData.get("first_name") ?? "").trim();
   const lastName = String(formData.get("last_name") ?? "").trim();
   const phoneRaw = emptyToNull(formData.get("phone"));
@@ -92,7 +92,7 @@ export async function changePassword(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
-  const { supabase, user } = await requireTenant();
+  const { supabase, user } = await requireTenant({ allowExpired: true });
   const currentPassword = String(formData.get("current_password") ?? "");
   const nextPassword = String(formData.get("new_password") ?? "");
   const confirmPassword = String(formData.get("confirm_password") ?? "");
@@ -127,7 +127,7 @@ export async function changePassword(
 }
 
 export async function setProfilePhoto(path: string): Promise<MutationState> {
-  const { supabase, user, tenantId } = await requireTenant();
+  const { supabase, user, tenantId } = await requireTenant({ allowExpired: true });
   const { data: membership } = await supabase
     .from("membership")
     .select("id")

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { AssetsView } from "@/components/assets/assets-view";
+import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
 import { listAssets } from "@/lib/assets/queries";
+import { listAssetCategories } from "@/lib/categories/queries";
 import { listLocations } from "@/lib/locations/queries";
 
 export const metadata: Metadata = {
@@ -9,10 +11,21 @@ export const metadata: Metadata = {
 };
 
 export default async function AssetsPage() {
-  const { tenantId } = await requireArea("assets", "view", { redirect: true });
-  const [assets, locations] = await Promise.all([listAssets(), listLocations()]);
+  const { tenantId, appUser } = await requireArea("assets", "view", { redirect: true });
+  const [assets, locations, categories] = await Promise.all([
+    listAssets(),
+    listLocations(),
+    listAssetCategories(),
+  ]);
 
   return (
-    <AssetsView assets={assets} locations={locations} tenantId={tenantId} />
+    <AssetsView
+      assets={assets}
+      locations={locations}
+      categories={categories}
+      canManageCategories={appUser.isAdmin}
+      canEdit={can(appUser, "assets", "edit")}
+      tenantId={tenantId}
+    />
   );
 }

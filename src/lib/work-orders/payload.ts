@@ -24,6 +24,10 @@ export type WorkOrderRecord = {
   description: string | null;
   status: string;
   priority: string;
+  type: "PREVENTIVE" | "CORRECTIVE" | "PREDICTIVE";
+  customerId: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
   dueDate: string | null;
   estimatedStartDate: string | null;
   estimatedDuration: number | null;
@@ -75,6 +79,7 @@ export type WorkOrdersScreen = {
   teams: TeamRecord[];
   categories: CategoryOption[];
   checklists: ChecklistRecord[];
+  customers: { id: string; name: string; email: string | null }[];
 };
 
 export type WorkOrderDetail = {
@@ -152,6 +157,11 @@ function mapOrder(
     description: text(row.description),
     status: text(row.status) ?? "OPEN",
     priority: text(row.priority) ?? "NONE",
+    type:
+      row.type === "PREVENTIVE" || row.type === "PREDICTIVE" ? row.type : "CORRECTIVE",
+    customerId: text(row.customerId),
+    customerName: text(row.customerName),
+    customerEmail: text(row.customerEmail),
     dueDate: text(row.dueDate),
     estimatedStartDate: text(row.estimatedStartDate),
     estimatedDuration: typeof row.estimatedDuration === "number" ? row.estimatedDuration : null,
@@ -349,6 +359,13 @@ export async function readWorkOrdersScreen(supabase: Client, data: unknown): Pro
           }),
         } satisfies ChecklistRecord,
       ];
+    }),
+    customers: asList(screen.customers).flatMap((item) => {
+      const row = asRecord(item);
+      const id = text(row?.id);
+      const name = text(row?.name);
+      if (!row || !id || !name) return [];
+      return [{ id, name, email: text(row.email) }];
     }),
   };
 }
