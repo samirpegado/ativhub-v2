@@ -1,0 +1,21 @@
+﻿id;nome;status;localizacao;categoria;local_instalacao;modelo;fabricante;numero_serie;codigo_barras;potencia;custo_aquisicao;em_servico_desde;fim_garantia;descricao;informacoes_adicionais
+;Ar-condicionado do salão de festas;Operacional;Sede;Refrigeração;Salão de festas;Split 36k;Carrier;SN-AC-0142;7891001000011;36000 BTU;8450.00;2023-03-12;2026-03-12;Climatização do salão principal;Filtro lavado a cada 90 dias
+;Ar-condicionado da recepção;Operacional;Sede;Refrigeração;Recepção;Split 12k;LG;SN-AC-0208;7891001000012;12000 BTU;3200.00;2024-01-15;2027-01-15;Atende o balcão e a sala de espera;
+;Câmara fria da copa;Inspeção agendada;Sede;Refrigeração;Copa;CF-400;Metalfrio;SN-CF-0088;7891001000013;1,5 CV;12800.00;2022-08-01;2025-08-01;Conservação de alimentos;Termostato em -2 °C
+;Quadro geral de energia;Operacional;Sede;Elétrica;Casa de máquinas;QGBT 400A;WEG;SN-QG-0001;7891001000021;400 A;18600.00;2021-05-20;2024-05-20;Distribuição principal do prédio;Disjuntor geral lacrado
+;Nobreak da sala de TI;Operacional;Sede;Elétrica;Sala de TI;Senoidal 3 kVA;NHS;SN-NB-3310;7891001000022;3 kVA;4100.00;2024-06-02;2027-06-02;Protege servidores e switch;Autonomia estimada de 25 minutos
+;Gerador de emergência;Em espera;Sede;Elétrica;Bloco A;Gera 50;Stemac;SN-GE-5512;7891001000023;50 kVA;42000.00;2020-11-10;2023-11-10;Entra na falta de energia da concessionária;Teste semanal às sextas
+;Bomba de incêndio;Operacional;Sede;Incêndio;Casa de bombas;Jockey 15 cv;KSB;SN-BI-1020;7891001000031;15 CV;15750.00;2021-02-18;2024-02-18;Pressuriza a rede de hidrantes;Partida automática
+;Central de alarme de incêndio;Operacional;Sede;Incêndio;Portaria;CAE-24;Bosch;SN-AI-2401;7891001000032;24 zonas;6800.00;2023-09-04;2026-09-04;Laços da portaria e dos andares;Última inspeção em janeiro
+;Elevador social;Modernização;Sede;Civil;Bloco A;Passageiros 8 paradas;Atlas Schindler;SN-EL-8801;7891001000041;8 paradas;96000.00;2018-04-22;2021-04-22;Acesso do térreo à cobertura;Modernização do comando em andamento
+;Portão da garagem;Fora de serviço;Sede;Civil;Garagem;Deslizante 6 m;PPA;SN-PT-6104;7891001000042;1/2 CV;5400.00;2022-01-09;2025-01-09;Acesso de veículos;Motor travando na abertura
+;Porta automática da recepção;Operacional;Sede;Civil;Recepção;De correr 2 folhas;Dorma;SN-PA-2201;7891001000043;;7300.00;2023-07-30;2026-07-30;Entrada principal de pedestres;Sensor infravermelho
+;Bomba de recalque;Operacional;Sede;Hidráulica;Casa de bombas;Multiestágio 5 cv;Schneider;SN-BR-0507;7891001000051;5 CV;8900.00;2022-10-14;2025-10-14;Leva água do reservatório inferior ao superior;
+;Reservatório superior;Operacional;Sede;Hidráulica;Cobertura;Polietileno 10 mil L;Fortlev;SN-RS-10000;7891001000052;10000 L;2100.00;2021-12-01;;Caixa d'água da cobertura;Limpeza semestral
+;Pressurizador dos banheiros;Comissionamento;Anexo;Hidráulica;Banheiros do 2º andar;Press 1 cv;Lorenzetti;SN-PR-1188;7891001000053;1 CV;980.00;2026-02-01;2028-02-01;Instalado e ainda em testes;Aguardando balanceamento
+;Câmera da portaria;Operacional;Anexo;Segurança;Portaria;Dome IP;Intelbras;SN-CM-4412;7891001000061;;640.00;2024-04-11;2026-04-11;Cobertura da entrada de pedestres;Gravação em NVR por 30 dias
+;Catraca de acesso;Operacional;Anexo;Segurança;Recepção;Catraca balcão;Henry;SN-CT-0903;7891001000062;;2450.00;2024-04-11;2027-04-11;Controle de visitantes e colaboradores;Integrada ao cadastro de pessoas
+;Exaustor da cozinha;Inspeção agendada;Galpão;Civil;Cozinha industrial;Axial 600 mm;Ventisol;SN-EX-0600;7891001000071;1 CV;1750.00;2023-05-19;2025-05-19;Troca de ar da cozinha;Correia com desgaste
+;Compressor de ar;Em espera;Galpão;Elétrica;Oficina;Parafuso 10 hp;Schulz;SN-CP-1002;7891001000072;10 HP;11200.00;2019-09-08;2022-09-08;Ar comprimido da oficina;Reserva do compressor principal
+;Ponte rolante;Desligamento de emergência;Galpão;Civil;Pátio coberto;5 toneladas;Abus;SN-PR-5000;7891001000073;5 t;78000.00;2017-06-15;2020-06-15;Movimentação de peças pesadas;Bloqueada até o laudo
+;Painel fotovoltaico da cobertura;Operacional;Galpão;Elétrica;Cobertura;540 W;Canadian Solar;SN-FV-5408;7891001000074;540 W;980.00;2025-01-20;2030-01-20;Um dos módulos da usina;String 4 do inversor

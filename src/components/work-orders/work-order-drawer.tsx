@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardCheck, FileText, Loader2, Timer, Trash2, X } from "lucide-react";
 import {
-  addWorkOrderLabor,
   addWorkOrderUpdate,
   deleteWorkOrderFile,
   deleteWorkOrderLabor,
@@ -15,6 +14,7 @@ import {
   setWorkOrderStatus,
   toggleWorkOrderTimer,
 } from "@/app/(app)/work-orders/activity-actions";
+import { WorkOrderLaborDialog } from "@/components/work-orders/work-order-labor-dialog";
 import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-dialog";
 import { printWorkOrderReport } from "@/components/work-orders/work-order-report";
 import { sendWorkOrderReport } from "@/app/(app)/work-orders/report-actions";
@@ -75,12 +75,6 @@ function formatWhen(value: string | null) {
   }).format(date);
 }
 
-function todayInput() {
-  const date = new Date();
-  const pad = (part: number) => String(part).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
 export function WorkOrderDrawer({
   orderId,
   order,
@@ -112,11 +106,9 @@ export function WorkOrderDrawer({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const [workedOn, setWorkedOn] = useState(todayInput);
-  const [hours, setHours] = useState("0");
-  const [minutes, setMinutes] = useState("0");
   const [note, setNote] = useState("");
   const [partsOpen, setPartsOpen] = useState(false);
+  const [laborOpen, setLaborOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -125,6 +117,7 @@ export function WorkOrderDrawer({
     setError(null);
     setNote("");
     setPartsOpen(false);
+    setLaborOpen(false);
     setLoaded(null);
     setActivity(EMPTY_ACTIVITY);
     setDetailReady(false);
@@ -154,10 +147,11 @@ export function WorkOrderDrawer({
   }, [order, orderId]);
 
   useEffect(() => {
-    if (!activity.timer?.startedAt) return;
+    const runningClock = Boolean(activity.timer?.startedAt) || activity.labors.some((labor) => labor.startedAt);
+    if (!runningClock) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [activity.timer?.startedAt]);
+  }, [activity.timer?.startedAt, activity.labors]);
 
   if (!open || !orderId) return null;
 
@@ -216,22 +210,6 @@ export function WorkOrderDrawer({
     setBusy(true);
     const result = await toggleWorkOrderTimer(record.id);
     setBusy(false);
-    apply(result);
-  }
-
-  async function addTime() {
-    setBusy(true);
-    const result = await addWorkOrderLabor(
-      record.id,
-      workedOn,
-      Number(hours),
-      Number(minutes),
-    );
-    setBusy(false);
-    if (!("error" in result)) {
-      setHours("0");
-      setMinutes("0");
-    }
     apply(result);
   }
 
@@ -456,64 +434,58 @@ export function WorkOrderDrawer({
               )}
 
               <section className="space-y-3">
-                <h3 className="font-semibold">Mão de obra</h3>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-semibold">Mão de obra</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9"
+                    onClick={() => setLaborOpen(true)}
+                  >
+                    Adicionar tempo
+                  </Button>
+                </div>
                 {activity.labors.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhum tempo lançado.</p>
                 ) : (
                   <ul className="space-y-2 text-sm">
-                    {activity.labors.map((labor) => (
-                      <li key={labor.id} className="flex items-center justify-between gap-2">
-                        <span>
-                          {formatDay(labor.workedOn)} · {formatDuration(labor.durationSeconds)}
-                          <span className="text-muted-foreground"> · {labor.author}</span>
-                        </span>
-                        <button
-                          type="button"
-                          className="text-destructive"
-                          aria-label="Remover tempo"
-                          onClick={() => deleteWorkOrderLabor(record.id, labor.id).then(apply)}
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </li>
-                    ))}
+                    {activity.labors.map((labor) => {
+                      const seconds = labor.startedAt
+                        ? liveDuration(
+                            {
+                              durationSeconds: labor.durationSeconds,
+                              startedAt: labor.startedAt,
+                              hourlyRate: labor.hourlyRate,
+                            },
+                            now,
+                          )
+                        : labor.durationSeconds;
+                      return (
+                        <li key={labor.id} className="flex items-center justify-between gap-2">
+                          <span className="inline-flex items-center gap-1.5">
+                            {formatDay(labor.workedOn)} · {formatDuration(seconds)}
+                            <span className="text-muted-foreground"> · {labor.author}</span>
+                            {labor.fromTimer ? (
+                              <Timer
+                                className="size-3.5 shrink-0 text-muted-foreground"
+                                role="img"
+                                aria-label="Rastreado pelo temporizador"
+                              />
+                            ) : null}
+                          </span>
+                          <button
+                            type="button"
+                            className="text-destructive"
+                            aria-label="Remover tempo"
+                            onClick={() => deleteWorkOrderLabor(record.id, labor.id).then(apply)}
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
-                <div className="flex flex-wrap items-end gap-2">
-                  <label className="space-y-1 text-xs text-muted-foreground">
-                    Data
-                    <Input
-                      type="date"
-                      value={workedOn}
-                      className="h-9"
-                      onChange={(event) => setWorkedOn(event.target.value)}
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-muted-foreground">
-                    Horas
-                    <Input
-                      type="number"
-                      min={0}
-                      value={hours}
-                      className="h-9 w-20"
-                      onChange={(event) => setHours(event.target.value)}
-                    />
-                  </label>
-                  <label className="space-y-1 text-xs text-muted-foreground">
-                    Min
-                    <Input
-                      type="number"
-                      min={0}
-                      max={59}
-                      value={minutes}
-                      className="h-9 w-20"
-                      onChange={(event) => setMinutes(event.target.value)}
-                    />
-                  </label>
-                  <Button type="button" className="h-9" disabled={busy} onClick={addTime}>
-                    Adicionar tempo
-                  </Button>
-                </div>
               </section>
 
               <section className="space-y-2">
@@ -634,6 +606,12 @@ export function WorkOrderDrawer({
       workOrderId={record.id}
       options={activity.partOptions}
       onOpenChange={setPartsOpen}
+      onAdded={(next) => apply({ activity: next })}
+    />
+    <WorkOrderLaborDialog
+      open={laborOpen}
+      workOrderId={record.id}
+      onOpenChange={setLaborOpen}
       onAdded={(next) => apply({ activity: next })}
     />
     </>

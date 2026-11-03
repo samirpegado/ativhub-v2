@@ -47,7 +47,7 @@ export function AssetImportDialog({
         onOpenChange(next);
       }}
       title="Importar ativos"
-      description="O ID atualiza um ativo existente. Sem ID, cria um novo. Linhas inválidas são ignoradas."
+      description="O ID atualiza um ativo existente. Sem ID, cria um novo. Localização ou categoria vazia deixa o ativo sem esse vínculo. Um nome novo cria o cadastro. Linhas inválidas são ignoradas."
     >
       <div className="space-y-4">
         <Button type="button" variant="outline" onClick={() => download("modelo-ativos.csv", assetCsvTemplate())}>
@@ -97,10 +97,18 @@ export function AssetImportDialog({
               startTransition(async () => {
                 const result = await importAssetsCsv(csv);
                 setErrors(result.errors);
+                const createdPlaces =
+                  result.locationsCreated === 0
+                    ? ""
+                    : ` ${result.locationsCreated} ${result.locationsCreated === 1 ? "localização criada" : "localizações criadas"}.`;
+                const createdCategories =
+                  result.categoriesCreated === 0
+                    ? ""
+                    : ` ${result.categoriesCreated} ${result.categoriesCreated === 1 ? "categoria criada" : "categorias criadas"}.`;
                 setMessage(
-                  `${result.created} criado${result.created === 1 ? "" : "s"}, ${result.updated} atualizado${result.updated === 1 ? "" : "s"}.`,
+                  `${result.created} criado${result.created === 1 ? "" : "s"}, ${result.updated} atualizado${result.updated === 1 ? "" : "s"}.${createdPlaces}${createdCategories}`,
                 );
-                if (result.created || result.updated) router.refresh();
+                if (result.created || result.updated || result.locationsCreated || result.categoriesCreated) router.refresh();
               });
             }}
           >

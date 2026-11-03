@@ -461,6 +461,7 @@ export type Database = {
           membership_id: string | null
           started_at: string | null
           tenant_id: string
+          tracked_at: string | null
           work_order_id: string
         }
         Insert: {
@@ -471,6 +472,7 @@ export type Database = {
           membership_id?: string | null
           started_at?: string | null
           tenant_id: string
+          tracked_at?: string | null
           work_order_id: string
         }
         Update: {
@@ -481,6 +483,7 @@ export type Database = {
           membership_id?: string | null
           started_at?: string | null
           tenant_id?: string
+          tracked_at?: string | null
           work_order_id?: string
         }
         Relationships: [

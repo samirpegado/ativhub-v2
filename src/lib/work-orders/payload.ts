@@ -407,6 +407,8 @@ export async function readWorkOrderDetail(supabase: Client, data: unknown): Prom
             id,
             durationSeconds: typeof row.durationSeconds === "number" ? row.durationSeconds : 0,
             workedOn: text(row.workedOn),
+            startedAt: text(row.startedAt),
+            fromTimer: row.fromTimer === true,
             hourlyRate: typeof row.hourlyRate === "number" ? row.hourlyRate : null,
             author: text(row.author) ?? "Usuário",
           },

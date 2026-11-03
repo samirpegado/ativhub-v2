@@ -43,7 +43,7 @@ export function SettingsView({
           Lista de verificação
         </TabButton>
         <TabButton active={tab === "categories"} onClick={() => select("categories")}>
-          Categorias
+          Categorias de ativos
         </TabButton>
       </div>
 

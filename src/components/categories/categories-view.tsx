@@ -26,7 +26,7 @@ export function CategoriesView({ categories }: { categories: AssetCategory[] }) 
           id: category.id,
           name: category.name,
           searchText: [category.name, category.description].filter(Boolean).join(" ").toLowerCase(),
-          cells: [category.name, category.color ?? "—"],
+          cells: [category.name, <ColorSwatch key={category.id} color={category.color} />],
         }))}
       />
       <FormDialog
@@ -47,5 +47,18 @@ export function CategoriesView({ categories }: { categories: AssetCategory[] }) 
         ) : null}
       </FormDialog>
     </>
+  );
+}
+
+function ColorSwatch({ color }: { color: string | null }) {
+  const hex = color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : null;
+  if (!hex) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span
+      className="inline-block size-5 rounded-md border border-black/10"
+      style={{ backgroundColor: hex }}
+      role="img"
+      aria-label="Cor da categoria"
+    />
   );
 }

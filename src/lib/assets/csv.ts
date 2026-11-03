@@ -25,7 +25,7 @@ export type AssetCsvRow = {
   customId: string | null;
   name: string;
   status: string;
-  locationName: string;
+  locationName: string | null;
   categoryName: string | null;
   area: string | null;
   model: string | null;
@@ -194,8 +194,8 @@ function parseStatus(value: string | null) {
 export function readAssetCsv(input: string): { rows: AssetCsvRow[]; errors: { line: number; message: string }[] } {
   const table = parseCsvTable(input);
   const header = (table[0] ?? []).map((cell) => cell.trim().toLowerCase());
-  if (!header.includes("nome") || !header.includes("localizacao")) {
-    return { rows: [], errors: [{ line: 1, message: "O arquivo precisa das colunas nome e localizacao." }] };
+  if (!header.includes("nome")) {
+    return { rows: [], errors: [{ line: 1, message: "O arquivo precisa da coluna nome." }] };
   }
   const index = new Map(header.map((name, position) => [name, position]));
   const cell = (row: string[], name: string) => blank(row[index.get(name) ?? -1]);
@@ -210,7 +210,9 @@ export function readAssetCsv(input: string): { rows: AssetCsvRow[]; errors: { li
       const locationName = cell(raw, "localizacao");
       if (!name) throw new Error("Informe o nome.");
       if (name.length > 160) throw new Error("O nome deve ter no máximo 160 caracteres.");
-      if (!locationName) throw new Error("Informe a localização.");
+      if ((locationName?.length ?? 0) > 160) throw new Error("A localização deve ter no máximo 160 caracteres.");
+      const categoryName = cell(raw, "categoria");
+      if ((categoryName?.length ?? 0) > 80) throw new Error("A categoria deve ter no máximo 80 caracteres.");
       const description = cell(raw, "descricao");
       const additional = cell(raw, "informacoes_adicionais");
       const area = cell(raw, "local_instalacao");
@@ -224,7 +226,7 @@ export function readAssetCsv(input: string): { rows: AssetCsvRow[]; errors: { li
         name,
         status: parseStatus(cell(raw, "status")),
         locationName,
-        categoryName: cell(raw, "categoria"),
+        categoryName,
         area,
         model: cell(raw, "modelo"),
         manufacturer: cell(raw, "fabricante"),

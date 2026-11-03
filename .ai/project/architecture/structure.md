@@ -85,8 +85,8 @@ Describe the real structural organization of the repository and the architectura
   permanente com o modelo. Os modelos ficam em Configurações; `/checklists`
   redireciona para lá. A ordem pode ser sem cobrança, por hora ou valor fixo.
   O clique
-  na ordem abre um painel com status, temporizador, mão de obra (data e
-  duração do usuário logado), peças usadas, arquivos, relatório para impressão e a aba
+  na ordem abre um painel com status, temporizador, mão de obra (lançamento manual
+  e o tempo do temporizador, que pode ser apagado), peças usadas, arquivos, relatório para impressão e a aba
   de atualizações. A peça lançada vem do inventário: o estoque baixa, exceto quando
   a peça não controla estoque, e remover a linha devolve a quantidade.
 - `/preventive` lista os agendamentos. `preventive_screen` recebe busca, prioridade,
@@ -117,6 +117,7 @@ Describe the real structural organization of the repository and the architectura
   O campo `asset.area` aparece como local de instalação. O clique no ativo abre o
   histórico em `asset_detail`: ordens com custo de peças e mão de obra, e paradas.
   A planilha de ativos é CSV, importada e exportada na própria lista.
+  A localização e a categoria da planilha são opcionais: nome existente associa, nome novo cria o cadastro, e célula vazia deixa o ativo sem esse vínculo. A categoria nova recebe uma cor aleatória.
   A ordem tem tipo (preventiva, corretiva, preditiva), cliente opcional e sinal de atraso.
   A lista filtra por localização, tipo e atraso. Datas de início e vencimento mudam em lote;
   a exclusão em lote arquiva. O relatório da ordem também sai por e-mail.

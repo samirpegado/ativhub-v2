@@ -9,21 +9,30 @@ import { relationName } from "@/lib/forms/parse";
 export type AssetImportResult = {
   created: number;
   updated: number;
+  locationsCreated: number;
+  categoriesCreated: number;
   errors: { line: number; message: string }[];
 };
 
 const MAX_ROWS = 500;
 
-function matchOne(
-  items: { id: string; name: string }[],
-  name: string,
-  missing: string,
-  many: string,
-) {
-  const found = items.filter((item) => item.name.trim().toLowerCase() === name.trim().toLowerCase());
-  if (found.length === 0) throw new Error(missing);
-  if (found.length > 1) throw new Error(many);
-  return found[0].id;
+function randomCategoryColor() {
+  const hue = Math.floor(Math.random() * 360);
+  const saturation = 0.62;
+  const lightness = 0.46;
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const sector = hue / 60;
+  const x = chroma * (1 - Math.abs((sector % 2) - 1));
+  const match =
+    sector < 1 ? [chroma, x, 0] :
+    sector < 2 ? [x, chroma, 0] :
+    sector < 3 ? [0, chroma, x] :
+    sector < 4 ? [0, x, chroma] :
+    sector < 5 ? [x, 0, chroma] :
+    [chroma, 0, x];
+  const shift = lightness - chroma / 2;
+  const hex = (channel: number) => Math.round((channel + shift) * 255).toString(16).padStart(2, "0");
+  return `#${hex(match[0])}${hex(match[1])}${hex(match[2])}`;
 }
 
 export async function exportAssetsCsv(): Promise<{ csv: string } | { error: string }> {
@@ -60,7 +69,7 @@ export async function exportAssetsCsv(): Promise<{ csv: string } | { error: stri
   };
 }
 
-function columns(row: AssetCsvRow, locationId: string, categoryId: string | null) {
+function columns(row: AssetCsvRow, locationId: string | null, categoryId: string | null) {
   return {
     name: row.name,
     status: row.status,
@@ -83,18 +92,19 @@ function columns(row: AssetCsvRow, locationId: string, categoryId: string | null
 export async function importAssetsCsv(csv: string): Promise<AssetImportResult> {
   const { supabase, tenantId } = await requireArea("assets", "edit");
   if (csv.length > 1_000_000) {
-    return { created: 0, updated: 0, errors: [{ line: 1, message: "O arquivo é grande demais." }] };
+    return { created: 0, updated: 0, locationsCreated: 0, categoriesCreated: 0, errors: [{ line: 1, message: "O arquivo é grande demais." }] };
   }
   const parsed = readAssetCsv(csv);
   if (parsed.rows.length + parsed.errors.length > MAX_ROWS) {
     return {
       created: 0,
       updated: 0,
+      locationsCreated: 0, categoriesCreated: 0,
       errors: [{ line: 1, message: `Importe no máximo ${MAX_ROWS} linhas por vez.` }],
     };
   }
   if (parsed.errors.some((item) => item.line === 1)) {
-    return { created: 0, updated: 0, errors: parsed.errors };
+    return { created: 0, updated: 0, locationsCreated: 0, categoriesCreated: 0, errors: parsed.errors };
   }
 
   const [locations, categories, assets] = await Promise.all([
@@ -103,7 +113,7 @@ export async function importAssetsCsv(csv: string): Promise<AssetImportResult> {
     supabase.from("asset").select("id, custom_id"),
   ]);
   if (locations.error || categories.error || assets.error) {
-    return { created: 0, updated: 0, errors: [{ line: 1, message: "Não foi possível ler os cadastros." }] };
+    return { created: 0, updated: 0, locationsCreated: 0, categoriesCreated: 0, errors: [{ line: 1, message: "Não foi possível ler os cadastros." }] };
   }
 
   const byCode = new Map<string, string>();
@@ -111,26 +121,50 @@ export async function importAssetsCsv(csv: string): Promise<AssetImportResult> {
     if (asset.custom_id) byCode.set(asset.custom_id, asset.id);
   }
 
+  const knownLocations = [...(locations.data ?? [])];
+  const knownCategories = [...(categories.data ?? [])];
   let created = 0;
   let updated = 0;
+  let locationsCreated = 0;
+  let categoriesCreated = 0;
   const errors = [...parsed.errors];
+
+  async function locationIdFor(name: string | null) {
+    if (!name) return null;
+    const found = knownLocations.filter((item) => item.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (found.length > 1) throw new Error("Há mais de uma localização com este nome.");
+    if (found.length === 1) return found[0].id;
+    const { data, error } = await supabase
+      .from("location")
+      .insert({ tenant_id: tenantId, name })
+      .select("id, name")
+      .single();
+    if (error || !data) throw new Error("Não foi possível criar a localização.");
+    knownLocations.push(data);
+    locationsCreated += 1;
+    return data.id;
+  }
+
+  async function categoryIdFor(name: string | null) {
+    if (!name) return null;
+    const found = knownCategories.filter((item) => item.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (found.length > 1) throw new Error("Há mais de uma categoria com este nome.");
+    if (found.length === 1) return found[0].id;
+    const { data, error } = await supabase
+      .from("category")
+      .insert({ tenant_id: tenantId, type: ASSET_CATEGORY_TYPE, name, color: randomCategoryColor() })
+      .select("id, name")
+      .single();
+    if (error || !data) throw new Error("Não foi possível criar a categoria.");
+    knownCategories.push(data);
+    categoriesCreated += 1;
+    return data.id;
+  }
 
   for (const row of parsed.rows) {
     try {
-      const locationId = matchOne(
-        locations.data ?? [],
-        row.locationName,
-        "Localização não encontrada.",
-        "Há mais de uma localização com este nome.",
-      );
-      const categoryId = row.categoryName
-        ? matchOne(
-            categories.data ?? [],
-            row.categoryName,
-            "Categoria não encontrada.",
-            "Há mais de uma categoria com este nome.",
-          )
-        : null;
+      const categoryId = await categoryIdFor(row.categoryName);
+      const locationId = await locationIdFor(row.locationName);
       const fields = columns(row, locationId, categoryId);
       const existingId = row.customId ? byCode.get(row.customId) : undefined;
       if (existingId) {
@@ -161,7 +195,9 @@ export async function importAssetsCsv(csv: string): Promise<AssetImportResult> {
     }
   }
 
-  if (created || updated) revalidatePath("/assets");
+  if (created || updated || categoriesCreated) revalidatePath("/assets");
+  if (locationsCreated) revalidatePath("/locations");
+  if (categoriesCreated) revalidatePath("/settings");
   errors.sort((a, b) => a.line - b.line);
-  return { created, updated, errors };
+  return { created, updated, locationsCreated, categoriesCreated, errors };
 }

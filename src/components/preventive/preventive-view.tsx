@@ -25,6 +25,13 @@ import { nextRunLabel } from "@/lib/preventive/schedule";
 import { WORK_ORDER_PRIORITIES, workOrderPriorityLabel } from "@/lib/work-orders/status";
 import { cn } from "@/lib/utils";
 
+function priorityClass(priority: string) {
+  if (priority === "HIGH") return "bg-destructive/10 text-destructive";
+  if (priority === "MEDIUM") return "bg-amber-500/15 text-amber-700";
+  if (priority === "LOW") return "bg-emerald-500/15 text-emerald-700";
+  return "bg-muted text-muted-foreground";
+}
+
 export function PreventiveView({
   query,
   screen,
@@ -217,7 +224,16 @@ export function PreventiveView({
                       ) : null}
                     </td>
                     <td className="px-4 py-3">{item.title}</td>
-                    <td className="px-4 py-3">{workOrderPriorityLabel(item.priority)}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={cn(
+                          "inline-flex rounded-md px-2 py-0.5 text-xs font-semibold",
+                          priorityClass(item.priority),
+                        )}
+                      >
+                        {workOrderPriorityLabel(item.priority)}
+                      </span>
+                    </td>
                     <td className="px-4 py-3">{nextRunLabel(item)}</td>
                     <td className="px-4 py-3">{item.primaryUserName ?? "—"}</td>
                     <td className="px-4 py-3">{item.locationName ?? "—"}</td>

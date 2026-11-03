@@ -288,7 +288,8 @@ as $$
           'id', l.id,
           'durationSeconds', l.duration_seconds,
           'hourlyRate', l.hourly_rate,
-          'workedOn', l.started_at,
+          'workedOn', case when l.logged then null else l.started_at end,
+          'startedAt', case when l.logged then l.started_at else null end,
           'author', coalesce(
             nullif(btrim(concat_ws(' ', m.first_name, m.last_name)), ''),
             'Usuário'
@@ -299,7 +300,7 @@ as $$
       from public.labor l
       left join public.membership m on m.id = l.membership_id
       where l.work_order_id = wo.id
-        and not l.logged
+        and (not l.logged or l.started_at is not null or l.duration_seconds > 0)
     ), '[]'::jsonb),
     'files', coalesce((
       select jsonb_agg(

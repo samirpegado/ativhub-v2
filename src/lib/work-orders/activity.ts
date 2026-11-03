@@ -8,6 +8,8 @@ export type WorkOrderLabor = {
   id: string;
   durationSeconds: number;
   workedOn: string | null;
+  startedAt: string | null;
+  fromTimer: boolean;
   hourlyRate: number | null;
   author: string;
 };

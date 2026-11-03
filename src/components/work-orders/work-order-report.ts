@@ -99,10 +99,14 @@ export function printWorkOrderReport(
     )
     .join("");
   const labors = activity.labors
-    .map(
-      (labor) =>
-        `<li>${escapeHtml(formatDay(labor.workedOn))} — ${escapeHtml(formatDuration(labor.durationSeconds))} — ${escapeHtml(labor.author)}</li>`,
-    )
+    .map((labor) => {
+      const seconds = labor.startedAt
+        ? labor.durationSeconds +
+          Math.max(0, Math.floor((Date.now() - new Date(labor.startedAt).getTime()) / 1000))
+        : labor.durationSeconds;
+      const when = formatDay(labor.workedOn);
+      return `<li>${escapeHtml(when)} — ${escapeHtml(formatDuration(seconds))} — ${escapeHtml(labor.author)}</li>`;
+    })
     .join("");
   const updates = activity.updates
     .map(
@@ -160,7 +164,6 @@ export function printWorkOrderReport(
   }
   <h2>Mão de obra</h2>
   ${labors ? `<ul>${labors}</ul>` : "<p>Nenhum tempo lançado.</p>"}
-  <p>Temporizador: ${escapeHtml(formatDuration(activity.timer?.durationSeconds ?? 0))}</p>
   <h2>Atualizações</h2>
   ${updates ? `<ul>${updates}</ul>` : "<p>Nenhuma atualização.</p>"}
   <h2>Arquivos</h2>

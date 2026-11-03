@@ -103,7 +103,7 @@ export async function toggleWorkOrderTimer(workOrderId: string): Promise<Activit
     const { supabase, tenantId, membershipId, workOrderId: id } = await ownedOrder(workOrderId);
     const { data: current, error: readError } = await supabase
       .from("labor")
-      .select("id, duration_seconds, started_at, hourly_rate")
+      .select("id, duration_seconds, started_at, tracked_at, hourly_rate")
       .eq("work_order_id", id)
       .eq("membership_id", membershipId)
       .eq("logged", true)
@@ -119,6 +119,7 @@ export async function toggleWorkOrderTimer(workOrderId: string): Promise<Activit
         logged: true,
         duration_seconds: 0,
         started_at: now,
+        tracked_at: now,
         hourly_rate: await membershipRate(supabase, membershipId),
       });
       if (error) throw new Error("Não foi possível iniciar o temporizador.");
@@ -132,6 +133,7 @@ export async function toggleWorkOrderTimer(workOrderId: string): Promise<Activit
         .update({
           duration_seconds: current.duration_seconds + extra,
           started_at: null,
+          tracked_at: current.tracked_at ?? current.started_at,
           hourly_rate: current.hourly_rate ?? (await membershipRate(supabase, membershipId)),
         })
         .eq("id", current.id);
@@ -200,8 +202,7 @@ export async function deleteWorkOrderLabor(
       .from("labor")
       .delete()
       .eq("id", labor)
-      .eq("work_order_id", id)
-      .eq("logged", false);
+      .eq("work_order_id", id);
     if (error) throw new Error("Não foi possível remover o tempo.");
     return { activity: await readActivity(id) };
   } catch (error) {
