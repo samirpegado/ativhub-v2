@@ -109,7 +109,16 @@ Describe the real structural organization of the repository and the architectura
   categorias de ativo (`category.type = ASSET`), cada um na sua aba. `/checklists`
   redireciona para a aba de listas. A categoria do ativo também se cria no formulário
   do ativo. Minha empresa fica em `/company`, aberta pelo
-  menu do perfil, não pela barra lateral. O QR do ativo abre `/s/{id}` sem login.
+  menu do perfil, não pela barra lateral. O QR do ativo abre `/s/{id}`, também com sessão iniciada.
+  O diálogo do QR imprime uma etiqueta com o código, o QR e o nome, para colar no ativo.
+  Cada localização tem um PIN de 4 dígitos (`location.request_pin`), gerado no
+  cadastro e editável por quem altera localizações. O PIN antigo da empresa
+  (`settings.requestPin`) saiu de `/company`. Na página pública, o PIN certo
+  emite um token de 30 minutos (`public_access_session`). Com ele, o visitante
+  vê as ordens não arquivadas do ativo, com custos, baixa o relatório e abre
+  solicitação. Dez PINs errados em 15 minutos travam a localização. Ativo sem
+  localização não abre. `public_session_asset` e `public_asset_history` não são
+  concedidas a `anon`.
 - CRUD autenticado em `/locations` e `/assets` (lista + modal de criar/editar).
   Endereço de localização em campos separados; `address` é o texto formatado.
   A imagem do ativo fica em `attachments/{tenant}/assets/` e o caminho em

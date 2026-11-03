@@ -19,6 +19,15 @@
   role). O papel só muda se `is_tenant_admin()`; o e-mail da membership
   acompanha o Auth e o cliente não altera.
 
+## Acesso público do QR
+
+- O PIN da localização fica em texto: o gestor precisa lê-lo e repassá-lo.
+- O visitante só lê histórico, relatório e solicitação depois de
+  `public_asset_unlock`, que devolve um token de 30 minutos.
+- Dez erros em 15 minutos travam o PIN daquela localização.
+- `public_session_asset` e `public_asset_history` não podem ser concedidas a
+  `anon` nem `authenticated`.
+
 ## Always do
 
 - Prefer environment variables for secrets.

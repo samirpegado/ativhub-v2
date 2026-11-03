@@ -198,18 +198,6 @@ export function CompanyForm({
         {imageError ? <p className="text-sm text-destructive">{imageError}</p> : null}
       </Card>
 
-      <Card className="gap-4 p-4">
-        <h2 className="font-semibold">PIN da solicitação</h2>
-        <p className="text-sm text-muted-foreground">
-          {company.hasRequestPin
-            ? "Já existe um PIN. Deixe em branco para mantê-lo, ou digite outro de 4 a 6 dígitos."
-            : "Defina um PIN de 4 a 6 dígitos. Ele não entra no QR e não é mostrado de novo."}
-        </p>
-        <Field label="Novo PIN" htmlFor="request_pin">
-          <Input id="request_pin" name="request_pin" inputMode="numeric" autoComplete="off" maxLength={6} className="h-9 max-w-40" placeholder="0000" />
-        </Field>
-      </Card>
-
       <Button type="submit" className="h-9 font-semibold" disabled={busy}>
         {busy ? <Loader2 className="animate-spin" /> : null}
         Salvar

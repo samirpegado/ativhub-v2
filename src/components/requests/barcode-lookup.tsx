@@ -18,7 +18,9 @@ export function BarcodeLookup() {
     <Card className="mx-auto w-full max-w-md gap-4 p-6">
       <div>
         <h1 className="text-xl font-bold">Solicitar manutenção</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Digite o código de barras do equipamento.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Digite o código de barras. Em seguida, informe o PIN da localização.
+        </p>
       </div>
       <form
         className="space-y-3"

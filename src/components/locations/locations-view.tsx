@@ -17,7 +17,7 @@ export function LocationsView({ locations }: { locations: LocationRecord[] }) {
         createLabel="Localização"
         emptyTitle="Localizações agrupam ativos por prédio, setor ou área"
         emptyHint="Pressione o botão '+' para criar uma localização"
-        headers={["ID", "Nome", "Endereço"]}
+        headers={["ID", "Nome", "PIN", "Endereço"]}
         deleteAction={deleteLocation}
         deleteNoun="a localização"
         onCreate={() => setEditing("new")}
@@ -28,13 +28,14 @@ export function LocationsView({ locations }: { locations: LocationRecord[] }) {
         rows={locations.map((location) => ({
           id: location.id,
           name: location.name,
-          searchText: [location.custom_id, location.name, location.address]
+          searchText: [location.custom_id, location.name, location.request_pin, location.address]
             .filter(Boolean)
             .join(" ")
             .toLowerCase(),
           cells: [
             location.custom_id ?? "—",
             location.name,
+            <span key="pin" className="font-mono tracking-widest">{location.request_pin}</span>,
             location.address || "—",
           ],
         }))}
@@ -50,7 +51,7 @@ export function LocationsView({ locations }: { locations: LocationRecord[] }) {
             ? `Editar ${editing.custom_id ?? "localização"}`
             : "Nova localização"
         }
-        description="Informe o CEP para preencher o endereço automaticamente."
+        description="O PIN libera o histórico e as solicitações pelo QR dos ativos desta localização."
       >
         {editing ? (
           <LocationForm

@@ -25,6 +25,7 @@ type LocationValues = {
   neighborhood: string | null;
   city: string | null;
   state: string | null;
+  request_pin?: string;
 };
 
 export function LocationForm({
@@ -126,6 +127,29 @@ export function LocationForm({
           defaultValue={location?.name}
           className="h-9"
           autoFocus
+        />
+      </Field>
+
+      <Field
+        label="PIN"
+        htmlFor="request_pin"
+        hint={
+          location
+            ? "4 dígitos. O cliente usa este PIN ao ler o QR dos ativos desta localização."
+            : "Deixe em branco para gerar um PIN de 4 dígitos."
+        }
+      >
+        <Input
+          id="request_pin"
+          name="request_pin"
+          inputMode="numeric"
+          autoComplete="off"
+          maxLength={4}
+          pattern="[0-9]{4}"
+          required={Boolean(location)}
+          defaultValue={location?.request_pin ?? ""}
+          className="h-9 max-w-32 font-mono tracking-widest"
+          placeholder="0000"
         />
       </Field>
 

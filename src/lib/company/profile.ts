@@ -17,7 +17,6 @@ export type CompanyProfile = {
   phone: string;
   website: string;
   address: CompanyAddress;
-  hasRequestPin: boolean;
   logoUrl: string | null;
 };
 
@@ -47,7 +46,6 @@ export function readCompanySettings(settings: unknown) {
   return {
     phone: text(root.phone),
     website: text(root.website),
-    hasRequestPin: text(root.requestPin).length > 0,
     address: {
       postalCode: formatCep(text(address.postalCode)),
       street: text(address.street),
@@ -74,7 +72,6 @@ export async function loadCompanyProfile(): Promise<CompanyProfile> {
     phone: settings.phone,
     website: settings.website,
     address: settings.address.postalCode ? settings.address : { ...EMPTY_ADDRESS, ...settings.address },
-    hasRequestPin: settings.hasRequestPin,
     logoUrl: await signStoragePath(supabase, data.logo_url),
   };
 }

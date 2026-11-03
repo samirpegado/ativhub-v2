@@ -8,7 +8,8 @@ import type { Database } from "./database.types";
  * básico de autenticação. Chamado pelo proxy raiz (src/proxy.ts, Next 16).
  *
  * Rotas públicas: /login, /register, /invite/*, /auth/*, /s e assets do Next.
- * Conta sem e-mail confirmado só permanece em login, cadastro e confirmação.
+ * /s permanece acessível com sessão: é a página aberta pelo QR do ativo.
+ * Conta sem e-mail confirmado só permanece em login, cadastro, confirmação e /s.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -55,8 +56,10 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/register");
 
+  const isAssetQrRoute = pathname === "/s" || pathname.startsWith("/s/");
+
   if (user && !emailVerified) {
-    if (isVerificationRoute) return supabaseResponse;
+    if (isVerificationRoute || isAssetQrRoute) return supabaseResponse;
     const url = request.nextUrl.clone();
     url.pathname = "/auth/verify";
     url.search = user.email ? `?email=${encodeURIComponent(user.email)}` : "";
@@ -64,7 +67,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && isPublicRoute) {
-    if (pathname.startsWith("/auth/reset") || pathname.startsWith("/auth/activate")) {
+    if (
+      pathname.startsWith("/auth/reset") ||
+      pathname.startsWith("/auth/activate") ||
+      isAssetQrRoute
+    ) {
       return supabaseResponse;
     }
     const url = request.nextUrl.clone();

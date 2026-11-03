@@ -15,6 +15,7 @@ export type LocationRecord = LocationOption & {
   city: string | null;
   state: string | null;
   address: string | null;
+  request_pin: string;
 };
 
 export async function listLocations() {
@@ -22,7 +23,7 @@ export async function listLocations() {
   const { data, error } = await supabase
     .from("location")
     .select(
-      "id, custom_id, name, postal_code, street, number, complement, neighborhood, city, state, address",
+      "id, custom_id, name, postal_code, street, number, complement, neighborhood, city, state, address, request_pin",
     )
     .order("name");
 

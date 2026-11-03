@@ -14,7 +14,7 @@
 
 O AtivHub é um CMMS (gestão de manutenção). O MVP cobre o fluxo operacional
 básico: OT, preventiva, solicitações, ativos, localizações, peças, pessoas e
-equipes — sem workflows, portal público, cobrança ou PO. O front em
+equipes — sem workflows, portal com login de cliente ou PO. O front em
 `frontend-cmms/` é só modelo visual (Atlas); o app é o Next.js em `src/`.
 
 <!-- BEGIN: AUTO-SUMMARY -->
@@ -30,10 +30,11 @@ Resumo inferido automaticamente a partir do repositório:
 - Cadastro do dono: cria tenant + papéis default + membership ADMIN
 - Operação: solicitação → aprovação → ordem de serviço → conclusão
 - Preventiva: agenda gera OT; estoque move com consumo/estorno na OT
-- Cadastro: localizações (endereço por CEP/ViaCEP), ativos ligados a elas,
+- Cadastro: localizações (endereço por CEP/ViaCEP e PIN de 4 dígitos), ativos ligados a elas,
   pessoas (papel, nome, e-mail, telefone, senha) e equipes
+- QR do ativo: o cliente informa o PIN da localização, vê o histórico com custos e PDF, e abre solicitação, sem login
 
 ## Out of scope
 
-- Pedidos de compra, medidores completos, workflows, portal público, cobrança (v2)
+- Pedidos de compra, medidores completos, workflows, portal com login de cliente (v2)
 - Código do `frontend-cmms/` (referência visual apenas)

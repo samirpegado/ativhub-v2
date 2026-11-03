@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { lookupPublicAsset } from "@/app/s/actions";
-import { PublicRequestForm } from "@/components/requests/public-request-form";
+import { PublicAssetView } from "@/components/requests/public-asset-view";
 
 export const metadata: Metadata = {
-  title: "Solicitar manutenção",
+  title: "Equipamento",
 };
 
 export default async function PublicAssetPage({
@@ -17,8 +17,8 @@ export default async function PublicAssetPage({
   if ("error" in result) notFound();
 
   return (
-    <main className="flex min-h-full items-center px-4 py-10">
-      <PublicRequestForm asset={result.asset} />
+    <main className="mx-auto w-full max-w-lg px-4 py-8">
+      <PublicAssetView asset={result.asset} />
     </main>
   );
 }

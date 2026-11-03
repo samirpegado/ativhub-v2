@@ -27,11 +27,6 @@ export async function updateCompany(
     const website = emptyToNull(formData.get("website"));
     if (website && website.length > 200) throw new Error("O site deve ter no máximo 200 caracteres.");
 
-    const pinRaw = String(formData.get("request_pin") ?? "").trim();
-    if (pinRaw && !/^\d{4,6}$/.test(pinRaw)) {
-      throw new Error("O PIN deve ter de 4 a 6 dígitos.");
-    }
-
     const { data: current, error: readError } = await supabase
       .from("tenant")
       .select("settings, logo_url")
@@ -57,7 +52,6 @@ export async function updateCompany(
         city: address.city ?? "",
         state: address.state ?? "",
       },
-      ...(pinRaw ? { requestPin: pinRaw } : {}),
     };
 
     let logoUrl = current.logo_url;

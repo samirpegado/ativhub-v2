@@ -526,6 +526,7 @@ export type Database = {
           number: string | null
           parent_id: string | null
           postal_code: string | null
+          request_pin: string
           state: string | null
           street: string | null
           tenant_id: string
@@ -546,6 +547,7 @@ export type Database = {
           number?: string | null
           parent_id?: string | null
           postal_code?: string | null
+          request_pin?: string
           state?: string | null
           street?: string | null
           tenant_id: string
@@ -566,6 +568,7 @@ export type Database = {
           number?: string | null
           parent_id?: string | null
           postal_code?: string | null
+          request_pin?: string
           state?: string | null
           street?: string | null
           tenant_id?: string
@@ -1826,13 +1829,21 @@ export type Database = {
         Args: { p_asset_id?: string; p_barcode?: string }
         Returns: Json
       }
+      public_asset_unlock: {
+        Args: { p_asset_id: string; p_pin: string }
+        Returns: Json
+      }
+      public_asset_overview: { Args: { p_token: string }; Returns: Json }
+      public_work_order_report: {
+        Args: { p_token: string; p_work_order_id: string }
+        Returns: Json
+      }
       submit_public_request: {
         Args: {
-          p_asset_id: string
           p_description: string
           p_name: string
           p_phone: string
-          p_pin: string
+          p_token: string
         }
         Returns: string
       }
