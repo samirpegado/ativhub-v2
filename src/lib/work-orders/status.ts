@@ -27,6 +27,20 @@ export function workOrderStatusLabel(status: string) {
   return WORK_ORDER_STATUSES.find((item) => item.value === status)?.label ?? status;
 }
 
+export function workOrderStatusDot(status: string) {
+  if (status === "IN_PROGRESS") return "bg-emerald-500";
+  if (status === "ON_HOLD") return "bg-amber-500";
+  if (status === "COMPLETE") return "bg-sky-500";
+  return "bg-muted-foreground/50";
+}
+
+export function workOrderStatusColor(status: string) {
+  if (status === "IN_PROGRESS") return "#10b981";
+  if (status === "ON_HOLD") return "#f59e0b";
+  if (status === "COMPLETE") return "#0ea5e9";
+  return "#B7BACF";
+}
+
 export function workOrderTypeLabel(type: string) {
   return WORK_ORDER_TYPES.find((item) => item.value === type)?.label ?? type;
 }

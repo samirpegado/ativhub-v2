@@ -59,6 +59,7 @@ import type {
 import {
   workOrderIsOverdue,
   workOrderPriorityLabel,
+  workOrderStatusDot,
   workOrderStatusLabel,
   workOrderTypeLabel,
 } from "@/lib/work-orders/status";
@@ -79,12 +80,6 @@ function formatWhen(value: string | null) {
   }).format(new Date(value));
 }
 
-function statusDot(status: string) {
-  if (status === "IN_PROGRESS") return "bg-emerald-500";
-  if (status === "ON_HOLD") return "bg-amber-500";
-  if (status === "COMPLETE") return "bg-sky-500";
-  return "bg-muted-foreground/50";
-}
 
 function priorityClass(priority: string) {
   if (priority === "HIGH") return "bg-destructive/10 text-destructive";
@@ -370,7 +365,7 @@ export function WorkOrdersView({
                     <td className={listTdIdClass}>{order.customId ?? "—"}</td>
                     <td className={`${listTdClass} whitespace-nowrap`}>
                       <span className="inline-flex items-center gap-2">
-                        <span className={cn("size-2.5 shrink-0 rounded-full", statusDot(order.status))} />
+                        <span className={cn("size-2.5 shrink-0 rounded-full", workOrderStatusDot(order.status))} />
                         {workOrderStatusLabel(order.status)}
                       </span>
                     </td>

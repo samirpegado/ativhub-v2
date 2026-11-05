@@ -21,3 +21,11 @@ export function assetStatusClass(status: string) {
   if (status === "MODERNIZATION" || status === "COMMISSIONING") return "bg-sky-500/15 text-sky-800";
   return "bg-muted text-muted-foreground";
 }
+
+export function assetStatusColor(status: string) {
+  if (status === "OPERATIONAL") return "#10b981";
+  if (status === "DOWN" || status === "EMERGENCY_SHUTDOWN") return "#FF1943";
+  if (status === "STANDBY" || status === "INSPECTION_SCHEDULED") return "#f59e0b";
+  if (status === "MODERNIZATION" || status === "COMMISSIONING") return "#0ea5e9";
+  return "#6E759F";
+}

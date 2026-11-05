@@ -1,5 +1,5 @@
-import { ASSET_STATUSES } from "@/lib/assets/status";
-import { WORK_ORDER_STATUSES, WORK_ORDER_TYPES } from "@/lib/work-orders/status";
+import { ASSET_STATUSES, assetStatusColor } from "@/lib/assets/status";
+import { WORK_ORDER_STATUSES, WORK_ORDER_TYPES, workOrderStatusColor } from "@/lib/work-orders/status";
 
 export type RunningOrder = {
   id: string;
@@ -80,23 +80,6 @@ export type MaintenanceOverview = {
   weeks: OverviewWeek[];
   correctiveRank: { name: string; count: number }[];
   days: OverviewDay[];
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  OPEN: "#2a78d6",
-  IN_PROGRESS: "#1baf7a",
-  ON_HOLD: "#eda100",
-  COMPLETE: "#008300",
-};
-
-const ASSET_COLOR: Record<string, string> = {
-  OPERATIONAL: "#008300",
-  MODERNIZATION: "#2a78d6",
-  STANDBY: "#eda100",
-  INSPECTION_SCHEDULED: "#6250d6",
-  COMMISSIONING: "#1baf7a",
-  DOWN: "#eb6834",
-  EMERGENCY_SHUTDOWN: "#e34948",
 };
 
 const TYPE_COLOR: Record<string, string> = {
@@ -182,7 +165,7 @@ export function readMaintenanceOverview(data: unknown): MaintenanceOverview {
     status: item.value,
     label: item.label,
     count: num(assetBag[item.value]),
-    color: ASSET_COLOR[item.value] ?? "#64748b",
+    color: assetStatusColor(item.value),
   }));
 
   return {
@@ -208,7 +191,7 @@ export function readMaintenanceOverview(data: unknown): MaintenanceOverview {
       status: item.value,
       label: item.label,
       count: num(statusBag[item.value]),
-      color: STATUS_COLOR[item.value] ?? "#64748b",
+      color: workOrderStatusColor(item.value),
     })),
     assets,
     assetTotal: assets.reduce((sum, item) => sum + item.count, 0),
