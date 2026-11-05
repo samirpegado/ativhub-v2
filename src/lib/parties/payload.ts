@@ -18,6 +18,9 @@ export type CustomerRecord = {
   website: string | null;
   customerType: string | null;
   description: string | null;
+  requestPin: string;
+  taxId: string | null;
+  isInternal: boolean;
 };
 
 export type PartyScreen<T> = {
@@ -95,6 +98,9 @@ export function readCustomersScreen(data: unknown): PartyScreen<CustomerRecord> 
           website: text(row.website),
           customerType: text(row.customerType),
           description: text(row.description),
+          requestPin: text(row.requestPin) ?? "",
+          taxId: text(row.taxId),
+          isInternal: row.isInternal === true,
         },
       ];
     }),

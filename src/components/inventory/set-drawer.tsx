@@ -20,12 +20,14 @@ export function SetDrawer({
   onOpenChange,
   onEdit,
   onDelete,
+  canEdit = true,
 }: {
   setId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: (set: PartSetRecord) => void;
   onDelete: (set: PartSetRecord) => void;
+  canEdit?: boolean;
 }) {
   const [detail, setDetail] = useState<PartSetDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,21 +82,23 @@ export function SetDrawer({
           </div>
         ) : (
           <div className="space-y-4 px-6 py-5">
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" className="h-9" onClick={() => record && onEdit(record)}>
-                <Pencil />
-                Editar
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 text-destructive"
-                onClick={() => record && onDelete(record)}
-              >
-                <Trash2 />
-                Excluir
-              </Button>
-            </div>
+            {canEdit ? (
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" className="h-9" onClick={() => record && onEdit(record)}>
+                  <Pencil />
+                  Editar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 text-destructive"
+                  onClick={() => record && onDelete(record)}
+                >
+                  <Trash2 />
+                  Excluir
+                </Button>
+              </div>
+            ) : null}
             {detail.parts.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhuma peça neste conjunto.</p>
             ) : (

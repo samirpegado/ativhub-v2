@@ -16,19 +16,10 @@ function readLocationFields(formData: FormData) {
     throw new Error("Informe o nome da localização.");
   }
 
-  const editing = Boolean(String(formData.get("id") ?? "").trim());
-  const pin = String(formData.get("request_pin") ?? "").trim();
-  if (editing && !pin) {
-    throw new Error("Informe o PIN de 4 dígitos.");
-  }
-  if (pin && !/^\d{4}$/.test(pin)) {
-    throw new Error("O PIN deve ter 4 dígitos.");
-  }
-
   return {
     name,
+    customer_id: parseUuid(formData.get("customer_id")),
     ...addressFromForm(formData),
-    ...(pin ? { request_pin: pin } : {}),
   };
 }
 

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireArea } from "@/lib/auth/permissions";
 import { emptyToNull } from "@/lib/address/format";
 import { ASSET_STATUSES } from "@/lib/assets/status";
+import { syncAssetDowntime } from "@/lib/assets/downtime";
 import { ASSET_CATEGORY_TYPE } from "@/lib/categories/queries";
 import {
   deleteError,
@@ -93,12 +94,23 @@ export async function createAsset(
   try {
     const fields = readAssetFields(formData);
     await assertAssetCategory(supabase, fields.category_id);
-    const { error } = await supabase.from("asset").insert({
-      tenant_id: tenantId,
-      ...fields,
-      image_url: readImageUrl(formData, tenantId) ?? null,
-    });
+    const { data: created, error } = await supabase
+      .from("asset")
+      .insert({
+        tenant_id: tenantId,
+        ...fields,
+        image_url: readImageUrl(formData, tenantId) ?? null,
+      })
+      .select("id")
+      .single();
     if (error) return { error: mutationError(error) };
+    await syncAssetDowntime(supabase, {
+      tenantId,
+      assetId: created.id,
+      previous: "OPERATIONAL",
+      next: fields.status,
+      at: new Date().toISOString(),
+    });
   } catch (error) {
     return {
       error:
@@ -127,8 +139,21 @@ export async function updateAsset(
       ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
     };
     await assertAssetCategory(supabase, fields.category_id);
+    const { data: current, error: readError } = await supabase
+      .from("asset")
+      .select("status")
+      .eq("id", id)
+      .maybeSingle();
+    if (readError || !current) throw new Error("Ativo inválido.");
     const { error } = await supabase.from("asset").update(fields).eq("id", id);
     if (error) return { error: mutationError(error) };
+    await syncAssetDowntime(supabase, {
+      tenantId,
+      assetId: id,
+      previous: current.status,
+      next: fields.status,
+      at: new Date().toISOString(),
+    });
   } catch (error) {
     return {
       error:

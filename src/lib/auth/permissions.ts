@@ -9,7 +9,8 @@ const PATHS: { href: string; area: MenuArea }[] = [
   { href: "/assets", area: "assets" },
   { href: "/locations", area: "locations" },
   { href: "/inventory", area: "inventory" },
-  { href: "/parties", area: "parties" },
+  { href: "/customers", area: "parties" },
+  { href: "/vendors", area: "parties" },
   { href: "/people", area: "people" },
 ];
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { InventoryView } from "@/components/inventory/inventory-view";
+import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
 import {
   inventoryHref,
@@ -20,7 +21,8 @@ export default async function InventoryPage({
 }) {
   const params = await searchParams;
   const query = parseInventoryQuery(params);
-  const { tenantId } = await requireArea("inventory", "view", { redirect: true });
+  const { tenantId, appUser } = await requireArea("inventory", "view", { redirect: true });
+  const canEdit = can(appUser, "inventory", "edit");
 
   if (query.sets) {
     const screen = await listPartSetsScreen(query);
@@ -32,6 +34,7 @@ export default async function InventoryPage({
       <InventoryView
         query={query}
         tenantId={tenantId}
+        canEdit={canEdit}
         sets={screen.sets}
         setTotal={screen.total}
         setTotalAll={screen.totalAll}
@@ -50,6 +53,7 @@ export default async function InventoryPage({
     <InventoryView
       query={query}
       tenantId={tenantId}
+      canEdit={canEdit}
       parts={screen.parts}
       total={screen.total}
       totalAll={screen.totalAll}

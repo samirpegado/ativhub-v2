@@ -1,16 +1,25 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { deleteCustomer, deleteVendor } from "@/app/(app)/parties/actions";
+import { adoptInternalCustomer, deleteCustomer, deleteVendor, linkLocationsToInternal } from "@/app/(app)/parties/actions";
 import { CustomerForm } from "@/components/parties/customer-form";
 import { VendorForm } from "@/components/parties/vendor-form";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { listTdClass, listTdNameClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -21,8 +30,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import type { MutationState } from "@/lib/forms/state";
-import { formatBrl } from "@/lib/money/brl";
-import { partyHref, type PartyListQuery } from "@/lib/parties/list-params";
+import { partyHref, type PartyListQuery, type PartySection } from "@/lib/parties/list-params";
 import type { CustomerRecord, VendorRecord } from "@/lib/parties/queries";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import { cn } from "@/lib/utils";
@@ -37,15 +45,19 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 }
 
 export function PartiesView({
+  section,
   query,
   canEdit,
+  hasInternal = false,
   vendors = [],
   customers = [],
   total,
   totalAll,
 }: {
+  section: PartySection;
   query: PartyListQuery;
   canEdit: boolean;
+  hasInternal?: boolean;
   vendors?: VendorRecord[];
   customers?: CustomerRecord[];
   total: number;
@@ -60,6 +72,12 @@ export function PartiesView({
   const [openCustomer, setOpenCustomer] = useState<CustomerRecord | null>(null);
   const [vendorState, vendorDelete, vendorPending] = useActionState<MutationState, FormData>(deleteVendor, undefined);
   const [customerState, customerDelete, customerPending] = useActionState<MutationState, FormData>(deleteCustomer, undefined);
+  const [onboardingOpen, setOnboardingOpen] = useState(section === "customers" && totalAll === 0 && canEdit);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [adoptError, setAdoptError] = useState<string | null>(null);
+  const [adopting, startAdopt] = useTransition();
+  const closingLink = useRef(false);
+  const internalExists = hasInternal || customers.some((item) => item.isInternal);
 
   useEffect(() => {
     setSearch(query.search);
@@ -70,19 +88,18 @@ export function PartiesView({
     if (trimmed === query.search) return;
     const handle = window.setTimeout(() => {
       startNavigation(() => {
-        router.replace(partyHref({ ...query, search: trimmed, page: 1 }), { scroll: false });
+        router.replace(partyHref(section, { search: trimmed, page: 1 }), { scroll: false });
       });
     }, 300);
     return () => window.clearTimeout(handle);
-  }, [query, router, search]);
+  }, [query, router, search, section]);
 
   function visit(next: Partial<PartyListQuery> & { page?: number }) {
     startNavigation(() => {
       router.replace(
-        partyHref({
+        partyHref(section, {
           search,
           page: query.page,
-          customers: query.customers,
           ...next,
         }),
         { scroll: false },
@@ -90,40 +107,52 @@ export function PartiesView({
     });
   }
 
-  const tab = query.customers ? "customers" : "vendors";
+  const customersView = section === "customers";
+
+  function adoptCompany() {
+    setAdoptError(null);
+    startAdopt(async () => {
+      const result = await adoptInternalCustomer();
+      if ("error" in result) {
+        setAdoptError(result.error);
+        return;
+      }
+      setOnboardingOpen(false);
+      setLinkOpen(true);
+    });
+  }
+
+  function finishLink(link: boolean) {
+    startAdopt(async () => {
+      if (link) {
+        const result = await linkLocationsToInternal();
+        if ("error" in result) {
+          setAdoptError(result.error);
+          return;
+        }
+      }
+      closingLink.current = true;
+      setLinkOpen(false);
+      setAdoptError(null);
+      router.refresh();
+    });
+  }
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1">
-          {(
-            [
-              ["vendors", "Fornecedores"],
-              ["customers", "Contratantes"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => visit({ customers: id === "customers", page: 1 })}
-              className={cn(
-                "border-b-2 px-3 py-2 text-sm",
-                tab === id
-                  ? "border-primary font-semibold text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {canEdit && customersView && !internalExists && totalAll > 0 ? (
+          <Button type="button" variant="outline" className="h-9" disabled={adopting} onClick={adoptCompany}>
+            Usar minha empresa como cliente
+          </Button>
+        ) : null}
         {canEdit ? (
           <Button
             className="h-9 font-semibold"
-            onClick={() => (query.customers ? setEditingCustomer("new") : setEditingVendor("new"))}
+            onClick={() => (customersView ? setEditingCustomer("new") : setEditingVendor("new"))}
           >
             <Plus />
-            {query.customers ? "Contratante" : "Fornecedor"}
+            {customersView ? "Cliente" : "Fornecedor"}
           </Button>
         ) : null}
       </div>
@@ -147,8 +176,8 @@ export function PartiesView({
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
             <p className="max-w-md text-sm font-medium">
               {totalAll === 0
-                ? query.customers
-                  ? "Contratantes são quem contrata o serviço"
+                ? customersView
+                  ? "Clientes são quem contrata o serviço. O PIN do cliente libera o QR das localizações dele."
                   : "Fornecedores reúnem quem presta serviço ou vende peça"
                 : "Nenhum resultado para a busca."}
             </p>
@@ -156,13 +185,29 @@ export function PartiesView({
               {totalAll === 0 ? "Pressione o botão para cadastrar." : "Tente outro termo."}
             </p>
           </div>
-        ) : query.customers ? (
+        ) : customersView ? (
           <PartyTable
-            headers={["Nome", "Telefone", "E-mail", "Tipo"]}
+            headers={["Nome", "CPF/CNPJ", "Telefone", "E-mail", "PIN"]}
             rows={customers.map((item) => ({
               id: item.id,
               label: item.name,
-              cells: [item.name, item.phone ?? "—", item.email ?? "—", item.customerType ?? "—"],
+              cells: [
+                <span key={item.id} className="inline-flex flex-wrap items-center gap-2">
+                  {item.name}
+                  {item.isInternal ? (
+                    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-semibold text-primary">
+                      Minha empresa
+                    </span>
+                  ) : null}
+                </span>,
+                item.taxId ?? "—",
+                item.phone ?? "—",
+                item.email ?? "—",
+                item.requestPin || "—",
+              ],
+              confirm: item.isInternal
+                ? `Excluir "${item.name}"? As localizações ficam sem cliente e o QR permanece fechado até vincular de novo.`
+                : undefined,
               onOpen: () => setOpenCustomer(item),
             }))}
             canEdit={canEdit}
@@ -172,11 +217,11 @@ export function PartiesView({
           />
         ) : (
           <PartyTable
-            headers={["Empresa", "Contato", "Telefone", "Valor/hora"]}
+            headers={["Empresa", "Contato", "Telefone", "E-mail"]}
             rows={vendors.map((item) => ({
               id: item.id,
               label: item.companyName,
-              cells: [item.companyName, item.name, item.phone ?? "—", item.rate == null ? "—" : formatBrl(item.rate)],
+              cells: [item.companyName, item.name, item.phone ?? "—", item.email ?? "—"],
               onOpen: () => setOpenVendor(item),
             }))}
             canEdit={canEdit}
@@ -211,8 +256,8 @@ export function PartiesView({
         onOpenChange={(open) => {
           if (!open) setEditingCustomer(null);
         }}
-        title={editingCustomer && editingCustomer !== "new" ? "Editar contratante" : "Novo contratante"}
-        description="O nome é obrigatório."
+        title={editingCustomer && editingCustomer !== "new" ? "Editar cliente" : "Novo cliente"}
+        description="O nome é obrigatório. O PIN libera o QR das localizações deste cliente."
       >
         {editingCustomer ? (
           <CustomerForm
@@ -260,7 +305,6 @@ export function PartiesView({
                 <Detail label="E-mail" value={openVendor.email} />
                 <Detail label="Site" value={openVendor.website} />
                 <Detail label="Tipo" value={openVendor.vendorType} />
-                <Detail label="Valor/hora" value={openVendor.rate == null ? null : formatBrl(openVendor.rate)} />
                 <Detail label="Descrição" value={openVendor.description} />
               </div>
             </div>
@@ -272,7 +316,7 @@ export function PartiesView({
         <SheetContent side="right" className="w-full gap-0 overflow-y-auto p-0 data-[side=right]:sm:max-w-xl">
           <SheetHeader className="border-b pr-12">
             <SheetTitle>{openCustomer?.name}</SheetTitle>
-            <SheetDescription>Contratante</SheetDescription>
+            <SheetDescription>Cliente</SheetDescription>
           </SheetHeader>
           {openCustomer ? (
             <div className="space-y-6 px-6 py-5">
@@ -287,7 +331,13 @@ export function PartiesView({
                     variant="outline"
                     className="h-9 text-destructive"
                     onClick={() => {
-                      if (!window.confirm(`Excluir o contratante "${openCustomer.name}"?`)) return;
+                      if (
+                        !window.confirm(
+                          openCustomer.isInternal
+                            ? `Excluir "${openCustomer.name}"? As localizações ficam sem cliente e o QR permanece fechado até vincular de novo.`
+                            : `Excluir o cliente "${openCustomer.name}"?`,
+                        )
+                      ) return;
                       const data = new FormData();
                       data.set("id", openCustomer.id);
                       customerDelete(data);
@@ -300,16 +350,67 @@ export function PartiesView({
                 </div>
               ) : null}
               <div className="grid gap-4 sm:grid-cols-2">
+                <Detail label="CPF ou CNPJ" value={openCustomer.taxId} />
                 <Detail label="Telefone" value={openCustomer.phone} />
                 <Detail label="E-mail" value={openCustomer.email} />
                 <Detail label="Site" value={openCustomer.website} />
                 <Detail label="Tipo" value={openCustomer.customerType} />
+                <Detail label="PIN" value={openCustomer.requestPin} />
                 <Detail label="Descrição" value={openCustomer.description} />
               </div>
             </div>
           ) : null}
         </SheetContent>
       </Sheet>
+      <Dialog open={onboardingOpen} onOpenChange={setOnboardingOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Como é a manutenção?</DialogTitle>
+            <DialogDescription>
+              Se a manutenção é da própria empresa, o cliente interno recebe o nome, telefone e site já cadastrados. O QR continua dependendo do vínculo com a localização.
+            </DialogDescription>
+          </DialogHeader>
+          {adoptError ? <p className="text-sm text-destructive">{adoptError}</p> : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={adopting} onClick={() => setOnboardingOpen(false)}>
+              Terceiros
+            </Button>
+            <Button type="button" disabled={adopting} onClick={adoptCompany}>
+              Própria empresa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={linkOpen}
+        onOpenChange={(open) => {
+          if (open) return;
+          if (closingLink.current) {
+            closingLink.current = false;
+            setLinkOpen(false);
+            return;
+          }
+          finishLink(false);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Vincular localizações</DialogTitle>
+            <DialogDescription>
+              Vincular todas as localizações que ainda não têm cliente a esta empresa?
+            </DialogDescription>
+          </DialogHeader>
+          {adoptError ? <p className="text-sm text-destructive">{adoptError}</p> : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={adopting} onClick={() => finishLink(false)}>
+              Agora não
+            </Button>
+            <Button type="button" disabled={adopting} onClick={() => finishLink(true)}>
+              Vincular
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -323,7 +424,7 @@ function PartyTable({
   onEdit,
 }: {
   headers: string[];
-  rows: { id: string; label: string; cells: string[]; onOpen: () => void }[];
+  rows: { id: string; label: string; cells: ReactNode[]; confirm?: string; onOpen: () => void }[];
   canEdit: boolean;
   pending: boolean;
   action: (payload: FormData) => void;
@@ -335,18 +436,16 @@ function PartyTable({
         <thead className="bg-muted">
           <tr className="text-muted-foreground">
             {headers.map((header) => (
-              <th key={header} className="px-4 py-3 text-xs font-semibold tracking-wide uppercase">{header}</th>
+              <th key={header} className={listThClass}>{header}</th>
             ))}
-            {canEdit ? (
-              <th className="px-4 py-3 text-center text-xs font-semibold tracking-wide uppercase">Ações</th>
-            ) : null}
+            {canEdit ? <th className={`${listThClass} text-center`}>Ações</th> : null}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.id} className="cursor-pointer border-b last:border-0 hover:bg-muted/40" onClick={row.onOpen}>
               {row.cells.map((cell, index) => (
-                <td key={`${row.id}-${index}`} className={cn("px-4 py-3", index === 0 && "font-semibold")}>{cell}</td>
+                <td key={`${row.id}-${index}`} className={index === 0 ? listTdNameClass : listTdClass}>{cell}</td>
               ))}
               {canEdit ? (
                 <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
@@ -354,7 +453,7 @@ function PartyTable({
                     <Button type="button" variant="ghost" size="icon-sm" aria-label={`Editar ${row.label}`} onClick={() => onEdit(row.id)}>
                       <Pencil className="size-4" />
                     </Button>
-                    <form action={action} onSubmit={(event) => { if (!window.confirm(`Excluir "${row.label}"?`)) event.preventDefault(); }}>
+                    <form action={action} onSubmit={(event) => { if (!window.confirm(row.confirm ?? `Excluir "${row.label}"?`)) event.preventDefault(); }}>
                       <input type="hidden" name="id" value={row.id} />
                       <Button type="submit" variant="ghost" size="icon-sm" disabled={pending} className="text-destructive" aria-label={`Excluir ${row.label}`}>
                         <Trash2 className="size-4" />

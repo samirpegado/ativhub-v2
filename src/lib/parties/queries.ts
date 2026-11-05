@@ -23,6 +23,6 @@ export async function listCustomersScreen(query: PartyListQuery) {
     p_limit: LIST_PAGE_SIZE,
     p_offset: query.offset,
   });
-  if (error) throw new Error("Não foi possível carregar os contratantes.");
+  if (error) throw new Error("Não foi possível carregar os clientes.");
   return readCustomersScreen(data);
 }

@@ -1,5 +1,5 @@
 export const TASK_TYPES = [
-  { value: "SUBTASK", label: "Status da subtarefa" },
+  { value: "SUBTASK", label: "Subtarefa" },
   { value: "TEXT", label: "Campo de texto" },
   { value: "NUMBER", label: "Campo numérico" },
   { value: "INSPECTION", label: "Verificação de inspeção" },
@@ -14,14 +14,17 @@ export type WorkOrderTask = {
   taskType: TaskType;
   options: string[];
   value?: string | null;
+  comment?: string | null;
+  executedAt?: string | null;
 };
 
-export const SUBTASK_ANSWERS = [
-  { value: "OPEN", label: "Aberto" },
-  { value: "IN_PROGRESS", label: "Em andamento" },
-  { value: "ON_HOLD", label: "Em espera" },
-  { value: "COMPLETE", label: "Concluído" },
-] as const;
+export const SUBTASK_DONE = "DONE";
+
+const TASK_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function subtaskDone(value: string | null | undefined) {
+  return value === SUBTASK_DONE || value === "COMPLETE";
+}
 
 export const INSPECTION_ANSWERS = [
   { value: "PASS", label: "Aprovado" },
@@ -32,7 +35,11 @@ export const INSPECTION_ANSWERS = [
 export function taskAnswerLabel(task: Pick<WorkOrderTask, "taskType" | "value">) {
   if (!task.value) return "—";
   if (task.taskType === "SUBTASK") {
-    return SUBTASK_ANSWERS.find((item) => item.value === task.value)?.label ?? task.value;
+    if (subtaskDone(task.value)) return "Concluída";
+    if (task.value === "OPEN") return "Aberto";
+    if (task.value === "IN_PROGRESS") return "Em andamento";
+    if (task.value === "ON_HOLD") return "Em espera";
+    return task.value;
   }
   if (task.taskType === "INSPECTION") {
     return INSPECTION_ANSWERS.find((item) => item.value === task.value)?.label ?? task.value;
@@ -63,8 +70,10 @@ export function parseTaskList(value: unknown): WorkOrderTask[] {
     }
 
     const value = typeof row.value === "string" ? row.value.trim() : "";
+    const rawId = typeof row.id === "string" ? row.id : "";
 
     return {
+      id: TASK_ID.test(rawId) ? rawId : undefined,
       label,
       taskType,
       options: taskType === "MULTIPLE" ? options.slice(0, 20) : [],

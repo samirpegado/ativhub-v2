@@ -27,12 +27,14 @@ export function PartDrawer({
   onOpenChange,
   onEdit,
   onDelete,
+  canEdit = true,
 }: {
   partId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: (part: PartRecord) => void;
   onDelete: (part: PartRecord) => void;
+  canEdit?: boolean;
 }) {
   const [detail, setDetail] = useState<PartDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,21 +77,23 @@ export function PartDrawer({
           </div>
         ) : (
           <div className="space-y-6 px-6 py-5">
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" className="h-9" onClick={() => onEdit(part)}>
-                <Pencil />
-                Editar
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 text-destructive"
-                onClick={() => onDelete(part)}
-              >
-                <Trash2 />
-                Excluir
-              </Button>
-            </div>
+            {canEdit ? (
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" className="h-9" onClick={() => onEdit(part)}>
+                  <Pencil />
+                  Editar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 text-destructive"
+                  onClick={() => onDelete(part)}
+                >
+                  <Trash2 />
+                  Excluir
+                </Button>
+              </div>
+            ) : null}
             {part.imageUrl ? (
               // URL assinada do Storage.
               // eslint-disable-next-line @next/next/no-img-element
@@ -145,7 +149,7 @@ export function PartDrawer({
                   {detail?.workOrders.map((order) => (
                     <li key={order.id} className="flex items-center justify-between gap-3">
                       <span>
-                        <span className="font-mono text-xs text-muted-foreground">
+                        <span className="text-muted-foreground">
                           {order.customId ?? "—"}
                         </span>{" "}
                         {order.title}

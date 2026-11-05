@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireArea } from "@/lib/auth/permissions";
 import { isBillingMode } from "@/lib/work-orders/billing";
 import { ASSET_STATUSES } from "@/lib/assets/status";
+import { syncAssetDowntime } from "@/lib/assets/downtime";
 import { emptyToNull } from "@/lib/address/format";
 import { deleteError, mutationError, parseIdList, parseMoney, parseUuid } from "@/lib/forms/parse";
 import type { MutationState } from "@/lib/forms/state";
@@ -19,6 +20,7 @@ import { parseTaskList, type WorkOrderTask } from "@/lib/work-orders/tasks";
 function refreshOrders() {
   revalidatePath("/");
   revalidatePath("/profile");
+  revalidatePath("/assets");
 }
 
 function parseDateTime(value: FormDataEntryValue | null, label: string) {
@@ -83,7 +85,6 @@ async function readFields(
   const locationId = parseUuid(formData.get("location_id"));
   const assetId = parseUuid(formData.get("asset_id"));
   const teamId = parseUuid(formData.get("team_id"));
-  const primaryUserId = parseUuid(formData.get("primary_user_id"));
   const billingMode = String(formData.get("billing_mode") ?? "NONE");
   if (!isBillingMode(billingMode)) throw new Error("Cobrança inválida.");
 
@@ -126,12 +127,12 @@ async function readFields(
     location_id: locationId,
     asset_id: assetId,
     team_id: teamId,
-    primary_user_id: primaryUserId,
     billing_mode: billingMode,
     service_amount: billingMode === "FIXED" ? (parseMoney(formData.get("service_amount")) ?? 0) : null,
     assigneeIds: readIds(formData, "assignee_ids"),
     tasks: readTasks(formData),
     assetStatus: String(formData.get("asset_status") ?? ""),
+    assetStatusAt: parseDateTime(formData.get("asset_status_at"), "Data do status do ativo") ?? new Date().toISOString(),
   };
 }
 
@@ -170,24 +171,53 @@ async function replaceLinks(
     if (error) throw new Error("Não foi possível salvar os responsáveis.");
   }
 
-  const { error: clearTasks } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("task")
-    .delete()
+    .select("id, task_type")
     .eq("work_order_id", workOrderId);
-  if (clearTasks) throw new Error("Não foi possível salvar as tarefas.");
+  if (existingError) throw new Error("Não foi possível salvar as tarefas.");
 
-  if (tasks.length > 0) {
-    const { error } = await supabase.from("task").insert(
-      tasks.map((task, index) => ({
-        tenant_id: tenantId,
-        work_order_id: workOrderId,
-        label: task.label,
-        task_type: task.taskType,
-        options: task.options,
-        value: task.value ?? null,
-        order_index: index,
-      })),
-    );
+  const previous = new Map((existing ?? []).map((task) => [task.id, task.task_type]));
+  const kept = new Set<string>();
+
+  for (const [index, task] of tasks.entries()) {
+    const currentId = task.id && previous.has(task.id) ? task.id : null;
+    if (currentId) {
+      kept.add(currentId);
+      const typeChanged = previous.get(currentId) !== task.taskType;
+      const { error } = await supabase
+        .from("task")
+        .update({
+          label: task.label,
+          task_type: task.taskType,
+          options: task.options,
+          order_index: index,
+          ...(typeChanged ? { value: null, comment: null, executed_at: null } : {}),
+        })
+        .eq("id", currentId)
+        .eq("work_order_id", workOrderId);
+      if (error) throw new Error("Não foi possível salvar as tarefas.");
+      continue;
+    }
+
+    const { error } = await supabase.from("task").insert({
+      tenant_id: tenantId,
+      work_order_id: workOrderId,
+      label: task.label,
+      task_type: task.taskType,
+      options: task.options,
+      order_index: index,
+    });
+    if (error) throw new Error("Não foi possível salvar as tarefas.");
+  }
+
+  const removed = [...previous.keys()].filter((id) => !kept.has(id));
+  if (removed.length > 0) {
+    const { error } = await supabase
+      .from("task")
+      .delete()
+      .eq("work_order_id", workOrderId)
+      .in("id", removed);
     if (error) throw new Error("Não foi possível salvar as tarefas.");
   }
 }
@@ -200,7 +230,7 @@ export async function createWorkOrder(
 
   try {
     const fields = await readFields(formData, supabase, tenantId);
-    const { assigneeIds, tasks, assetStatus, status, ...columns } = fields;
+    const { assigneeIds, tasks, assetStatus, assetStatusAt, status, ...columns } = fields;
     const stamps = statusTimestamps({
       next: status,
       previousStatus: "OPEN",
@@ -229,10 +259,25 @@ export async function createWorkOrder(
         assetStatus &&
         ASSET_STATUSES.some((item) => item.value === assetStatus)
       ) {
-        await supabase
+        const { data: asset, error: assetReadError } = await supabase
+          .from("asset")
+          .select("status")
+          .eq("id", columns.asset_id)
+          .maybeSingle();
+        if (assetReadError || !asset) throw new Error("Ativo inválido.");
+        const { error: assetError } = await supabase
           .from("asset")
           .update({ status: assetStatus })
           .eq("id", columns.asset_id);
+        if (assetError) throw new Error("Não foi possível atualizar o status do ativo.");
+        await syncAssetDowntime(supabase, {
+          tenantId,
+          assetId: columns.asset_id,
+          previous: asset.status,
+          next: assetStatus,
+          at: assetStatusAt,
+          workOrderId: data.id,
+        });
       }
     } catch (linkError) {
       await supabase.from("work_order").delete().eq("id", data.id);
@@ -261,8 +306,7 @@ export async function updateWorkOrder(
     const id = parseUuid(formData.get("id"));
     if (!id) throw new Error("Ordem de serviço inválida.");
     const fields = await readFields(formData, supabase, tenantId);
-    const { assigneeIds, tasks, assetStatus: _assetStatus, status, ...columns } =
-      fields;
+    const { assigneeIds, tasks, assetStatus, assetStatusAt, status, ...columns } = fields;
 
     const { data: current, error: loadError } = await supabase
       .from("work_order")
@@ -291,6 +335,31 @@ export async function updateWorkOrder(
     if (error) return { error: mutationError(error) };
 
     await replaceLinks(supabase, tenantId, id, assigneeIds, tasks);
+    if (
+      columns.asset_id &&
+      assetStatus &&
+      ASSET_STATUSES.some((item) => item.value === assetStatus)
+    ) {
+      const { data: asset, error: assetReadError } = await supabase
+        .from("asset")
+        .select("status")
+        .eq("id", columns.asset_id)
+        .maybeSingle();
+      if (assetReadError || !asset) throw new Error("Ativo inválido.");
+      const { error: assetError } = await supabase
+        .from("asset")
+        .update({ status: assetStatus })
+        .eq("id", columns.asset_id);
+      if (assetError) throw new Error("Não foi possível atualizar o status do ativo.");
+      await syncAssetDowntime(supabase, {
+        tenantId,
+        assetId: columns.asset_id,
+        previous: asset.status,
+        next: assetStatus,
+        at: assetStatusAt,
+        workOrderId: id,
+      });
+    }
   } catch (error) {
     return {
       error:

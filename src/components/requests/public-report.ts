@@ -77,6 +77,10 @@ export function printPublicWorkOrderReport(report: PublicReport) {
   );
   const service = order.billingMode === "FIXED" ? order.serviceAmount ?? 0 : laborCost;
   const rows = [
+    ["Empresa", report.companyName || "—"],
+    ...(order.customerName
+      ? [["Cliente", [order.customerName, order.customerPhone].filter(Boolean).join(" · ")]]
+      : []),
     ["Tipo", workOrderTypeLabel(order.type)],
     ["Status", workOrderStatusLabel(order.status)],
     ["Prioridade", workOrderPriorityLabel(order.priority)],
@@ -84,7 +88,6 @@ export function printPublicWorkOrderReport(report: PublicReport) {
     ["Vencimento", formatWhen(order.dueDate)],
     ["Localização", order.locationName ?? "—"],
     ["Ativo", order.assetName ?? "—"],
-    ["Trabalhador", order.primaryUserName ?? "—"],
     ["Responsáveis", order.assignees.join(", ") || "—"],
   ];
   const tasks = report.tasks
@@ -105,11 +108,12 @@ export function printPublicWorkOrderReport(report: PublicReport) {
       return `<li>${escapeHtml(formatDay(labor.workedOn))} — ${escapeHtml(formatDuration(labor.durationSeconds))} — ${escapeHtml(labor.author)}${escapeHtml(rate)}</li>`;
     })
     .join("");
-  const updates = report.updates
-    .map(
-      (update) =>
-        `<li><strong>${escapeHtml(update.author)}</strong> · ${escapeHtml(formatWhen(update.createdAt))}<br>${escapeHtml(update.body)}</li>`,
-    )
+  const timeline = report.tasks
+    .filter((task) => task.executedAt)
+    .map((task) => {
+      const comment = task.comment ? ` — ${task.comment}` : "";
+      return `<li>${escapeHtml(formatWhen(task.executedAt))} — ${escapeHtml(task.label)}: ${escapeHtml(answerLabel(task))}${escapeHtml(comment)}</li>`;
+    })
     .join("");
 
   printHtml(`<!doctype html>
@@ -155,8 +159,8 @@ export function printPublicWorkOrderReport(report: PublicReport) {
       : ""
   }
   <p><strong>Total: ${escapeHtml(formatBrl(partsCost + service))}</strong></p>
-  <h2>Atualizações</h2>
-  ${updates ? `<ul>${updates}</ul>` : "<p>Nenhuma atualização.</p>"}
+  <h2>Timeline</h2>
+  ${timeline ? `<ul>${timeline}</ul>` : "<p>Nenhuma execução registrada.</p>"}
 </body>
 </html>`);
 }

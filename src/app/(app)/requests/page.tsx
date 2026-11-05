@@ -16,8 +16,9 @@ export default async function RequestsPage({
   searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
   const query = parseRequestQuery(await searchParams);
-  const { appUser } = await requireArea("requests", "view", { redirect: true });
+  const { supabase, appUser } = await requireArea("requests", "view", { redirect: true });
   const screen = await listRequestsScreen(query);
+  const { data: assets } = await supabase.from("asset").select("id, name").order("name");
   const pageCount = requestPageCount(screen.total);
   if (query.page > pageCount) redirect(requestHref({ ...query, page: pageCount }));
 
@@ -25,6 +26,8 @@ export default async function RequestsPage({
     <RequestsView
       query={query}
       canEdit={can(appUser, "requests", "edit")}
+      isAdmin={appUser.isAdmin}
+      assets={(assets ?? []).flatMap((asset) => (asset.name ? [{ id: asset.id, name: asset.name }] : []))}
       items={screen.items}
       total={screen.total}
       totalAll={screen.totalAll}

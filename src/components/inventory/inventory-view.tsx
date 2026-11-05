@@ -9,6 +9,7 @@ import { PartDrawer } from "@/components/inventory/part-drawer";
 import { PartForm } from "@/components/inventory/part-form";
 import { SetDrawer } from "@/components/inventory/set-drawer";
 import { SetForm } from "@/components/inventory/set-form";
+import { listTdClass, listTdNameClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ function formatWhen(value: string) {
 export function InventoryView({
   query,
   tenantId,
+  canEdit = true,
   parts = [],
   total = 0,
   totalAll = 0,
@@ -46,6 +48,7 @@ export function InventoryView({
 }: {
   query: InventoryListQuery;
   tenantId: string;
+  canEdit?: boolean;
   parts?: PartRecord[];
   total?: number;
   totalAll?: number;
@@ -127,13 +130,15 @@ export function InventoryView({
             </button>
           ))}
         </div>
-        <Button
-          className="h-9 font-semibold"
-          onClick={() => (query.sets ? setEditingSet("new") : setEditingPart("new"))}
-        >
-          <Plus />
-          {query.sets ? "Conjunto" : "Peça"}
-        </Button>
+        {canEdit ? (
+          <Button
+            className="h-9 font-semibold"
+            onClick={() => (query.sets ? setEditingSet("new") : setEditingPart("new"))}
+          >
+            <Plus />
+            {query.sets ? "Conjunto" : "Peça"}
+          </Button>
+        ) : null}
       </div>
 
       <Card
@@ -201,13 +206,11 @@ export function InventoryView({
                 <thead className="bg-muted">
                   <tr className="text-muted-foreground">
                     {["Nome", "Peças", "Custo total", "Criado em"].map((header) => (
-                      <th key={header} className="px-4 py-3 text-xs font-semibold tracking-wide uppercase">
+                      <th key={header} className={listThClass}>
                         {header}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-center text-xs font-semibold tracking-wide uppercase">
-                      Ações
-                    </th>
+                    <th className={`${listThClass} text-center`}>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -217,18 +220,20 @@ export function InventoryView({
                       className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
                       onClick={() => setOpenSetId(item.id)}
                     >
-                      <td className="px-4 py-3 font-semibold">{item.name}</td>
-                      <td className="px-4 py-3">{item.partCount}</td>
-                      <td className="px-4 py-3">{formatPartCost(item.totalCost, null)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatWhen(item.createdAt)}</td>
-                      <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
-                        <RowActions
-                          label={item.name}
-                          pending={setPending}
-                          action={setDelete}
-                          id={item.id}
-                          onEdit={() => setEditingSet(item)}
-                        />
+                      <td className={listTdNameClass}>{item.name}</td>
+                      <td className={listTdClass}>{item.partCount}</td>
+                      <td className={listTdClass}>{formatPartCost(item.totalCost, null)}</td>
+                      <td className={`${listTdClass} whitespace-nowrap`}>{formatWhen(item.createdAt)}</td>
+                      <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
+                        {canEdit ? (
+                          <RowActions
+                            label={item.name}
+                            pending={setPending}
+                            action={setDelete}
+                            id={item.id}
+                            onEdit={() => setEditingSet(item)}
+                          />
+                        ) : null}
                       </td>
                     </tr>
                   ))}
@@ -254,16 +259,14 @@ export function InventoryView({
             <table className="w-full min-w-[1080px] text-left text-sm">
               <thead className="bg-muted">
                 <tr className="text-muted-foreground">
-                  {["Nome", "Custo", "Quantidade", "Código de barras", "Área", "Descrição"].map(
-                    (header) => (
-                      <th key={header} className="px-4 py-3 text-xs font-semibold tracking-wide uppercase">
-                        {header}
-                      </th>
-                    ),
-                  )}
-                  <th className="px-4 py-3 text-center text-xs font-semibold tracking-wide uppercase">
-                    Ações
-                  </th>
+                    {["Nome", "Custo", "Quantidade", "Código de barras", "Área", "Descrição"].map(
+                      (header) => (
+                        <th key={header} className={listThClass}>
+                          {header}
+                        </th>
+                      ),
+                    )}
+                    <th className={`${listThClass} text-center`}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -273,23 +276,25 @@ export function InventoryView({
                     className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
                     onClick={() => setOpenPartId(part.id)}
                   >
-                    <td className="px-4 py-3 font-semibold">{part.name}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{formatPartCost(part.cost, part.unit)}</td>
-                    <td className={cn("px-4 py-3 whitespace-nowrap", isLowStock(part) && "text-destructive")}>
+                    <td className={listTdNameClass}>{part.name}</td>
+                    <td className={`${listTdClass} whitespace-nowrap`}>{formatPartCost(part.cost, part.unit)}</td>
+                    <td className={cn(listTdClass, "whitespace-nowrap", isLowStock(part) && "text-destructive")}>
                       {formatQuantity(part.quantity, part.unit)}
                       {isLowStock(part) ? " · baixo" : ""}
                     </td>
-                    <td className="px-4 py-3">{part.barcode ?? "—"}</td>
-                    <td className="px-4 py-3">{part.area ?? "—"}</td>
-                    <td className="max-w-xs truncate px-4 py-3">{part.description ?? "—"}</td>
-                    <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
-                      <RowActions
-                        label={part.name}
-                        pending={partPending}
-                        action={partDelete}
-                        id={part.id}
-                        onEdit={() => setEditingPart(part)}
-                      />
+                    <td className={listTdClass}>{part.barcode ?? "—"}</td>
+                    <td className={listTdClass}>{part.area ?? "—"}</td>
+                    <td className={`${listTdClass} max-w-xs truncate`}>{part.description ?? "—"}</td>
+                    <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
+                      {canEdit ? (
+                        <RowActions
+                          label={part.name}
+                          pending={partPending}
+                          action={partDelete}
+                          id={part.id}
+                          onEdit={() => setEditingPart(part)}
+                        />
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -354,6 +359,7 @@ export function InventoryView({
           setOpenPartId(null);
           setEditingPart(part);
         }}
+        canEdit={canEdit}
         onDelete={(part) => {
           if (!window.confirm(`Excluir a peça "${part.name}"?`)) return;
           setOpenPartId(null);
@@ -369,6 +375,7 @@ export function InventoryView({
         onOpenChange={(open) => {
           if (!open) setOpenSetId(null);
         }}
+        canEdit={canEdit}
         onEdit={(item) => {
           setOpenSetId(null);
           setEditingSet(item);

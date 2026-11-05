@@ -75,6 +75,7 @@ export function WorkOrderForm({
     undefined,
   );
   const [locationId, setLocationId] = useState(order?.locationId ?? "");
+  const [customerId, setCustomerId] = useState(order?.customerId ?? "");
   const [assetId, setAssetId] = useState(order?.assetId ?? "");
   const [tasks, setTasks] = useState<WorkOrderTask[]>(order?.tasks ?? []);
   const [billingMode, setBillingMode] = useState(order?.billingMode ?? "NONE");
@@ -189,21 +190,6 @@ export function WorkOrderForm({
             ))}
           </NativeSelect>
         </Field>
-        <Field label="Trabalhador principal" htmlFor="primary_user_id">
-          <NativeSelect
-            id="primary_user_id"
-            name="primary_user_id"
-            className="h-9"
-            defaultValue={order?.primaryUserId ?? ""}
-          >
-            <option value="">Nenhum</option>
-            {people.map((person) => (
-              <option key={person.id} value={person.id}>
-                {personLabel(person)}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
         <Field label="Tipo" htmlFor="type">
           <NativeSelect id="type" name="type" className="h-9" defaultValue={order?.type ?? "CORRECTIVE"}>
             {WORK_ORDER_TYPES.map((item) => (
@@ -214,7 +200,13 @@ export function WorkOrderForm({
           </NativeSelect>
         </Field>
         <Field label="Cliente" htmlFor="customer_id">
-          <NativeSelect id="customer_id" name="customer_id" className="h-9" defaultValue={order?.customerId ?? ""}>
+          <NativeSelect
+            id="customer_id"
+            name="customer_id"
+            className="h-9"
+            value={customerId}
+            onChange={(event) => setCustomerId(event.target.value)}
+          >
             <option value="">Nenhum</option>
             {customers.map((customer) => (
               <option key={customer.id} value={customer.id}>
@@ -232,6 +224,8 @@ export function WorkOrderForm({
             onChange={(event) => {
               const next = event.target.value;
               setLocationId(next);
+              const location = locations.find((item) => item.id === next);
+              if (location?.customer_id) setCustomerId(location.customer_id);
               const asset = assets.find((item) => item.id === assetId);
               if (asset && next && asset.location_id !== next) setAssetId("");
             }}
@@ -296,22 +290,33 @@ export function WorkOrderForm({
             />
           </Field>
         ) : null}
-        {order ? null : (
-          <Field label="Status do ativo" htmlFor="asset_status">
-            <NativeSelect id="asset_status" name="asset_status" className="h-9" defaultValue="">
-              <option value="">Não alterar</option>
-              {ASSET_STATUSES.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-        )}
+        {assetId ? (
+          <>
+            <Field label="Status do ativo" htmlFor="asset_status">
+              <NativeSelect id="asset_status" name="asset_status" className="h-9" defaultValue="">
+                <option value="">Não alterar</option>
+                {ASSET_STATUSES.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field label="Quando o status vale" htmlFor="asset_status_at">
+              <Input
+                id="asset_status_at"
+                name="asset_status_at"
+                type="datetime-local"
+                defaultValue={toDatetimeLocal(new Date().toISOString())}
+                className="h-9"
+              />
+            </Field>
+          </>
+        ) : null}
         <Field label="Tarefas" className="sm:col-span-2">
           <TaskEditor tasks={tasks} checklists={checklists} onChange={setTasks} />
         </Field>
-        <Field label="Responsáveis adicionais" className="sm:col-span-2">
+        <Field label="Responsáveis" className="sm:col-span-2">
           {people.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhuma pessoa cadastrada.</p>
           ) : (

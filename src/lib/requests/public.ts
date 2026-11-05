@@ -40,12 +40,20 @@ export type PublicReport = {
     completedOn: string | null;
     locationName: string | null;
     assetName: string | null;
+    customerName: string | null;
+    customerPhone: string | null;
     billingMode: string;
     serviceAmount: number | null;
     primaryUserName: string | null;
     assignees: string[];
   };
-  tasks: { label: string; taskType: string; value: string | null }[];
+  tasks: {
+    label: string;
+    taskType: string;
+    value: string | null;
+    comment: string | null;
+    executedAt: string | null;
+  }[];
   parts: { name: string; unit: string | null; quantity: number; cost: number }[];
   labors: {
     workedOn: string | null;
@@ -151,6 +159,8 @@ export function parsePublicReport(value: unknown): PublicReport | null {
       completedOn: text(order.completedOn),
       locationName: text(order.locationName),
       assetName: text(order.assetName),
+      customerName: text(order.customerName),
+      customerPhone: text(order.customerPhone),
       billingMode: text(order.billingMode) ?? "NONE",
       serviceAmount: order.serviceAmount == null ? null : num(order.serviceAmount),
       primaryUserName: text(order.primaryUserName),
@@ -159,7 +169,13 @@ export function parsePublicReport(value: unknown): PublicReport | null {
     tasks: tasks.flatMap((item) => {
       const task = asRecord(item);
       if (!task || typeof task.label !== "string") return [];
-      return [{ label: task.label, taskType: text(task.taskType) ?? "TEXT", value: text(task.value) }];
+      return [{
+        label: task.label,
+        taskType: text(task.taskType) ?? "TEXT",
+        value: text(task.value),
+        comment: text(task.comment),
+        executedAt: text(task.executedAt),
+      }];
     }),
     parts: parts.flatMap((item) => {
       const part = asRecord(item);

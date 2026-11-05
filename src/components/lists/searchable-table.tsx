@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState, type ReactNode } from "react";
 import { BulkActionBar, type BulkAction } from "@/components/lists/bulk-action-bar";
 import { RowCheckbox } from "@/components/lists/row-checkbox";
+import { listTdClass, listTdIdClass, listTdNameClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
 import { useRowSelection } from "@/components/lists/use-row-selection";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
@@ -145,18 +146,11 @@ export function SearchableTable({
                     </th>
                   ) : null}
                   {headers.map((header) => (
-                    <th
-                      key={header}
-                      className="px-4 py-3 text-xs font-semibold tracking-wide uppercase"
-                    >
+                    <th key={header} className={listThClass}>
                       {header}
                     </th>
                   ))}
-                  {manage ? (
-                    <th className="px-4 py-3 text-center text-xs font-semibold tracking-wide uppercase">
-                      Ações
-                    </th>
-                  ) : null}
+                  {manage ? <th className={`${listThClass} text-center`}>Ações</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -179,20 +173,23 @@ export function SearchableTable({
                         />
                       </td>
                     ) : null}
-                    {row.cells.map((cell, index) => (
+                    {row.cells.map((cell, index) => {
+                      const nameIndex = headers[0] === "ID" ? 1 : 0;
+                      return (
                       <td
                         key={index}
                         className={
-                          index === 0 && headers[0] === "ID"
-                            ? "px-4 py-3 align-middle font-mono text-xs text-muted-foreground"
-                            : index === 0 || (headers[0] === "ID" && index === 1)
-                              ? "px-4 py-3 align-middle font-semibold"
-                              : "px-4 py-3 align-middle"
+                          headers[index] === "ID"
+                            ? listTdIdClass
+                            : index === nameIndex
+                              ? listTdNameClass
+                              : listTdClass
                         }
                       >
                         {cell}
                       </td>
-                    ))}
+                      );
+                    })}
                     {manage ? (
                     <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
                       <div className="flex items-center justify-center gap-1">

@@ -4,7 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
+  Building2,
   ClipboardList,
+  LayoutDashboard,
   Handshake,
   Inbox,
   MapPin,
@@ -33,13 +36,15 @@ import {
 import { cn } from "@/lib/utils";
 
 const icons: Record<(typeof navItems)[number]["href"], LucideIcon> = {
+  "/dashboard": LayoutDashboard,
   "/": ClipboardList,
   "/preventive": Timer,
   "/requests": Inbox,
   "/assets": Package,
   "/locations": MapPin,
   "/inventory": Wrench,
-  "/parties": Handshake,
+  "/customers": Building2,
+  "/vendors": Handshake,
   "/people": Users,
   "/settings": Settings,
 };
@@ -60,7 +65,7 @@ function pageTitle(pathname: string) {
 function visibleNav(user: AppUser) {
   return navItems.filter((item) => {
     if (item.area === "settings") return user.isAdmin;
-    return can(user, item.area, "view");
+    return can(user, item.area, item.mode);
   });
 }
 
@@ -143,9 +148,11 @@ function SidebarChrome({
 
 export function AppShell({
   user,
+  pendingRequestCount = null,
   children,
 }: {
   user: AppUser;
+  pendingRequestCount?: number | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -190,7 +197,28 @@ export function AppShell({
             {title}
           </h1>
         </div>
-        <UserMenu user={user} />
+        <div className="flex items-center gap-1">
+          {pendingRequestCount !== null ? (
+            <Button variant="ghost" size="icon" className="relative size-10" asChild>
+              <Link
+                href="/requests?status=pending"
+                aria-label={
+                  pendingRequestCount > 0
+                    ? `${pendingRequestCount} solicitações pendentes`
+                    : "Solicitações pendentes"
+                }
+              >
+                <Bell />
+                {pendingRequestCount > 0 ? (
+                  <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
+                    {pendingRequestCount > 99 ? "99+" : pendingRequestCount}
+                  </span>
+                ) : null}
+              </Link>
+            </Button>
+          ) : null}
+          <UserMenu user={user} />
+        </div>
       </header>
 
       <main className="min-h-full pt-20 lg:pl-[290px]">

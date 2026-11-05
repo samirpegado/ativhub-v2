@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
-import { approveRequest, rejectRequest } from "@/app/(app)/requests/actions";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { approveRequest, createRequest, deleteRequests, rejectRequest, updateRequest } from "@/app/(app)/requests/actions";
+import { FormDialog } from "@/components/forms/form-dialog";
+import { BulkActionBar } from "@/components/lists/bulk-action-bar";
+import { RowCheckbox } from "@/components/lists/row-checkbox";
+import { useRowSelection } from "@/components/lists/use-row-selection";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { listTdClass, listTdIdClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,6 +24,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import {
   REQUEST_STATUSES,
@@ -25,6 +32,8 @@ import {
   type RequestListQuery,
 } from "@/lib/requests/list-params";
 import { requestState, type RequestRecord } from "@/lib/requests/payload";
+import type { MutationState } from "@/lib/forms/state";
+import type { WorkOrderEditorData } from "@/lib/work-orders/queries";
 import { cn } from "@/lib/utils";
 
 const STATE_LABEL = {
@@ -42,12 +51,16 @@ function formatWhen(value: string) {
 export function RequestsView({
   query,
   canEdit,
+  isAdmin,
+  assets,
   items,
   total,
   totalAll,
 }: {
   query: RequestListQuery;
   canEdit: boolean;
+  isAdmin: boolean;
+  assets: { id: string; name: string }[];
   items: RequestRecord[];
   total: number;
   totalAll: number;
@@ -56,9 +69,20 @@ export function RequestsView({
   const [navigating, startNavigation] = useTransition();
   const [search, setSearch] = useState(query.search);
   const [open, setOpen] = useState<RequestRecord | null>(null);
+  const [editing, setEditing] = useState<RequestRecord | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [editor, setEditor] = useState<WorkOrderEditorData | null>(null);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+  const [deciding, setDeciding] = useState(false);
+  const rowIds = useMemo(() => (canEdit ? items.map((item) => item.id) : []), [canEdit, items]);
+  const pendingIds = useMemo(
+    () => items.filter((item) => requestState(item) === "pending").map((item) => item.id),
+    [items],
+  );
+  const pendingSet = useMemo(() => new Set(pendingIds), [pendingIds]);
+  const selection = useRowSelection(rowIds);
 
   useEffect(() => {
     setSearch(query.search);
@@ -84,18 +108,69 @@ export function RequestsView({
     });
   }
 
+  function closeSheet() {
+    setOpen(null);
+    setReason("");
+    setError(null);
+  }
+
+  function beginEdit(request: RequestRecord) {
+    if (requestState(request) !== "pending") {
+      setListError("Só uma solicitação pendente pode ser editada.");
+      return;
+    }
+    setListError(null);
+    const sheetWasOpen = open?.id === request.id;
+    closeSheet();
+    if (sheetWasOpen) window.setTimeout(() => setEditing(request), 0);
+    else setEditing(request);
+  }
+
   async function decide(kind: "approve" | "reject") {
     if (!open) return;
-    setPending(true);
+    setDeciding(true);
     setError(null);
-    const result = kind === "approve" ? await approveRequest(open.id) : await rejectRequest(open.id, reason);
-    setPending(false);
+    if (kind === "approve") {
+      const result = await approveRequest(open.id);
+      setDeciding(false);
+      if ("error" in result) {
+        setError(result.error);
+        router.refresh();
+        return;
+      }
+      closeSheet();
+      setEditor(result.editor);
+      router.refresh();
+      return;
+    }
+    const result = await rejectRequest(open.id, reason);
+    setDeciding(false);
     if ("error" in result) {
       setError(result.error);
       return;
     }
-    setOpen(null);
-    setReason("");
+    closeSheet();
+    router.refresh();
+  }
+
+  async function remove(request: RequestRecord) {
+    if (requestState(request) !== "pending") {
+      setListError("Só uma solicitação pendente pode ser excluída.");
+      return;
+    }
+    if (!window.confirm("Excluir esta solicitação pendente?")) return;
+    setDeciding(true);
+    setError(null);
+    setListError(null);
+    const result = await deleteRequests([request.id]);
+    setDeciding(false);
+    if (result?.error) {
+      if (open?.id === request.id) setError(result.error);
+      else setListError(result.error);
+      return;
+    }
+    closeSheet();
+    selection.clear();
     router.refresh();
   }
 
@@ -123,7 +198,52 @@ export function RequestsView({
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Pesquisar" className="h-9 pl-8" />
           </div>
+          {canEdit ? (
+            <Button type="button" className="h-9 font-semibold" onClick={() => setCreating(true)}>
+              <Plus />
+              Solicitação
+            </Button>
+          ) : null}
         </div>
+        {listError ? (
+          <div className="px-4 pb-3">
+            <Alert variant="destructive">
+              <AlertDescription>{listError}</AlertDescription>
+            </Alert>
+          </div>
+        ) : null}
+        {canEdit ? (
+          <BulkActionBar
+            count={selection.count}
+            ids={selection.ids}
+            onClear={selection.clear}
+            actions={[
+              {
+                label: "Excluir",
+                destructive: true,
+                confirm: () => {
+                  const count = selection.ids.filter((id) => pendingSet.has(id)).length;
+                  return count === 1
+                    ? "Excluir a solicitação pendente selecionada?"
+                    : `Excluir ${count} solicitações pendentes?`;
+                },
+                ...(selection.ids.some((id) => pendingSet.has(id))
+                  ? {
+                      run: async (ids: string[]) => {
+                        const pending = ids.filter((id) => pendingSet.has(id));
+                        const result = await deleteRequests(pending);
+                        if (result && !result.error) router.refresh();
+                        return result;
+                      },
+                    }
+                  : {
+                      onSelect: () =>
+                        setListError("Só solicitações pendentes podem ser excluídas."),
+                    }),
+              },
+            ]}
+          />
+        ) : null}
         <Separator />
         {items.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
@@ -135,25 +255,92 @@ export function RequestsView({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-left text-sm">
+          <div className="w-full min-w-0 overflow-x-auto">
+            <table className="w-full min-w-[980px] text-left text-sm">
               <thead className="bg-muted">
                 <tr className="text-muted-foreground">
+                  {canEdit ? (
+                    <th className="w-10 px-4 py-3">
+                      <RowCheckbox
+                        checked={selection.allPage}
+                        indeterminate={selection.somePage}
+                        label="Selecionar as solicitações desta página"
+                        onChange={selection.togglePage}
+                      />
+                    </th>
+                  ) : null}
                   {["Código", "Solicitante", "Ativo", "Quando", "Situação"].map((header) => (
-                    <th key={header} className="px-4 py-3 text-xs font-semibold tracking-wide uppercase">{header}</th>
+                    <th key={header} className={listThClass}>{header}</th>
                   ))}
+                  {canEdit ? <th className={`${listThClass} sticky right-0 z-10 bg-muted text-center`}>Ações</th> : null}
                 </tr>
               </thead>
               <tbody>
                 {items.map((item) => {
                   const state = requestState(item);
+                  const pendingRow = state === "pending";
                   return (
-                    <tr key={item.id} className="cursor-pointer border-b last:border-0 hover:bg-muted/40" onClick={() => { setOpen(item); setReason(""); setError(null); }}>
-                      <td className="px-4 py-3 font-semibold">{item.customId ?? "—"}</td>
-                      <td className="px-4 py-3">{item.requesterName ?? "—"}</td>
-                      <td className="px-4 py-3">{item.assetName ?? "—"}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{formatWhen(item.createdAt)}</td>
-                      <td className="px-4 py-3">{STATE_LABEL[state]}</td>
+                    <tr key={item.id} className="group cursor-pointer border-b last:border-0 hover:bg-muted/40" onClick={() => { setOpen(item); setReason(""); setError(null); }}>
+                      {canEdit ? (
+                        <td className={listTdClass} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+                          <RowCheckbox
+                            checked={selection.isSelected(item.id)}
+                            label={`Selecionar ${item.title}`}
+                            onChange={() => selection.toggle(item.id)}
+                          />
+                        </td>
+                      ) : null}
+                      <td className={listTdIdClass}>{item.customId ?? "—"}</td>
+                      <td className={listTdClass}>{item.requesterName ?? "—"}</td>
+                      <td className={listTdClass}>{item.assetName ?? "—"}</td>
+                      <td className={`${listTdClass} whitespace-nowrap`}>{formatWhen(item.createdAt)}</td>
+                      <td className={listTdClass}>{STATE_LABEL[state]}</td>
+                      {canEdit ? (
+                        <td
+                          className={`${listTdClass} sticky right-0 z-10 bg-card group-hover:bg-muted/40`}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              disabled={deciding}
+                              className={cn(
+                                "text-primary hover:bg-primary/10 hover:text-primary",
+                                !pendingRow && "opacity-40",
+                              )}
+                              aria-label={`Editar ${item.title}`}
+                              title={pendingRow ? "Editar" : "Só uma solicitação pendente pode ser editada"}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                beginEdit(item);
+                              }}
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              disabled={deciding}
+                              className={cn(
+                                "text-destructive hover:bg-destructive/10 hover:text-destructive",
+                                !pendingRow && "opacity-40",
+                              )}
+                              aria-label={`Excluir ${item.title}`}
+                              title={pendingRow ? "Excluir" : "Só uma solicitação pendente pode ser excluída"}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void remove(item);
+                              }}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      ) : null}
                     </tr>
                   );
                 })}
@@ -164,7 +351,7 @@ export function RequestsView({
         <TablePagination page={query.page} pageSize={LIST_PAGE_SIZE} total={total} pending={navigating} onPageChange={(page) => visit({ page })} />
       </Card>
 
-      <Sheet open={open !== null} onOpenChange={(next) => { if (!next) setOpen(null); }}>
+      <Sheet open={open !== null} onOpenChange={(next) => { if (!next) closeSheet(); }}>
         <SheetContent side="right" className="w-full gap-0 overflow-y-auto p-0 data-[side=right]:sm:max-w-xl">
           <SheetHeader className="border-b pr-12">
             <SheetTitle>{open?.customId ?? "Solicitação"}</SheetTitle>
@@ -184,11 +371,23 @@ export function RequestsView({
               {open.cancellationReason ? <p>Motivo da recusa: {open.cancellationReason}</p> : null}
               {error ? <p className="text-destructive">{error}</p> : null}
               {canEdit && requestState(open) === "pending" ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" className="h-9" disabled={deciding} onClick={() => beginEdit(open)}>
+                    <Pencil />
+                    Editar
+                  </Button>
+                  <Button type="button" variant="outline" className="h-9 text-destructive" disabled={deciding} onClick={() => void remove(open)}>
+                    <Trash2 />
+                    Excluir
+                  </Button>
+                </div>
+              ) : null}
+              {isAdmin && requestState(open) === "pending" ? (
                 <div className="space-y-3">
                   <Textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Motivo da recusa" rows={3} />
                   <div className="flex flex-wrap gap-2">
-                    <Button type="button" className="h-9" disabled={pending} onClick={() => void decide("approve")}>Aprovar</Button>
-                    <Button type="button" variant="outline" className="h-9" disabled={pending} onClick={() => void decide("reject")}>Recusar</Button>
+                    <Button type="button" className="h-9" disabled={deciding} onClick={() => void decide("approve")}>Aprovar</Button>
+                    <Button type="button" variant="outline" className="h-9" disabled={deciding} onClick={() => void decide("reject")}>Recusar</Button>
                   </div>
                 </div>
               ) : null}
@@ -196,6 +395,111 @@ export function RequestsView({
           ) : null}
         </SheetContent>
       </Sheet>
+      <FormDialog
+        open={creating || editing !== null}
+        onOpenChange={(next) => {
+          if (!next) {
+            setCreating(false);
+            setEditing(null);
+          }
+        }}
+        title={editing ? "Editar solicitação" : "Nova solicitação"}
+        description={editing ? "Vale só enquanto a solicitação estiver pendente." : "Peça manutenção para um ativo. O administrador transforma a solicitação em ordem."}
+      >
+        <RequestForm
+          key={editing?.id ?? "new"}
+          request={editing}
+          assets={assets}
+          onCancel={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+          onSuccess={() => {
+            setCreating(false);
+            setEditing(null);
+            selection.clear();
+            router.refresh();
+          }}
+        />
+      </FormDialog>
+      <FormDialog
+        open={editor !== null}
+        onOpenChange={(next) => {
+          if (!next) setEditor(null);
+        }}
+        title="Completar ordem de serviço"
+        description="A solicitação já virou esta ordem. Complete o que faltar."
+      >
+        {editor ? (
+          <WorkOrderForm
+            key={editor.order.id}
+            order={editor.order}
+            locations={editor.locations}
+            assets={editor.assets}
+            people={editor.people}
+            teams={editor.teams}
+            checklists={editor.checklists}
+            customers={editor.customers}
+            onCancel={() => setEditor(null)}
+            onSuccess={() => {
+              setEditor(null);
+              router.refresh();
+            }}
+          />
+        ) : null}
+      </FormDialog>
     </div>
+  );
+}
+
+function RequestForm({
+  request,
+  assets,
+  onCancel,
+  onSuccess,
+}: {
+  request: RequestRecord | null;
+  assets: { id: string; name: string }[];
+  onCancel: () => void;
+  onSuccess: () => void;
+}) {
+  const action = request ? updateRequest : createRequest;
+  const [state, formAction, pending] = useActionState<MutationState, FormData>(action, undefined);
+  const onSuccessRef = useRef(onSuccess);
+  onSuccessRef.current = onSuccess;
+  useEffect(() => {
+    if (state?.success) onSuccessRef.current();
+  }, [state]);
+
+  return (
+    <form action={formAction} className="space-y-4">
+      {request ? <input type="hidden" name="id" value={request.id} /> : null}
+      {state?.error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{state.error}</AlertDescription>
+        </Alert>
+      ) : null}
+      <label className="block space-y-1 text-sm">
+        <span>Ativo</span>
+        <NativeSelect name="asset_id" required className="h-9" defaultValue={request?.assetId ?? ""}>
+          <option value="">Selecione</option>
+          {assets.map((asset) => (
+            <option key={asset.id} value={asset.id}>{asset.name}</option>
+          ))}
+        </NativeSelect>
+      </label>
+      <label className="block space-y-1 text-sm">
+        <span>Título</span>
+        <Input name="title" className="h-9" placeholder="Opcional" defaultValue={request?.title ?? ""} />
+      </label>
+      <label className="block space-y-1 text-sm">
+        <span>Descrição</span>
+        <Textarea name="description" required rows={4} defaultValue={request?.description ?? ""} />
+      </label>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" className="h-9" onClick={onCancel}>Cancelar</Button>
+        <Button type="submit" className="h-9" disabled={pending}>{pending ? "Salvando..." : request ? "Salvar" : "Criar"}</Button>
+      </div>
+    </form>
   );
 }

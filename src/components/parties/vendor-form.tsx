@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { CurrencyInput } from "@/components/forms/currency-input";
 import { Field } from "@/components/forms/field";
 import { FormActions } from "@/components/forms/form-actions";
 import { PhoneInput } from "@/components/forms/phone-input";
@@ -53,9 +52,6 @@ export function VendorForm({
       </Field>
       <Field label="Tipo" htmlFor="vendor_type">
         <Input id="vendor_type" name="vendor_type" defaultValue={vendor?.vendorType ?? ""} className="h-9" />
-      </Field>
-      <Field label="Valor/hora" htmlFor="rate">
-        <CurrencyInput id="rate" name="rate" defaultValue={vendor?.rate} className="h-9" />
       </Field>
       <Field label="Descrição" htmlFor="vendor_description" className="sm:col-span-2">
         <Textarea id="vendor_description" name="description" defaultValue={vendor?.description ?? ""} rows={3} />

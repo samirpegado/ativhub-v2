@@ -5,6 +5,21 @@ import { readRequestsScreen } from "@/lib/requests/payload";
 
 export type { RequestRecord } from "@/lib/requests/payload";
 
+export async function countPendingRequests() {
+  try {
+    const { supabase } = await requireArea("requests", "view");
+    const { count, error } = await supabase
+      .from("request")
+      .select("id", { count: "exact", head: true })
+      .eq("cancelled", false)
+      .is("work_order_id", null);
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function listRequestsScreen(query: RequestListQuery) {
   const { supabase } = await requireArea("requests", "view");
   const { data, error } = await supabase.rpc("requests_screen", {

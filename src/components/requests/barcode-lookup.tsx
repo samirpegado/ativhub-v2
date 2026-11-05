@@ -19,7 +19,7 @@ export function BarcodeLookup() {
       <div>
         <h1 className="text-xl font-bold">Solicitar manutenção</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Digite o código de barras. Em seguida, informe o PIN da localização.
+          Digite o código de barras. Em seguida, informe o PIN do cliente.
         </p>
       </div>
       <form

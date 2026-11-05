@@ -167,23 +167,29 @@ export type Database = {
         Row: {
           asset_id: string
           duration_seconds: number
+          ended_at: string | null
           id: string
           started_at: string
           tenant_id: string
+          work_order_id: string | null
         }
         Insert: {
           asset_id: string
           duration_seconds?: number
+          ended_at?: string | null
           id?: string
           started_at?: string
           tenant_id: string
+          work_order_id?: string | null
         }
         Update: {
           asset_id?: string
           duration_seconds?: number
+          ended_at?: string | null
           id?: string
           started_at?: string
           tenant_id?: string
+          work_order_id?: string | null
         }
         Relationships: [
           {
@@ -377,8 +383,11 @@ export type Database = {
           description: string | null
           email: string | null
           id: string
+          is_internal: boolean
           name: string
           phone: string | null
+          request_pin: string
+          tax_id: string | null
           tenant_id: string
           website: string | null
         }
@@ -388,8 +397,11 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          is_internal?: boolean
           name: string
           phone?: string | null
+          request_pin?: string
+          tax_id?: string | null
           tenant_id: string
           website?: string | null
         }
@@ -399,8 +411,11 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          is_internal?: boolean
           name?: string
           phone?: string | null
+          request_pin?: string
+          tax_id?: string | null
           tenant_id?: string
           website?: string | null
         }
@@ -526,7 +541,7 @@ export type Database = {
           number: string | null
           parent_id: string | null
           postal_code: string | null
-          request_pin: string
+          customer_id: string | null
           state: string | null
           street: string | null
           tenant_id: string
@@ -547,7 +562,7 @@ export type Database = {
           number?: string | null
           parent_id?: string | null
           postal_code?: string | null
-          request_pin?: string
+          customer_id?: string | null
           state?: string | null
           street?: string | null
           tenant_id: string
@@ -568,7 +583,7 @@ export type Database = {
           number?: string | null
           parent_id?: string | null
           postal_code?: string | null
-          request_pin?: string
+          customer_id?: string | null
           state?: string | null
           street?: string | null
           tenant_id?: string
@@ -1258,6 +1273,8 @@ export type Database = {
           task_type: string
           tenant_id: string
           value: string | null
+          comment: string | null
+          executed_at: string | null
           work_order_id: string
         }
         Insert: {
@@ -1270,6 +1287,8 @@ export type Database = {
           task_type?: string
           tenant_id: string
           value?: string | null
+          comment?: string | null
+          executed_at?: string | null
           work_order_id: string
         }
         Update: {
@@ -1282,6 +1301,8 @@ export type Database = {
           task_type?: string
           tenant_id?: string
           value?: string | null
+          comment?: string | null
+          executed_at?: string | null
           work_order_id?: string
         }
         Relationships: [
@@ -1747,6 +1768,17 @@ export type Database = {
     }
     Functions: {
       asset_detail: { Args: { p_asset_id: string }; Returns: Json }
+      assets_screen: {
+        Args: {
+          p_search?: string
+          p_statuses?: string[]
+          p_category_ids?: string[]
+          p_location_ids?: string[]
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: Json
+      }
       bootstrap_tenant: {
         Args: { p_first_name: string; p_last_name: string; p_name: string }
         Returns: string
@@ -1787,12 +1819,27 @@ export type Database = {
         }
         Returns: Json
       }
+      work_orders_dashboard: {
+        Args: {
+          p_from?: string
+          p_to?: string
+          p_membership?: string
+          p_location?: string
+          p_type?: string
+          p_status?: string
+          p_priority?: string
+          p_situation?: string
+        }
+        Returns: Json
+      }
       work_orders_screen: {
         Args: {
           p_include_calendar?: boolean
           p_limit?: number
           p_location_ids?: string[]
           p_offset?: number
+          p_due_from?: string
+          p_due_to?: string
           p_overdue?: boolean
           p_priorities?: string[]
           p_search?: string

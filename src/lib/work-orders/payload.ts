@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireTenant } from "@/lib/auth/current-user";
 import type { ChecklistRecord } from "@/lib/checklists/queries";
 import type { LocationOption } from "@/lib/locations/queries";
 import type { PersonRecord, TeamRecord } from "@/lib/people/queries";
@@ -28,6 +29,8 @@ export type WorkOrderRecord = {
   customerId: string | null;
   customerName: string | null;
   customerEmail: string | null;
+  customerPhone: string | null;
+  companyName: string;
   dueDate: string | null;
   estimatedStartDate: string | null;
   estimatedDuration: number | null;
@@ -162,6 +165,8 @@ function mapOrder(
     customerId: text(row.customerId),
     customerName: text(row.customerName),
     customerEmail: text(row.customerEmail),
+    customerPhone: text(row.customerPhone),
+    companyName: text(row.companyName) ?? "",
     dueDate: text(row.dueDate),
     estimatedStartDate: text(row.estimatedStartDate),
     estimatedDuration: typeof row.estimatedDuration === "number" ? row.estimatedDuration : null,
@@ -193,6 +198,8 @@ function mapOrder(
           taskType: isTaskType(taskType) ? taskType : "SUBTASK",
           options: stringList(task.options),
           value: text(task.value),
+          comment: text(task.comment),
+          executedAt: text(task.executedAt),
         },
       ];
     }),
@@ -370,6 +377,45 @@ export async function readWorkOrdersScreen(supabase: Client, data: unknown): Pro
   };
 }
 
+async function presentWorkOrderParties(supabase: Client, order: WorkOrderRecord): Promise<WorkOrderRecord> {
+  const { tenantId } = await requireTenant();
+  const { data: tenant } = await supabase.from("tenant").select("name").eq("id", tenantId).maybeSingle();
+
+  let customerId = order.customerId;
+  if (order.locationId) {
+    const { data: location } = await supabase
+      .from("location")
+      .select("customer_id")
+      .eq("id", order.locationId)
+      .maybeSingle();
+    if (location?.customer_id) customerId = location.customer_id;
+  }
+
+  let customerName: string | null = null;
+  let customerEmail: string | null = null;
+  let customerPhone: string | null = null;
+  if (customerId) {
+    const { data: customer } = await supabase
+      .from("customer")
+      .select("name, email, phone, is_internal")
+      .eq("id", customerId)
+      .maybeSingle();
+    if (customer && !customer.is_internal) {
+      customerName = customer.name;
+      customerEmail = customer.email;
+      customerPhone = customer.phone;
+    }
+  }
+
+  return {
+    ...order,
+    companyName: tenant?.name ?? "",
+    customerName,
+    customerEmail,
+    customerPhone,
+  };
+}
+
 export async function readWorkOrderDetail(supabase: Client, data: unknown): Promise<WorkOrderDetail> {
   const detail = asRecord(data);
   const orderRow = asRecord(detail?.order);
@@ -387,9 +433,10 @@ export async function readWorkOrderDetail(supabase: Client, data: unknown): Prom
   const signed = await signStoragePaths(supabase, imagePaths);
   const urls = new Map(imagePaths.map((path, index) => [path, signed[index] ?? null]));
   const timer = asRecord(detail.timer);
+  const order = await presentWorkOrderParties(supabase, mapOrder(orderRow, urls));
 
   return {
-    order: mapOrder(orderRow, urls),
+    order,
     activity: {
       timer: timer
         ? {

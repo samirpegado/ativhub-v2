@@ -19,6 +19,7 @@ export type AssetDetailEvent =
       at: string;
       id: string;
       durationSeconds: number;
+      open: boolean;
     };
 
 export type AssetDetail = {
@@ -40,6 +41,11 @@ export type AssetDetail = {
     imageUrl: string | null;
   };
   maintenanceCost: number;
+  workOrderCount: number;
+  downtimeSeconds: number;
+  availability: number | null;
+  mttrSeconds: number | null;
+  mtbfSeconds: number | null;
   events: AssetDetailEvent[];
 };
 
@@ -89,6 +95,7 @@ export async function readAssetDetail(
           at,
           id: eventId,
           durationSeconds: money(event.durationSeconds),
+          open: event.open === true,
         },
       ];
     }
@@ -110,6 +117,11 @@ export async function readAssetDetail(
     ];
   });
 
+  const tracked = Math.max(0, money(detail.trackedSeconds));
+  const downtime = Math.min(tracked, Math.max(0, money(detail.downtimeSeconds)));
+  const failures = Math.max(0, money(detail.failureCount));
+  const mttr = num(detail.mttrSeconds);
+
   return {
     asset: {
       id,
@@ -129,6 +141,11 @@ export async function readAssetDetail(
       imageUrl: imagePath ? (signed[0] ?? null) : null,
     },
     maintenanceCost: money(detail.maintenanceCost),
+    workOrderCount: money(detail.workOrderCount),
+    downtimeSeconds: downtime,
+    availability: tracked > 0 ? (tracked - downtime) / tracked : null,
+    mttrSeconds: mttr != null && mttr >= 0 ? mttr : null,
+    mtbfSeconds: failures > 0 ? (tracked - downtime) / failures : null,
     events,
   };
 }

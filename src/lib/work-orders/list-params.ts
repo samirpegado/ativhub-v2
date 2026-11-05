@@ -7,7 +7,7 @@ import {
   isWorkOrderType,
 } from "@/lib/work-orders/status";
 
-export const DEFAULT_WORK_ORDER_STATUSES = ["OPEN", "IN_PROGRESS", "ON_HOLD"];
+export const DEFAULT_WORK_ORDER_STATUSES = ["OPEN", "IN_PROGRESS", "ON_HOLD", "COMPLETE"];
 export const DEFAULT_WORK_ORDER_PRIORITIES = WORK_ORDER_PRIORITIES.map((item) => item.value);
 
 export type WorkOrderListQuery = {
@@ -17,6 +17,8 @@ export type WorkOrderListQuery = {
   locationIds: string[];
   types: string[];
   overdue: boolean;
+  dueFrom: string | null;
+  dueTo: string | null;
   page: number;
   offset: number;
   calendar: boolean;
@@ -38,6 +40,22 @@ function parseSelection(
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseDate(value: string | undefined) {
+  const trimmed = (value ?? "").trim();
+  if (!ISO_DATE.test(trimmed)) return null;
+  const [year, month, day] = trimmed.split("-").map((part) => Number(part));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return trimmed;
+}
 
 export function parseWorkOrderListQuery(input: {
   q?: string;
@@ -46,11 +64,20 @@ export function parseWorkOrderListQuery(input: {
   location?: string;
   type?: string;
   overdue?: string;
+  from?: string;
+  to?: string;
   page?: string;
   view?: string;
 }): WorkOrderListQuery {
   const parsed = Number.parseInt(input.page ?? "1", 10);
   const page = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
+  let dueFrom = parseDate(input.from);
+  let dueTo = parseDate(input.to);
+  if (dueFrom && dueTo && dueFrom > dueTo) {
+    const swap = dueFrom;
+    dueFrom = dueTo;
+    dueTo = swap;
+  }
   return {
     search: (input.q ?? "").trim(),
     statuses: parseSelection(input.status, isWorkOrderStatus, DEFAULT_WORK_ORDER_STATUSES),
@@ -62,10 +89,31 @@ export function parseWorkOrderListQuery(input: {
     locationIds: parseSelection(input.location, (item) => UUID.test(item), []),
     types: parseSelection(input.type, isWorkOrderType, WORK_ORDER_TYPES.map((item) => item.value)),
     overdue: input.overdue === "1",
+    dueFrom,
+    dueTo,
     page,
     offset: (page - 1) * LIST_PAGE_SIZE,
     calendar: input.view === "calendar",
   };
+}
+
+export function workOrderActiveFilterCount(query: {
+  statuses: string[];
+  priorities: string[];
+  locationIds: string[];
+  types: string[];
+  overdue: boolean;
+  dueFrom: string | null;
+  dueTo: string | null;
+}) {
+  let count = 0;
+  if (!sameSelection(query.statuses, DEFAULT_WORK_ORDER_STATUSES)) count += 1;
+  if (!sameSelection(query.priorities, DEFAULT_WORK_ORDER_PRIORITIES)) count += 1;
+  if (!sameSelection(query.types, WORK_ORDER_TYPES.map((item) => item.value))) count += 1;
+  if (query.locationIds.length > 0) count += 1;
+  if (query.overdue) count += 1;
+  if (query.dueFrom || query.dueTo) count += 1;
+  return count;
 }
 
 export function workOrderListHref(query: {
@@ -75,6 +123,8 @@ export function workOrderListHref(query: {
   locationIds: string[];
   types: string[];
   overdue: boolean;
+  dueFrom: string | null;
+  dueTo: string | null;
   page: number;
   calendar?: boolean;
 }) {
@@ -92,6 +142,8 @@ export function workOrderListHref(query: {
     params.set("type", query.types.join(","));
   }
   if (query.overdue) params.set("overdue", "1");
+  if (query.dueFrom) params.set("from", query.dueFrom);
+  if (query.dueTo) params.set("to", query.dueTo);
   if (query.page > 1) params.set("page", String(query.page));
   if (query.calendar) params.set("view", "calendar");
   const qs = params.toString();

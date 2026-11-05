@@ -20,7 +20,7 @@ export const AREA_LABELS: Record<MenuArea, string> = {
   assets: "Ativos",
   locations: "Localizações",
   inventory: "Peças e inventário",
-  parties: "Fornecedores e contratantes",
+  parties: "Clientes e fornecedores",
   people: "Pessoas e equipes",
 };
 
@@ -45,9 +45,11 @@ export function defaultAreas(roleCode: string): AreaAccess {
   if (roleCode === "ADMIN") return all(true, true);
   if (roleCode === "TECHNICIAN") {
     return {
-      ...all(true, true),
-      parties: cell(true, false),
-      people: cell(false, false),
+      ...all(false, false),
+      work_orders: cell(true, false),
+      requests: cell(true, true),
+      assets: cell(true, false),
+      inventory: cell(true, false),
     };
   }
   if (roleCode === "REQUESTER") {

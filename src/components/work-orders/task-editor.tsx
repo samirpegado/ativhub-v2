@@ -19,8 +19,11 @@ import { cn } from "@/lib/utils";
 
 type DraftTask = WorkOrderTask & { key: string };
 
-const SUBTASK_OPTIONS = ["Aberto", "Em andamento", "Em espera", "Concluído"];
-const INSPECTION_OPTIONS = ["Aprovado", "Atenção", "Reprovado"];
+const INSPECTION_OPTIONS = [
+  { value: "PASS", label: "Aprovado" },
+  { value: "FLAG", label: "Atenção" },
+  { value: "FAIL", label: "Reprovado" },
+];
 
 function draftFrom(task: WorkOrderTask): DraftTask {
   return { ...task, key: crypto.randomUUID(), options: [...task.options] };
@@ -79,6 +82,7 @@ export function TaskEditor({
   function validatedDraft() {
     return parseTaskList(
       draft.map((task) => ({
+        id: task.id,
         label: task.label,
         taskType: task.taskType,
         options: task.options,
@@ -100,7 +104,12 @@ export function TaskEditor({
   function useChecklist(id: string) {
     const list = lists.find((item) => item.id === id);
     if (!list) return;
-    setDraft((current) => [...current, ...list.tasks.map(draftFrom)]);
+    setDraft((current) => [
+      ...current,
+      ...list.tasks.map((task) =>
+        draftFrom({ ...task, id: undefined, value: null, comment: null, executedAt: null }),
+      ),
+    ]);
     setNotice(`Tarefas de “${list.name}” adicionadas a esta ordem.`);
     setError(null);
   }
@@ -284,7 +293,7 @@ export function TaskEditor({
           ) : (
             <div className="space-y-2">
               {draft.map((task) => (
-                <TaskPreview key={task.key} task={task} />
+                <TaskPreview key={`${task.key}-${task.taskType}`} task={task} />
               ))}
             </div>
           )}
@@ -405,32 +414,57 @@ function TaskRow({
 }
 
 function TaskPreview({ task }: { task: DraftTask }) {
+  const [value, setValue] = useState("");
+  const [comment, setComment] = useState("");
   const options =
-    task.taskType === "SUBTASK"
-      ? SUBTASK_OPTIONS
-      : task.taskType === "INSPECTION"
-        ? INSPECTION_OPTIONS
-        : task.options.filter(Boolean);
+    task.taskType === "INSPECTION" ? INSPECTION_OPTIONS : task.options.filter(Boolean).map((option) => ({
+      value: option,
+      label: option,
+    }));
 
   return (
-    <div className="rounded-lg bg-muted/60 p-3">
+    <div className="space-y-2 rounded-lg bg-muted/60 p-3">
       <p className="font-semibold">{task.label || "Nome da tarefa"}</p>
-      {task.taskType === "TEXT" || task.taskType === "NUMBER" ? (
+      {task.taskType === "SUBTASK" ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="size-4 accent-primary"
+            checked={value === "DONE"}
+            onChange={(event) => setValue(event.target.checked ? "DONE" : "")}
+          />
+          Concluída
+        </label>
+      ) : task.taskType === "TEXT" || task.taskType === "NUMBER" ? (
         <Input
-          disabled
           type={task.taskType === "NUMBER" ? "number" : "text"}
+          value={value}
           placeholder="Valor"
-          className="mt-2 h-9 bg-background"
+          className="h-9 bg-background"
+          onChange={(event) => setValue(event.target.value)}
         />
       ) : (
-        <NativeSelect disabled className="mt-2 h-9 bg-background" defaultValue={options[0] ?? ""}>
+        <NativeSelect
+          className="h-9 bg-background"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+        >
+          <option value="">Selecione</option>
           {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </NativeSelect>
       )}
+      <textarea
+        rows={2}
+        value={comment}
+        placeholder="Comentário da execução"
+        className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+        onChange={(event) => setComment(event.target.value)}
+      />
+      <p className="text-xs text-muted-foreground">Esta pré-visualização não grava a resposta.</p>
     </div>
   );
 }

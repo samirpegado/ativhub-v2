@@ -3,13 +3,18 @@
 import { useActionState, useCallback, useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { ClipboardCheck, Pencil, Plus, Search, Signal, Trash2 } from "lucide-react";
+import { ClipboardCheck, ListFilter, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { BulkActionBar } from "@/components/lists/bulk-action-bar";
 import { RowCheckbox } from "@/components/lists/row-checkbox";
+import { listTdClass, listTdIdClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
 import { useRowSelection } from "@/components/lists/use-row-selection";
 import { WorkOrderDrawer } from "@/components/work-orders/work-order-drawer";
+import {
+  WorkOrderFiltersDialog,
+  type WorkOrderFilterDraft,
+} from "@/components/work-orders/work-order-filters-dialog";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
 
@@ -28,12 +33,6 @@ import type { ChecklistRecord } from "@/lib/checklists/queries";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -47,16 +46,17 @@ import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import type { LocationOption } from "@/lib/locations/queries";
 import type { MutationState } from "@/lib/forms/state";
 import type { PersonRecord, TeamRecord } from "@/lib/people/queries";
-import { workOrderListHref, type WorkOrderListQuery } from "@/lib/work-orders/list-params";
+import {
+  workOrderActiveFilterCount,
+  workOrderListHref,
+  type WorkOrderListQuery,
+} from "@/lib/work-orders/list-params";
 import type {
   WorkOrderCalendarItem,
   WorkOrderPerson,
   WorkOrderRecord,
 } from "@/lib/work-orders/queries";
 import {
-  WORK_ORDER_PRIORITIES,
-  WORK_ORDER_STATUSES,
-  WORK_ORDER_TYPES,
   workOrderIsOverdue,
   workOrderPriorityLabel,
   workOrderStatusLabel,
@@ -128,10 +128,12 @@ export function WorkOrdersView({
   const [initialDue, setInitialDue] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [answering, setAnswering] = useState<WorkOrderRecord | null>(null);
+  const [taskRevision, setTaskRevision] = useState(0);
   const [dateField, setDateField] = useState<"start" | "due" | null>(null);
   const [dateValue, setDateValue] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
   const [search, setSearch] = useState(query.search);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [state, formAction, pending] = useActionState<MutationState, FormData>(
     deleteWorkOrder,
     undefined,
@@ -176,6 +178,8 @@ export function WorkOrdersView({
           locationIds: query.locationIds,
           types: query.types,
           overdue: query.overdue,
+          dueFrom: query.dueFrom,
+          dueTo: query.dueTo,
           page: query.page,
           calendar: query.calendar,
           ...next,
@@ -185,9 +189,28 @@ export function WorkOrdersView({
     });
   }
 
-  function toggle(list: string[], value: string) {
-    return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+  function applyFilters(draft: WorkOrderFilterDraft) {
+    setFiltersOpen(false);
+    let dueFrom = draft.dueFrom || null;
+    let dueTo = draft.dueTo || null;
+    if (dueFrom && dueTo && dueFrom > dueTo) {
+      const swap = dueFrom;
+      dueFrom = dueTo;
+      dueTo = swap;
+    }
+    visit({
+      statuses: draft.statuses,
+      priorities: draft.priorities,
+      types: draft.types,
+      locationIds: draft.locationIds,
+      overdue: draft.overdue,
+      dueFrom,
+      dueTo,
+      page: 1,
+    });
   }
+
+  const activeFilters = workOrderActiveFilterCount(query);
 
   return (
     <TooltipProvider>
@@ -215,100 +238,31 @@ export function WorkOrdersView({
             </button>
           ))}
         </div>
-        <Button className="h-9 font-semibold" onClick={() => openNew()}>
-          <Plus />
-          Ordem de serviço
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9"
+            onClick={() => setFiltersOpen(true)}
+          >
+            <ListFilter />
+            Filtros
+            {activeFilters > 0 ? (
+              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
+                {activeFilters}
+              </span>
+            ) : null}
+          </Button>
+          <Button className="h-9 font-semibold" onClick={() => openNew()}>
+            <Plus />
+            Ordem de serviço
+          </Button>
+        </div>
       </div>
 
       <Card className={cn("items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]", navigating && "opacity-70")}>
         {view === "list" ? (
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-9">
-                <Signal />
-                Prioridade
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {WORK_ORDER_PRIORITIES.map((item) => (
-                <DropdownMenuCheckboxItem
-                  key={item.value}
-                  checked={query.priorities.includes(item.value)}
-                  onCheckedChange={() =>
-                    visit({ priorities: toggle(query.priorities, item.value), page: 1 })
-                  }
-                  onSelect={(event) => event.preventDefault()}
-                >
-                  {item.label}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-9">
-                Status
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {WORK_ORDER_STATUSES.map((item) => (
-                <DropdownMenuCheckboxItem
-                  key={item.value}
-                  checked={query.statuses.includes(item.value)}
-                  onCheckedChange={() =>
-                    visit({ statuses: toggle(query.statuses, item.value), page: 1 })
-                  }
-                  onSelect={(event) => event.preventDefault()}
-                >
-                  {item.label}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-9">Tipo</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {WORK_ORDER_TYPES.map((item) => (
-                <DropdownMenuCheckboxItem
-                  key={item.value}
-                  checked={query.types.includes(item.value)}
-                  onCheckedChange={() => visit({ types: toggle(query.types, item.value), page: 1 })}
-                  onSelect={(event) => event.preventDefault()}
-                >
-                  {item.label}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-9">Local</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {locations.map((location) => (
-                <DropdownMenuCheckboxItem
-                  key={location.id}
-                  checked={query.locationIds.includes(location.id)}
-                  onCheckedChange={() => visit({ locationIds: toggle(query.locationIds, location.id), page: 1 })}
-                  onSelect={(event) => event.preventDefault()}
-                >
-                  {location.name}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button
-            type="button"
-            variant={query.overdue ? "default" : "outline"}
-            className="h-9"
-            onClick={() => visit({ overdue: !query.overdue, page: 1 })}
-          >
-            Em atraso
-          </Button>
           <div className="relative min-w-40 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -386,19 +340,14 @@ export function WorkOrdersView({
                       />
                     </th>
                   ) : null}
-                  {["ID", "Status", "Título", "Prioridade", "Trabalhador", "Responsáveis", "Localização", "Ativo", "Vencimento"].map(
+                  {["ID", "Status", "Título", "Prioridade", "Responsáveis", "Localização", "Ativo", "Vencimento"].map(
                     (header) => (
-                      <th
-                        key={header}
-                        className="px-4 py-3 text-xs font-semibold tracking-wide uppercase"
-                      >
+                      <th key={header} className={listThClass}>
                         {header}
                       </th>
                     ),
                   )}
-                  <th className="px-4 py-3 text-center text-xs font-semibold tracking-wide uppercase">
-                    Ações
-                  </th>
+                  <th className={`${listThClass} text-center`}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -409,7 +358,7 @@ export function WorkOrdersView({
                     onClick={() => setOpenId(order.id)}
                   >
                     {canEdit ? (
-                      <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                      <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
                         <RowCheckbox
                           checked={selection.isSelected(order.id)}
                           label={`Selecionar ${order.title}`}
@@ -417,46 +366,49 @@ export function WorkOrdersView({
                         />
                       </td>
                     ) : null}
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                      {order.customId ?? "—"}
-                    </td>
-                    <td className="px-4 py-3">
+                    <td className={listTdIdClass}>{order.customId ?? "—"}</td>
+                    <td className={`${listTdClass} whitespace-nowrap`}>
                       <span className="inline-flex items-center gap-2">
-                        <span className={cn("size-2.5 rounded-full", statusDot(order.status))} />
+                        <span className={cn("size-2.5 shrink-0 rounded-full", statusDot(order.status))} />
                         {workOrderStatusLabel(order.status)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-semibold">
-                      <span className="mr-2 inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-semibold">
-                        {workOrderTypeLabel(order.type)}
-                      </span>
-                      {order.title}
-                      {workOrderIsOverdue(order) ? (
-                        <span className="ml-2 inline-flex rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-semibold text-destructive">
-                          Em atraso
+                    <td className={listTdClass}>
+                      <div className="flex w-56 max-w-56 flex-col gap-1.5">
+                        <span className="line-clamp-2 break-words font-medium leading-snug">{order.title}</span>
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+                            {workOrderTypeLabel(order.type)}
+                          </span>
+                          {workOrderIsOverdue(order) ? (
+                            <span className="inline-flex rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                              Em atraso
+                            </span>
+                          ) : null}
                         </span>
-                      ) : null}
+                      </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className={listTdClass}>
                       <span
                         className={cn(
-                          "inline-flex rounded-md px-2 py-0.5 text-xs font-semibold",
+                          "inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
                           priorityClass(order.priority),
                         )}
                       >
                         {workOrderPriorityLabel(order.priority)}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <PersonAvatars people={order.primaryUser ? [order.primaryUser] : []} />
-                    </td>
-                    <td className="px-4 py-3">
+                    <td className={listTdClass}>
                       <PersonAvatars people={order.assignees} />
                     </td>
-                    <td className="px-4 py-3">{order.locationName ?? "—"}</td>
-                    <td className="px-4 py-3">{order.assetName ?? "—"}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{formatWhen(order.dueDate)}</td>
-                    <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                    <td className={listTdClass}>
+                      <span className="line-clamp-2 w-36 max-w-36 break-words">{order.locationName ?? "—"}</span>
+                    </td>
+                    <td className={listTdClass}>
+                      <span className="line-clamp-2 w-36 max-w-36 break-words">{order.assetName ?? "—"}</span>
+                    </td>
+                    <td className={`${listTdClass} whitespace-nowrap`}>{formatWhen(order.dueDate)}</td>
+                    <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
                       <div className="flex items-center justify-center gap-1">
                         <Button
                           type="button"
@@ -517,6 +469,14 @@ export function WorkOrdersView({
         ) : null}
       </Card>
 
+      <WorkOrderFiltersDialog
+        open={filtersOpen}
+        query={query}
+        locations={locations}
+        onOpenChange={setFiltersOpen}
+        onApply={applyFilters}
+      />
+
       <FormDialog
         open={editing !== null}
         onOpenChange={(open) => {
@@ -555,6 +515,8 @@ export function WorkOrdersView({
           setEditing(order);
         }}
         onAnswer={setAnswering}
+        reloadToken={taskRevision}
+        canEdit={canEdit}
       />
 
       <FormDialog
@@ -609,6 +571,10 @@ export function WorkOrdersView({
         order={answering}
         onOpenChange={(next) => {
           if (!next) setAnswering(null);
+        }}
+        onExecuted={(next) => {
+          setAnswering(next);
+          setTaskRevision((current) => current + 1);
         }}
       />
     </div>

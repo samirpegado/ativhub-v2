@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { WorkOrderDashboardView } from "@/components/work-orders/work-order-dashboard";
 import { WorkOrdersView } from "@/components/work-orders/work-orders-view";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
+import { loadWorkOrderDashboard, parseDashboardFilters } from "@/lib/work-orders/dashboard";
 import {
   parseWorkOrderListQuery,
   workOrderListHref,
@@ -24,13 +26,41 @@ export default async function HomePage({
     location?: string;
     type?: string;
     overdue?: string;
+    from?: string;
+    to?: string;
     page?: string;
     view?: string;
+    d_from?: string;
+    d_to?: string;
+    d_worker?: string;
+    d_location?: string;
+    d_type?: string;
+    d_status?: string;
+    d_priority?: string;
+    d_situation?: string;
   }>;
 }) {
   const params = await searchParams;
+  const { supabase, tenantId, appUser } = await requireArea("work_orders", "view", { redirect: true });
+  const canEdit = can(appUser, "work_orders", "edit");
+
+  if (!canEdit) {
+    const filters = parseDashboardFilters(params);
+    const dashboard = await loadWorkOrderDashboard(filters, true);
+    const { data: locationRows } = await supabase.from("location").select("id, name").order("name");
+    return (
+      <WorkOrderDashboardView
+        filters={filters}
+        dashboard={dashboard}
+        locations={(locationRows ?? []).flatMap((row) => (row.name ? [{ id: row.id, name: row.name }] : []))}
+        workers={[]}
+        canManage={false}
+        tenantId={tenantId}
+      />
+    );
+  }
+
   const query = parseWorkOrderListQuery(params);
-  const { tenantId, appUser } = await requireArea("work_orders", "view", { redirect: true });
   const screen = await listWorkOrdersScreen(query);
   const pageCount = workOrderPageCount(screen.total);
   if (query.page > pageCount) {
@@ -50,7 +80,7 @@ export default async function HomePage({
       teams={screen.teams}
       checklists={screen.checklists}
       customers={screen.customers}
-      canEdit={can(appUser, "work_orders", "edit")}
+      canEdit={canEdit}
       tenantId={tenantId}
     />
   );

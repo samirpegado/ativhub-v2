@@ -4,6 +4,7 @@ import { useActionState, useEffect } from "react";
 import { Field } from "@/components/forms/field";
 import { FormActions } from "@/components/forms/form-actions";
 import { PhoneInput } from "@/components/forms/phone-input";
+import { TaxIdInput } from "@/components/forms/tax-id-input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +39,14 @@ export function CustomerForm({
       <Field label="Nome" htmlFor="customer_name" required className="sm:col-span-2">
         <Input id="customer_name" name="name" required defaultValue={customer?.name} className="h-9" autoFocus />
       </Field>
+      <Field label="CPF ou CNPJ" htmlFor="customer_tax_id" className="sm:col-span-2">
+        <TaxIdInput
+          id="customer_tax_id"
+          name="tax_id"
+          defaultValue={customer?.taxId}
+          className="h-9 max-w-56"
+        />
+      </Field>
       <Field label="Telefone" htmlFor="customer_phone">
         <PhoneInput id="customer_phone" name="phone" defaultValue={customer?.phone} className="h-9" />
       </Field>
@@ -46,6 +55,28 @@ export function CustomerForm({
       </Field>
       <Field label="Site" htmlFor="customer_website">
         <Input id="customer_website" name="website" defaultValue={customer?.website ?? ""} className="h-9" />
+      </Field>
+      <Field
+        label="PIN"
+        htmlFor="customer_pin"
+        hint={
+          customer
+            ? "4 dígitos. Vale para o QR de todas as localizações deste cliente."
+            : "Deixe em branco para gerar um PIN de 4 dígitos."
+        }
+      >
+        <Input
+          id="customer_pin"
+          name="request_pin"
+          inputMode="numeric"
+          autoComplete="off"
+          maxLength={4}
+          pattern="[0-9]{4}"
+          required={Boolean(customer)}
+          defaultValue={customer?.requestPin ?? ""}
+          className="h-9 max-w-32 tracking-widest"
+          placeholder="0000"
+        />
       </Field>
       <Field label="Tipo" htmlFor="customer_type">
         <Input id="customer_type" name="customer_type" defaultValue={customer?.customerType ?? ""} className="h-9" />

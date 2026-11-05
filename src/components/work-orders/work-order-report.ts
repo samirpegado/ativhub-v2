@@ -73,13 +73,16 @@ export function printWorkOrderReport(
   const service = serviceCharge(order, activity);
   const partsCost = partsTotal(activity.parts);
   const rows = [
+    ["Empresa", order.companyName || "—"],
+    ...(order.customerName
+      ? [["Cliente", [order.customerName, order.customerPhone].filter(Boolean).join(" · ")]]
+      : []),
     ["Tipo", workOrderTypeLabel(order.type)],
     ["Status", workOrderStatusLabel(order.status)],
     ["Prioridade", workOrderPriorityLabel(order.priority)],
     ["Vencimento", formatWhen(order.dueDate)],
     ["Localização", order.locationName ?? "—"],
     ["Ativo", order.assetName ?? "—"],
-    ["Trabalhador", order.primaryUserName ?? "—"],
     [
       "Responsáveis",
       order.assignees.map((person) => person.name).join(", ") || "—",
@@ -108,11 +111,13 @@ export function printWorkOrderReport(
       return `<li>${escapeHtml(when)} — ${escapeHtml(formatDuration(seconds))} — ${escapeHtml(labor.author)}</li>`;
     })
     .join("");
-  const updates = activity.updates
-    .map(
-      (update) =>
-        `<li><strong>${escapeHtml(update.author)}</strong> · ${escapeHtml(formatWhen(update.createdAt))}<br>${escapeHtml(update.body)}</li>`,
-    )
+  const timeline = order.tasks
+    .filter((task) => task.executedAt)
+    .map((task) => {
+      const answer = taskAnswerLabel(task);
+      const comment = task.comment ? ` — ${task.comment}` : "";
+      return `<li>${escapeHtml(formatWhen(task.executedAt ?? null))} — ${escapeHtml(task.label)}: ${escapeHtml(answer)}${escapeHtml(comment)}</li>`;
+    })
     .join("");
   const files = activity.files
     .map((file) => `<li>${escapeHtml(file.name)}</li>`)
@@ -164,8 +169,8 @@ export function printWorkOrderReport(
   }
   <h2>Mão de obra</h2>
   ${labors ? `<ul>${labors}</ul>` : "<p>Nenhum tempo lançado.</p>"}
-  <h2>Atualizações</h2>
-  ${updates ? `<ul>${updates}</ul>` : "<p>Nenhuma atualização.</p>"}
+  <h2>Timeline</h2>
+  ${timeline ? `<ul>${timeline}</ul>` : "<p>Nenhuma execução registrada.</p>"}
   <h2>Arquivos</h2>
   ${files ? `<ul>${files}</ul>` : "<p>Nenhum arquivo.</p>"}
 </body>

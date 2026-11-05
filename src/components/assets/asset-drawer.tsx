@@ -18,6 +18,15 @@ import { formatDuration } from "@/lib/work-orders/activity";
 import { workOrderStatusLabel } from "@/lib/work-orders/status";
 import { cn } from "@/lib/utils";
 
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-muted/60 px-3 py-2">
+      <dt className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{label}</dt>
+      <dd className="mt-1 font-semibold">{value}</dd>
+    </div>
+  );
+}
+
 function formatWhen(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
@@ -99,6 +108,15 @@ export function AssetDrawer({
                 ) : null}
               </div>
               <dl className="grid grid-cols-2 gap-3 text-sm">
+                <Metric label="Tempo parado" value={formatDuration(detail.downtimeSeconds)} />
+                <Metric
+                  label="Disponibilidade"
+                  value={detail.availability == null ? "—" : `${Math.round(detail.availability * 1000) / 10}%`}
+                />
+                <Metric label="Ordens" value={String(detail.workOrderCount)} />
+                <Metric label="Custo de manutenção" value={formatBrl(detail.maintenanceCost)} />
+                <Metric label="MTTR" value={detail.mttrSeconds == null ? "—" : formatDuration(detail.mttrSeconds)} />
+                <Metric label="MTBF" value={detail.mtbfSeconds == null ? "—" : formatDuration(detail.mtbfSeconds)} />
                 <div>
                   <dt className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Localização</dt>
                   <dd className="mt-1">{asset.locationName ?? "—"}</dd>
@@ -110,10 +128,6 @@ export function AssetDrawer({
                 <div>
                   <dt className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Custo de aquisição</dt>
                   <dd className="mt-1">{asset.acquisitionCost == null ? "—" : formatBrl(asset.acquisitionCost)}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Custo de manutenção</dt>
-                  <dd className="mt-1 font-semibold">{formatBrl(detail.maintenanceCost)}</dd>
                 </div>
                 <div>
                   <dt className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Em serviço desde</dt>
@@ -135,7 +149,10 @@ export function AssetDrawer({
                         <li key={`down-${event.id}`} className="relative">
                           <span className="absolute top-1.5 -left-[21px] size-2 rounded-full bg-destructive" />
                           <p className="text-xs text-muted-foreground">{formatWhen(event.at)}</p>
-                          <p className="text-sm font-medium">Parada · {formatDuration(event.durationSeconds)}</p>
+                          <p className="text-sm font-medium">
+                            Parada · {formatDuration(event.durationSeconds)}
+                            {event.open ? " · em andamento" : ""}
+                          </p>
                         </li>
                       ) : (
                         <li key={event.id} className="relative">

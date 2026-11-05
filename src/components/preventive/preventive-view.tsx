@@ -9,6 +9,7 @@ import { BulkActionBar } from "@/components/lists/bulk-action-bar";
 import { RowCheckbox } from "@/components/lists/row-checkbox";
 import { PreventiveDrawer } from "@/components/preventive/preventive-drawer";
 import { PreventiveForm } from "@/components/preventive/preventive-form";
+import { listTdClass, listTdNameClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
 import { useRowSelection } from "@/components/lists/use-row-selection";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -188,14 +189,12 @@ export function PreventiveView({
                   ) : null}
                   {["Nome", "Ordem", "Prioridade", "Próxima", "Trabalhador", "Local", "Ativo"].map(
                     (header) => (
-                      <th key={header} className="px-4 py-3 text-xs font-semibold tracking-wide uppercase">
+                      <th key={header} className={listThClass}>
                         {header}
                       </th>
                     ),
                   )}
-                  <th className="px-4 py-3 text-center text-xs font-semibold tracking-wide uppercase">
-                    Ações
-                  </th>
+                  <th className={`${listThClass} text-center`}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -214,31 +213,29 @@ export function PreventiveView({
                         />
                       </td>
                     ) : null}
-                    <td className="px-4 py-3 font-medium">
-                      {item.customId ? (
-                        <span className="mr-2 text-muted-foreground">{item.customId}</span>
-                      ) : null}
+                    <td className={listTdNameClass}>
+                      {item.customId ? <span className="mr-2">{item.customId}</span> : null}
                       {item.name}
                       {item.disabled ? (
                         <span className="ml-2 text-xs text-muted-foreground">Pausado</span>
                       ) : null}
                     </td>
-                    <td className="px-4 py-3">{item.title}</td>
-                    <td className="px-4 py-3">
+                    <td className={listTdClass}>{item.title}</td>
+                    <td className={listTdClass}>
                       <span
                         className={cn(
-                          "inline-flex rounded-md px-2 py-0.5 text-xs font-semibold",
+                          "inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
                           priorityClass(item.priority),
                         )}
                       >
                         {workOrderPriorityLabel(item.priority)}
                       </span>
                     </td>
-                    <td className="px-4 py-3">{nextRunLabel(item)}</td>
-                    <td className="px-4 py-3">{item.primaryUserName ?? "—"}</td>
-                    <td className="px-4 py-3">{item.locationName ?? "—"}</td>
-                    <td className="px-4 py-3">{item.assetName ?? "—"}</td>
-                    <td className="px-4 py-3">
+                    <td className={listTdClass}>{nextRunLabel(item)}</td>
+                    <td className={listTdClass}>{item.primaryUserName ?? "—"}</td>
+                    <td className={listTdClass}>{item.locationName ?? "—"}</td>
+                    <td className={listTdClass}>{item.assetName ?? "—"}</td>
+                    <td className={listTdClass}>
                       <div className="flex justify-center gap-1">
                         <Button
                           type="button"

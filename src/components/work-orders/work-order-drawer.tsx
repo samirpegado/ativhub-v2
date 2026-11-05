@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardCheck, FileText, Loader2, Timer, Trash2, X } from "lucide-react";
+import { ClipboardCheck, FileText, Loader2, Timer, Trash2 } from "lucide-react";
 import {
-  addWorkOrderUpdate,
   deleteWorkOrderFile,
   deleteWorkOrderLabor,
-  deleteWorkOrderUpdate,
+  completeWorkOrder,
   loadWorkOrderActivity,
   registerWorkOrderFile,
   removeWorkOrderPart,
@@ -19,7 +18,16 @@ import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-
 import { printWorkOrderReport } from "@/components/work-orders/work-order-report";
 import { sendWorkOrderReport } from "@/app/(app)/work-orders/report-actions";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { ASSET_STATUSES } from "@/lib/assets/status";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
@@ -29,7 +37,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
 import { formatQuantity } from "@/lib/inventory/format";
 import { formatBrl } from "@/lib/money/brl";
 import { partsTotal, serviceCharge } from "@/lib/work-orders/billing";
@@ -44,6 +51,7 @@ import {
   WORK_ORDER_STATUSES,
   workOrderIsOverdue,
   workOrderPriorityLabel,
+  workOrderStatusLabel,
   workOrderTypeLabel,
 } from "@/lib/work-orders/status";
 import { taskAnswerLabel } from "@/lib/work-orders/tasks";
@@ -75,6 +83,13 @@ function formatWhen(value: string | null) {
   }).format(date);
 }
 
+function toDatetimeLocal(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function WorkOrderDrawer({
   orderId,
   order,
@@ -83,6 +98,8 @@ export function WorkOrderDrawer({
   onOpenChange,
   onEdit,
   onAnswer,
+  reloadToken = 0,
+  canEdit = true,
 }: {
   orderId: string | null;
   order: WorkOrderRecord | null;
@@ -91,9 +108,11 @@ export function WorkOrderDrawer({
   onOpenChange: (open: boolean) => void;
   onEdit: (order: WorkOrderRecord) => void;
   onAnswer: (order: WorkOrderRecord) => void;
+  reloadToken?: number;
+  canEdit?: boolean;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"details" | "updates">("details");
+  const [tab, setTab] = useState<"details" | "timeline">("details");
   const [mailOpen, setMailOpen] = useState(false);
   const [mailTo, setMailTo] = useState("");
   const [mailName, setMailName] = useState("");
@@ -106,21 +125,26 @@ export function WorkOrderDrawer({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const [note, setNote] = useState("");
   const [partsOpen, setPartsOpen] = useState(false);
   const [laborOpen, setLaborOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [assetCloseOpen, setAssetCloseOpen] = useState(false);
+  const [assetStatusValue, setAssetStatusValue] = useState("OPERATIONAL");
+  const [assetStatusAt, setAssetStatusAt] = useState("");
 
   useEffect(() => {
     if (!orderId || !open) return;
     setTab("details");
     setError(null);
-    setNote("");
     setPartsOpen(false);
     setLaborOpen(false);
     setLoaded(null);
     setActivity(EMPTY_ACTIVITY);
     setDetailReady(false);
+  }, [open, orderId]);
+
+  useEffect(() => {
+    if (!orderId || !open) return;
     let cancelled = false;
     loadWorkOrderActivity(orderId).then((result) => {
       if (cancelled) return;
@@ -140,7 +164,7 @@ export function WorkOrderDrawer({
     return () => {
       cancelled = true;
     };
-  }, [open, orderId]);
+  }, [open, orderId, reloadToken]);
 
   useEffect(() => {
     if (order && order.id === orderId) setStatus(order.status);
@@ -183,19 +207,31 @@ export function WorkOrderDrawer({
   const running = Boolean(activity.timer?.startedAt);
   const timerLabel = formatDuration(liveDuration(activity.timer, now));
 
-  function apply(result: { error: string } | { activity: WorkOrderActivity }) {
+  function apply(result: { error: string } | { activity: WorkOrderActivity; order?: WorkOrderRecord }) {
     if ("error" in result) {
       setError(result.error);
       return;
     }
     setError(null);
     setActivity(result.activity);
+    if (result.order) {
+      setLoaded(result.order);
+      setStatus(result.order.status);
+    }
   }
 
-  async function changeStatus(next: string) {
+  async function finishOrder() {
+    setBusy(true);
+    const result = await completeWorkOrder(record.id);
+    setBusy(false);
+    apply(result);
+    if (!("error" in result)) router.refresh();
+  }
+
+  async function commitStatus(next: string, asset?: { status: string; at: string }) {
     setStatus(next);
     setBusy(true);
-    const result = await setWorkOrderStatus(record.id, next);
+    const result = await setWorkOrderStatus(record.id, next, asset);
     setBusy(false);
     if ("error" in result) {
       setStatus(record.status);
@@ -203,7 +239,18 @@ export function WorkOrderDrawer({
       return;
     }
     setError(null);
+    setAssetCloseOpen(false);
     router.refresh();
+  }
+
+  async function changeStatus(next: string) {
+    if (next === "COMPLETE" && record.assetId && next !== record.status) {
+      setAssetStatusValue("OPERATIONAL");
+      setAssetStatusAt(toDatetimeLocal(new Date().toISOString()));
+      setAssetCloseOpen(true);
+      return;
+    }
+    await commitStatus(next);
   }
 
   async function toggleTimer() {
@@ -213,19 +260,14 @@ export function WorkOrderDrawer({
     apply(result);
   }
 
-  async function addNote() {
-    setBusy(true);
-    const result = await addWorkOrderUpdate(record.id, note);
-    setBusy(false);
-    if (!("error" in result)) setNote("");
-    apply(result);
-  }
-
   async function onFile(file: File | null) {
     if (!file) return;
-    const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
     const allowed = ["pdf", "png", "jpg", "jpeg", "webp", "txt", "doc", "docx", "xls", "xlsx"];
-    if (!allowed.includes(extension)) {
+    const fromName = file.name.includes(".") ? (file.name.split(".").pop()?.toLowerCase() ?? "") : "";
+    const fromType =
+      file.type === "image/jpeg" ? "jpg" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "";
+    const extension = allowed.includes(fromName) ? fromName : fromType;
+    if (!extension) {
       setError("Envie PDF, imagem, texto ou planilha.");
       return;
     }
@@ -244,7 +286,7 @@ export function WorkOrderDrawer({
       setError("Não foi possível enviar o arquivo.");
       return;
     }
-    const result = await registerWorkOrderFile(record.id, path, file.name);
+    const result = await registerWorkOrderFile(record.id, path, file.name.trim() || `foto.${extension}`);
     setBusy(false);
     if ("error" in result) {
       await supabase.storage.from("attachments").remove([path]);
@@ -278,18 +320,29 @@ export function WorkOrderDrawer({
             <p className="text-sm text-muted-foreground">{record.description}</p>
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <NativeSelect
-              className="h-9 max-w-44"
-              value={status}
-              disabled={busy}
-              onChange={(event) => changeStatus(event.target.value)}
-            >
-              {WORK_ORDER_STATUSES.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </NativeSelect>
+            {canEdit ? (
+              <NativeSelect
+                className="h-9 max-w-44"
+                value={status}
+                disabled={busy}
+                onChange={(event) => changeStatus(event.target.value)}
+              >
+                {WORK_ORDER_STATUSES.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            ) : (
+              <span className="inline-flex h-9 items-center rounded-lg bg-muted px-3 text-sm font-medium">
+                {workOrderStatusLabel(status)}
+              </span>
+            )}
+            {!canEdit && status !== "COMPLETE" ? (
+              <Button type="button" className="h-9" disabled={busy} onClick={finishOrder}>
+                Concluir
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant={running ? "default" : "outline"}
@@ -322,9 +375,11 @@ export function WorkOrderDrawer({
             >
               Enviar por e-mail
             </Button>
-            <Button type="button" variant="ghost" className="h-9" onClick={() => onEdit(record)}>
-              Editar
-            </Button>
+            {canEdit ? (
+              <Button type="button" variant="ghost" className="h-9" onClick={() => onEdit(record)}>
+                Editar
+              </Button>
+            ) : null}
           </div>
         </SheetHeader>
 
@@ -333,8 +388,8 @@ export function WorkOrderDrawer({
             <TabButton active={tab === "details"} onClick={() => setTab("details")}>
               Detalhes
             </TabButton>
-            <TabButton active={tab === "updates"} onClick={() => setTab("updates")}>
-              Atualizações
+            <TabButton active={tab === "timeline"} onClick={() => setTab("timeline")}>
+              Timeline
             </TabButton>
           </div>
           {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
@@ -342,11 +397,17 @@ export function WorkOrderDrawer({
           {tab === "details" ? (
             <div className="space-y-6">
               <dl className="grid grid-cols-2 gap-3 text-sm">
+                <Detail label="Empresa" value={record.companyName || "—"} />
+                {record.customerName ? (
+                  <Detail
+                    label="Cliente"
+                    value={[record.customerName, record.customerPhone].filter(Boolean).join(" · ")}
+                  />
+                ) : null}
                 <Detail label="Prioridade" value={workOrderPriorityLabel(record.priority)} />
                 <Detail label="Vencimento" value={formatWhen(record.dueDate)} />
                 <Detail label="Localização" value={record.locationName ?? "—"} />
                 <Detail label="Ativo" value={record.assetName ?? "—"} />
-                <Detail label="Trabalhador" value={record.primaryUserName ?? "—"} />
                 <Detail
                   label="Responsáveis"
                   value={record.assignees.map((person) => person.name).join(", ") || "—"}
@@ -363,21 +424,31 @@ export function WorkOrderDrawer({
                     onClick={() => onAnswer(record)}
                   >
                     <ClipboardCheck />
-                    Responder tarefas
+                    Executar tarefas
                   </Button>
                 </div>
-                {record.tasks.filter((task) => task.value).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhuma tarefa respondida.</p>
+                {record.tasks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Esta ordem não tem tarefas.</p>
                 ) : (
-                  <ul className="space-y-1 text-sm">
-                    {record.tasks
-                      .filter((task) => task.value)
-                      .map((task) => (
-                        <li key={task.id ?? task.label} className="flex justify-between gap-3">
+                  <ul className="space-y-2 text-sm">
+                    {record.tasks.map((task) => (
+                      <li key={task.id ?? task.label}>
+                        <div className="flex justify-between gap-3">
                           <span>{task.label}</span>
-                          <span className="font-medium">{taskAnswerLabel(task)}</span>
-                        </li>
-                      ))}
+                          <span className="font-medium">
+                            {task.value ? taskAnswerLabel(task) : "Pendente"}
+                          </span>
+                        </div>
+                        {task.executedAt ? (
+                          <p className="text-xs text-muted-foreground">
+                            {formatWhen(task.executedAt)}
+                            {task.comment ? ` — ${task.comment}` : ""}
+                          </p>
+                        ) : task.value ? (
+                          <p className="text-xs text-muted-foreground">Resposta anterior, sem data de execução</p>
+                        ) : null}
+                      </li>
+                    ))}
                   </ul>
                 )}
               </section>
@@ -516,59 +587,40 @@ export function WorkOrderDrawer({
                     ))}
                   </ul>
                 )}
-                <label className="inline-flex">
-                  <input
-                    type="file"
-                    className="sr-only"
-                    onChange={(event) => {
-                      onFile(event.target.files?.[0] ?? null);
-                      event.target.value = "";
-                    }}
-                  />
-                  <span className="inline-flex h-9 cursor-pointer items-center rounded-lg border px-3 text-sm font-medium">
-                    Adicionar arquivo
-                  </span>
-                </label>
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="sr-only"
+                      onChange={(event) => {
+                        onFile(event.target.files?.[0] ?? null);
+                        event.target.value = "";
+                      }}
+                    />
+                    <span className="inline-flex h-9 cursor-pointer items-center rounded-lg border px-3 text-sm font-medium">
+                      Adicionar foto
+                    </span>
+                  </label>
+                  <label className="inline-flex">
+                    <input
+                      type="file"
+                      className="sr-only"
+                      onChange={(event) => {
+                        onFile(event.target.files?.[0] ?? null);
+                        event.target.value = "";
+                      }}
+                    />
+                    <span className="inline-flex h-9 cursor-pointer items-center rounded-lg border px-3 text-sm font-medium">
+                      Adicionar arquivo
+                    </span>
+                  </label>
+                </div>
               </section>
             </div>
           ) : (
-            <div className="space-y-4">
-              {activity.updates.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum passo registrado.</p>
-              ) : (
-                <ol className="space-y-4 border-l pl-4">
-                  {activity.updates.map((update) => (
-                    <li key={update.id} className="relative">
-                      <span className="absolute top-1.5 -left-[21px] size-2.5 rounded-full bg-primary" />
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold">{update.author}</p>
-                          <p className="text-xs text-muted-foreground">{formatWhen(update.createdAt)}</p>
-                        </div>
-                        <button
-                          type="button"
-                          className="text-muted-foreground hover:text-destructive"
-                          aria-label="Excluir atualização"
-                          onClick={() => deleteWorkOrderUpdate(record.id, update.id).then(apply)}
-                        >
-                          <X className="size-4" />
-                        </button>
-                      </div>
-                      <p className="mt-1 text-sm whitespace-pre-wrap">{update.body}</p>
-                    </li>
-                  ))}
-                </ol>
-              )}
-              <Textarea
-                value={note}
-                rows={3}
-                placeholder="O que foi feito"
-                onChange={(event) => setNote(event.target.value)}
-              />
-              <Button type="button" className="h-9" disabled={busy || !note.trim()} onClick={addNote}>
-                Adicionar atualização
-              </Button>
-            </div>
+            <Timeline order={record} />
           )}
         </div>
       </SheetContent>
@@ -614,6 +666,54 @@ export function WorkOrderDrawer({
       onOpenChange={setLaborOpen}
       onAdded={(next) => apply({ activity: next })}
     />
+    <Dialog open={assetCloseOpen} onOpenChange={setAssetCloseOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Status do ativo</DialogTitle>
+          <DialogDescription>
+            Ao concluir, registre o status do ativo e o momento em que ele passou a valer.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <NativeSelect
+            className="h-9"
+            value={assetStatusValue}
+            onChange={(event) => setAssetStatusValue(event.target.value)}
+          >
+            {ASSET_STATUSES.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </NativeSelect>
+          <Input
+            type="datetime-local"
+            className="h-9"
+            value={assetStatusAt}
+            onChange={(event) => setAssetStatusAt(event.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" disabled={busy} onClick={() => commitStatus("COMPLETE")}>
+            Não alterar o ativo
+          </Button>
+          <Button
+            type="button"
+            disabled={busy || !assetStatusAt}
+            onClick={() => {
+              const at = new Date(assetStatusAt);
+              if (Number.isNaN(at.getTime())) {
+                setError("Data do status do ativo inválida.");
+                return;
+              }
+              void commitStatus("COMPLETE", { status: assetStatusValue, at: at.toISOString() });
+            }}
+          >
+            Concluir
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
@@ -624,6 +724,40 @@ function Detail({ label, value }: { label: string; value: string }) {
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="font-medium">{value}</dd>
     </div>
+  );
+}
+
+function Timeline({ order }: { order: WorkOrderRecord }) {
+  const events = order.tasks
+    .flatMap((task) => {
+      if (!task.executedAt) return [];
+      const answer = taskAnswerLabel(task);
+      return [
+        {
+          id: `task-${task.id ?? task.label}`,
+          at: task.executedAt,
+          title: task.label,
+          detail: [answer === "—" ? null : answer, task.comment].filter(Boolean).join(" — "),
+        },
+      ];
+    })
+    .sort((left, right) => new Date(left.at).getTime() - new Date(right.at).getTime());
+
+  if (events.length === 0) {
+    return <p className="text-sm text-muted-foreground">Nenhuma execução registrada.</p>;
+  }
+
+  return (
+    <ol className="space-y-4 border-l pl-4">
+      {events.map((event) => (
+        <li key={event.id} className="relative">
+          <span className="absolute top-1.5 -left-[21px] size-2.5 rounded-full bg-primary" />
+          <p className="text-sm font-semibold">{event.title}</p>
+          <p className="text-xs text-muted-foreground">{formatWhen(event.at)}</p>
+          {event.detail ? <p className="mt-1 text-sm whitespace-pre-wrap">{event.detail}</p> : null}
+        </li>
+      ))}
+    </ol>
   );
 }
 

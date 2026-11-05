@@ -44,15 +44,7 @@ export function CategoryForm({
       <Field label="Nome" htmlFor="category_name" required>
         <Input id="category_name" name="name" required defaultValue={category?.name} className="h-9" autoFocus />
       </Field>
-      <Field label="Cor" htmlFor="category_color">
-        <Input
-          id="category_color"
-          name="color"
-          type="color"
-          defaultValue={category?.color ?? "#2563eb"}
-          className="h-9 w-16 p-1"
-        />
-      </Field>
+      <input type="hidden" name="color" defaultValue={category?.color ?? "#64748b"} />
       <Field label="Descrição" htmlFor="category_description">
         <Textarea
           id="category_description"

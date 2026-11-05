@@ -5,11 +5,13 @@ import { useEffect, useRef } from "react";
 export function RowCheckbox({
   checked,
   indeterminate = false,
+  disabled = false,
   label,
   onChange,
 }: {
   checked: boolean;
   indeterminate?: boolean;
+  disabled?: boolean;
   label: string;
   onChange: () => void;
 }) {
@@ -24,6 +26,7 @@ export function RowCheckbox({
       ref={ref}
       type="checkbox"
       checked={checked}
+      disabled={disabled}
       aria-label={label}
       className="size-4 accent-primary"
       onClick={(event) => event.stopPropagation()}

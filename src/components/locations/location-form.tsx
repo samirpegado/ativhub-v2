@@ -25,15 +25,17 @@ type LocationValues = {
   neighborhood: string | null;
   city: string | null;
   state: string | null;
-  request_pin?: string;
+  customer_id?: string | null;
 };
 
 export function LocationForm({
   location,
+  customers,
   onCancel,
   onSuccess,
 }: {
   location?: LocationValues;
+  customers: { id: string; name: string }[];
   onCancel: () => void;
   onSuccess: () => void;
 }) {
@@ -131,26 +133,23 @@ export function LocationForm({
       </Field>
 
       <Field
-        label="PIN"
-        htmlFor="request_pin"
-        hint={
-          location
-            ? "4 dígitos. O cliente usa este PIN ao ler o QR dos ativos desta localização."
-            : "Deixe em branco para gerar um PIN de 4 dígitos."
-        }
+        label="Cliente"
+        htmlFor="customer_id"
+        hint="O PIN deste cliente libera o QR dos ativos desta localização."
       >
-        <Input
-          id="request_pin"
-          name="request_pin"
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={4}
-          pattern="[0-9]{4}"
-          required={Boolean(location)}
-          defaultValue={location?.request_pin ?? ""}
-          className="h-9 max-w-32 font-mono tracking-widest"
-          placeholder="0000"
-        />
+        <NativeSelect
+          id="customer_id"
+          name="customer_id"
+          className="h-9"
+          defaultValue={location?.customer_id ?? ""}
+        >
+          <option value="">Nenhum</option>
+          {customers.map((customer) => (
+            <option key={customer.id} value={customer.id}>
+              {customer.name}
+            </option>
+          ))}
+        </NativeSelect>
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-4">

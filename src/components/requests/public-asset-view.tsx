@@ -190,7 +190,7 @@ export function PublicAssetView({ asset }: { asset: PublicAsset }) {
             </Alert>
           ) : null}
           <div className="space-y-2">
-            <label htmlFor="pin" className="text-sm font-medium">PIN da localização</label>
+            <label htmlFor="pin" className="text-sm font-medium">PIN do cliente</label>
             <Input
               id="pin"
               inputMode="numeric"
