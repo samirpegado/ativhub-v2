@@ -21,7 +21,8 @@ export const metadata: Metadata = {
   },
   description: "Sistema de gestão de manutenção (CMMS) multi-tenant.",
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
+    icon: [{ url: "/ativhub_favicon_512.png", type: "image/png", sizes: "512x512" }],
+    apple: [{ url: "/ativhub_favicon_512.png", sizes: "512x512" }],
   },
 };
 

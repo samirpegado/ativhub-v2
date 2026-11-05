@@ -6,7 +6,6 @@ type LogoProps = {
   href?: string;
   size?: "sm" | "md";
   priority?: boolean;
-  inverted?: boolean;
   src?: string;
   className?: string;
 };
@@ -15,52 +14,26 @@ export function Logo({
   href = "/",
   size = "md",
   priority = false,
-  inverted = false,
-  src = "/logo.png",
+  src = "/ativhub_logo_principal_corrigida.png",
   className,
 }: LogoProps) {
-  const px = size === "md" ? 60 : 40;
-  const name = size === "md" ? "text-[28px]" : "text-base";
-
   const content = (
-    <>
-      <Image
-        src={src}
-        alt="AtivHub"
-        width={px}
-        height={px}
-        priority={priority}
-        className="shrink-0 object-contain"
-      />
-      <span
-        className={cn(
-          "font-bold tracking-wide",
-          name,
-          inverted && "text-white",
-        )}
-      >
-        AtivHub
-      </span>
-    </>
+    <Image
+      src={src}
+      alt="AtivHub"
+      width={2209}
+      height={716}
+      priority={priority}
+      className={cn("w-auto shrink-0 object-contain", size === "md" ? "h-16" : "h-11")}
+    />
   );
 
   if (!href) {
-    return (
-      <span className={cn("inline-flex items-center gap-3", className)}>
-        {content}
-      </span>
-    );
+    return <span className={cn("inline-flex items-center", className)}>{content}</span>;
   }
 
   return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex items-center gap-3",
-        inverted ? "text-white" : "text-foreground",
-        className,
-      )}
-    >
+    <Link href={href} className={cn("inline-flex items-center", className)}>
       {content}
     </Link>
   );

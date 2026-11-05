@@ -1,8 +1,8 @@
 import type { MenuArea } from "@/lib/auth/areas";
 
 export const navItems = [
-  { href: "/dashboard", label: "Dashboard", area: "work_orders", mode: "edit" },
-  { href: "/", label: "Ordens de serviço", area: "work_orders", mode: "view" },
+  { href: "/", label: "Dashboard", area: "work_orders", mode: "view" },
+  { href: "/work-orders", label: "Ordens de serviço", area: "work_orders", mode: "view" },
   { href: "/preventive", label: "Preventiva", area: "preventive", mode: "view" },
   { href: "/requests", label: "Solicitações", area: "requests", mode: "view" },
   { href: "/customers", label: "Clientes", area: "parties", mode: "view" },

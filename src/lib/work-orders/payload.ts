@@ -66,6 +66,7 @@ export type WorkOrderCalendarItem = {
   customId: string | null;
   title: string;
   status: string;
+  type: string;
   dueDate: string | null;
   estimatedStartDate: string | null;
   estimatedDuration: number | null;
@@ -267,6 +268,7 @@ export async function readWorkOrdersScreen(supabase: Client, data: unknown): Pro
           customId: text(row.customId),
           title,
           status: text(row.status) ?? "OPEN",
+          type: text(row.type) ?? "CORRECTIVE",
           dueDate: text(row.dueDate),
           estimatedStartDate: text(row.estimatedStartDate),
           estimatedDuration:

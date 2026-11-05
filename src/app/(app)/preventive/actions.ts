@@ -13,6 +13,7 @@ import { parseTaskList, type WorkOrderTask } from "@/lib/work-orders/tasks";
 function refresh() {
   revalidatePath("/preventive");
   revalidatePath("/");
+  revalidatePath("/work-orders");
 }
 
 function parseDay(value: FormDataEntryValue | null, label: string, required: boolean) {

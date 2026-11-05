@@ -305,6 +305,7 @@ export function WorkOrdersView({
         {view === "calendar" ? (
           <WorkOrderCalendar
             orders={calendar}
+            canEdit={canEdit}
             onOpen={setOpenId}
             onCreate={(date, allDay) => {
               const next = new Date(date);

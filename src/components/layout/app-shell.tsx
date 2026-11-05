@@ -36,8 +36,8 @@ import {
 import { cn } from "@/lib/utils";
 
 const icons: Record<(typeof navItems)[number]["href"], LucideIcon> = {
-  "/dashboard": LayoutDashboard,
-  "/": ClipboardList,
+  "/": LayoutDashboard,
+  "/work-orders": ClipboardList,
   "/preventive": Timer,
   "/requests": Inbox,
   "/assets": Package,
@@ -120,11 +120,9 @@ function SidebarChrome({
       <div className={cn("relative flex justify-center pt-6 pb-4", onClose ? "px-12" : "px-4")}>
         <Logo
           size="sm"
-          inverted
           href="/"
           priority={priorityLogo}
-          src="/logo-white-full.png"
-          className="gap-1 [&_img]:-mr-[0%]"
+          src="/ativhub_logo_escuro_corrigida.png"
         />
         {onClose ? (
           <SheetClose asChild>

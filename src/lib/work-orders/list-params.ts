@@ -147,7 +147,7 @@ export function workOrderListHref(query: {
   if (query.page > 1) params.set("page", String(query.page));
   if (query.calendar) params.set("view", "calendar");
   const qs = params.toString();
-  return qs ? `/?${qs}` : "/";
+  return qs ? `/work-orders?${qs}` : "/work-orders";
 }
 
 export function workOrderPageCount(total: number) {

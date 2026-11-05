@@ -67,11 +67,13 @@ Describe the real structural organization of the repository and the architectura
   `create-tenant-user`, que cria o usuário no Auth e a membership no tenant.
   Papéis de cadastro: Administrador, Técnico, Solicitante e Somente leitura.
   O texto de cada papel vem de `role.description`.
-- `/dashboard` é o painel das ordens (`work_orders_dashboard`) de quem edita: totais,
-  agenda, filtros e quem está com o temporizador ligado. O item só aparece no menu
-  quando a pessoa pode editar ordens. `/` continua a lista de ordens para quem edita.
-  O técnico entra em `/` e vê só as ordens atribuídas, em cards, e executa sem alterar
-  o cadastro. A lista abre o cadastro em modal. Os filtros (status,
+- `/` é o painel (`maintenance_overview`). Quem edita ordens vê a visão do administrador:
+  ordens a fechar, em execução contra o tempo estimado, as OS ainda abertas,
+  ativos parados, fechamento semanal e MTTR. As duas visões usam o período do painel
+  (esta semana, últimos 15 ou 30 dias; o padrão é 30 dias). O técnico vê a OS em execução,
+  a fila desse período e o cumprimento no prazo.
+  `/dashboard` redireciona para `/`. A lista de ordens fica em `/work-orders`.
+  O técnico consulta as ordens sem alterar o cadastro. A lista abre o cadastro em modal. Os filtros (status,
   prioridade, tipo, local, em atraso e vencimento de/até) ficam num modal ao
   lado de "+ Ordem de serviço". A listagem e os dados do formulário vêm da
   função `work_orders_screen`, chamada no servidor com a sessão do usuário,
@@ -85,10 +87,9 @@ Describe the real structural organization of the repository and the architectura
   filtros, busca e paginação na RPC, com a query devolvendo os dados completos da tela.
   Localizações, ativos, pessoas, equipes e listas de verificação ainda paginam 20 itens no navegador.
   Ativos, ordens e preventivas marcam os registros da página e excluem o lote por server action.
-  A aba Calendário
-  usa FullCalendar: o evento fica no início estimado, ou no vencimento quando
-  não há início. O clique abre o detalhe; um dia vazio abre uma ordem nova
-  com esse vencimento. Concluir grava `completed_by`/`completed_on`; a primeira
+  A aba Calendário mostra o mês em grade simples. A ordem entra no dia do início estimado,
+  ou do vencimento quando não há início, com a sigla do tipo. O clique na ordem abre o detalhe;
+  um dia vazio abre uma ordem nova com esse vencimento. Concluir grava `completed_by`/`completed_on`; a primeira
   saída de `OPEN` (exceto para `ON_HOLD`) grava `first_time_to_react`.
   As tarefas pertencem à ordem. Uma lista nomeada (`checklist`) guarda uma
   cópia reutilizável: ao escolhê-la, as tarefas entram na ordem sem vínculo

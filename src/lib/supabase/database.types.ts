@@ -1819,6 +1819,10 @@ export type Database = {
         }
         Returns: Json
       }
+      maintenance_overview: {
+        Args: { p_membership?: string; p_range?: string }
+        Returns: Json
+      }
       work_orders_dashboard: {
         Args: {
           p_from?: string

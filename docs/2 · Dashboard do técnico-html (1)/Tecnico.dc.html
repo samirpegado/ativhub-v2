@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AtivHub — Painel do técnico</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ah{
+  --bg:#ffffff; --sf:#ffffff; --ink:#14233a; --ink2:#4a5a70; --mut:#64748b;
+  --grid:#e9edf3; --line:#cbd5e1; --bd:rgba(20,35,58,.12);
+  --side:#0b1b33; --side-ink:#b6c3d6;
+  --blue:#2a78d6; --orange:#eb6834; --aqua:#1baf7a; --yellow:#eda100; --violet:#6250d6; --green:#008300; --red:#e34948;
+  --ok:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+  --ok-t:#006300; --warn-t:#8a5600; --crit-t:#b42323;
+  --ok-bg:rgba(12,163,12,.11); --warn-bg:rgba(250,178,25,.22); --crit-bg:rgba(208,59,59,.11);
+}
+.ah *{box-sizing:border-box}
+.ah .card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:20px}
+.ah .ttl{font-size:16px;font-weight:600;margin:0}
+.ah .sub{font-size:13px;color:var(--ink2);margin:2px 0 0}
+.ah .ic{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ah .nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border-radius:10px;color:var(--side-ink);text-decoration:none;font-size:15px;font-weight:500}
+.ah .nav:hover{background:rgba(255,255,255,.07);color:#fff}
+.ah .mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+</style>
+</helmet>
+
+<div class="ah" style="width:100%; display:flex; flex-wrap:wrap; align-items:stretch; background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif; font-size:14px; line-height:1.4">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="flex:1 1 232px; min-width:0; background:var(--side); padding:24px 16px; display:flex; flex-direction:column; gap:28px">
+    <div style="display:flex; align-items:center; gap:10px; padding:0 8px">
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 28,9 28,23 16,30 4,23 4,9" style="fill:#ffffff"></polygon><circle cx="16" cy="16" r="5" style="fill:#0b1b33"></circle></svg>
+      <span style="font-size:20px; font-weight:700; color:#fff; letter-spacing:-0.01em">AtivHub</span>
+    </div>
+    <nav aria-label="Navegação principal" style="display:flex; flex-direction:column; gap:4px">
+      <a class="nav" href="#" style="background:rgba(255,255,255,.10); color:#fff"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>Meu painel</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg>Minhas OS</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path></svg>Agenda</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>Consultar ativos</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>Histórico</a>
+    </nav>
+    <div style="margin-top:auto; display:flex; align-items:center; gap:10px; padding:12px; border-radius:12px; background:rgba(255,255,255,.06)">
+      <span style="flex:none; width:36px; height:36px; border-radius:50%; background:#dbe7fa; color:#0b1b33; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">RL</span>
+      <div style="min-width:0"><div style="color:#fff; font-size:14px; font-weight:600">Rafael Lima</div><div style="color:var(--side-ink); font-size:12px">Técnico mecânico</div></div>
+    </div>
+  </aside>
+
+  <!-- ============ CONTEÚDO ============ -->
+  <main style="flex:999 1 640px; min-width:0; padding:28px 32px 40px; display:flex; flex-direction:column; gap:20px">
+
+    <header style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px">
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--ink2); letter-spacing:.04em; text-transform:uppercase">Painel do técnico</div>
+        <h1 style="margin:2px 0 0; font-size:28px; font-weight:600; letter-spacing:-0.01em">Olá, Rafael</h1>
+        <div style="margin-top:2px; color:var(--ink2)">quinta-feira, 5 de novembro de 2026</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px">
+        <button type="button" style="display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 14px; border-radius:10px; border:1px solid var(--bd); background:var(--sf); color:var(--ink); font:inherit; font-weight:500; cursor:pointer"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path></svg>Últimas 5 semanas</button>
+        <button type="button" aria-label="Notificações, 2 novas" style="position:relative; width:44px; height:44px; border-radius:10px; border:1px solid var(--bd); background:var(--sf); color:var(--ink); display:inline-flex; align-items:center; justify-content:center; cursor:pointer"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><span style="position:absolute; top:8px; right:9px; width:10px; height:10px; border-radius:50%; background:var(--crit); border:2px solid var(--sf)"></span></button>
+      </div>
+    </header>
+
+    <!-- Cards -->
+    <section aria-label="Minhas OS" style="display:flex; flex-wrap:wrap; gap:16px">
+      <div class="card" style="flex:1 1 230px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+          <span style="font-size:14px; font-weight:500; color:var(--ink2)">A fechar</span>
+          <span style="width:36px; height:36px; border-radius:10px; background:var(--grid); display:flex; align-items:center; justify-content:center"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="m9 14 2 2 4-4"></path></svg></span>
+        </div>
+        <div style="font-size:44px; font-weight:600; line-height:1; letter-spacing:-0.02em">3</div>
+        <div style="font-size:13px; color:var(--ink2)">Concluídas por você, aguardando validação</div>
+      </div>
+      <div class="card" style="flex:1 1 230px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+          <span style="font-size:14px; font-weight:500; color:var(--ink2)">Fechadas</span>
+          <span style="width:36px; height:36px; border-radius:10px; background:var(--grid); display:flex; align-items:center; justify-content:center"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span>
+        </div>
+        <div style="font-size:44px; font-weight:600; line-height:1; letter-spacing:-0.02em">28</div>
+        <div style="font-size:13px; color:var(--ink2)">Nas últimas 5 semanas</div>
+      </div>
+      <div class="card" style="flex:1 1 230px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+          <span style="font-size:14px; font-weight:500; color:var(--ink2)">Em execução</span>
+          <span style="width:36px; height:36px; border-radius:10px; background:var(--grid); display:flex; align-items:center; justify-content:center"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span>
+        </div>
+        <div style="font-size:44px; font-weight:600; line-height:1; letter-spacing:-0.02em">1</div>
+        <div style="display:inline-flex; align-items:center; gap:6px; align-self:flex-start; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:500; background:var(--crit-bg); color:var(--crit-t)"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Acima do tempo estimado</div>
+      </div>
+      <div class="card" style="flex:1 1 230px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+          <span style="font-size:14px; font-weight:500; color:var(--ink2)">A iniciar</span>
+          <span style="width:36px; height:36px; border-radius:10px; background:var(--grid); display:flex; align-items:center; justify-content:center"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path></svg></span>
+        </div>
+        <div style="font-size:44px; font-weight:600; line-height:1; letter-spacing:-0.02em">{{pendN}}</div>
+        <div style="font-size:13px; color:var(--ink2)">Programadas até 30 de novembro</div>
+      </div>
+    </section>
+
+    <!-- Em execução agora -->
+    <section class="card" aria-label="OS em execução" style="display:flex; flex-wrap:wrap; gap:24px 32px; align-items:center">
+      <div style="flex:1.3 1 300px; min-width:0">
+        <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; background:var(--grid)"><span style="width:8px; height:8px; border-radius:50%; background:var(--orange)"></span>Em execução agora</span>
+        <h2 style="margin:10px 0 0; font-size:24px; font-weight:600; letter-spacing:-0.01em">Bomba centrífuga BC-014</h2>
+        <div class="mono" style="margin-top:2px; font-size:13px; color:var(--ink2)">OS-2481 · Corretiva · iniciada às 11:37</div>
+        <div style="margin-top:18px">
+          <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; font-size:13px"><span style="color:var(--ink2)">Checklist da OS</span><span style="font-weight:600">6 de 9 itens</span></div>
+          <div style="height:8px; border-radius:4px; background:var(--grid)"><div style="width:67%; height:100%; border-radius:4px; background:var(--blue)"></div></div>
+        </div>
+      </div>
+      <div style="flex:1.2 1 260px; min-width:0">
+        <div style="font-size:13px; color:var(--ink2)">Tempo decorrido</div>
+        <div style="display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; margin-top:2px">
+          <span class="mono" style="font-size:36px; font-weight:500; letter-spacing:-0.02em">5h 10min</span>
+          <span style="color:var(--ink2)">de 4h estimadas</span>
+        </div>
+        <div style="height:8px; border-radius:4px; background:var(--grid); margin:10px 0 12px"><div style="width:100%; height:100%; border-radius:4px; background:var(--crit)"></div></div>
+        <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--crit-bg); color:var(--crit-t)"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>+1h 10min acima do estimado</span>
+      </div>
+      <div style="flex:0 1 200px; min-width:160px; display:flex; flex-direction:column; gap:10px">
+        <button type="button" style="height:48px; padding:0 18px; border-radius:10px; border:0; background:var(--ink); color:var(--sf); font:inherit; font-weight:600; font-size:15px; cursor:pointer">Concluir OS</button>
+        <button type="button" style="height:48px; padding:0 18px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--ink); font:inherit; font-weight:600; font-size:15px; cursor:pointer">Registrar pausa</button>
+      </div>
+    </section>
+
+    <!-- Duas colunas -->
+    <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start">
+
+      <!-- Esquerda: fila + calendário -->
+      <div style="flex:2 1 620px; min-width:0; display:flex; flex-direction:column; gap:20px">
+
+        <section class="card" aria-label="Fila de hoje e amanhã">
+          <h2 class="ttl">Próximas obrigações</h2>
+          <p class="sub" style="margin-bottom:8px">Hoje e amanhã</p>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px; padding:14px 0; border-top:1px solid var(--grid)">
+            <div style="flex:1.6 1 220px; min-width:0">
+              <div style="font-size:15px; font-weight:600">Bomba centrífuga BC-014</div>
+              <div class="mono" style="font-size:12px; color:var(--ink2)">OS-2481 · Corretiva</div>
+            </div>
+            <div style="flex:1 1 150px; font-size:13px; color:var(--ink2)">Hoje · em execução</div>
+            <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--crit-bg); color:var(--crit-t)"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Acima do estimado</span>
+            <button type="button" style="height:44px; min-width:96px; padding:0 16px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--ink); font:inherit; font-weight:600; cursor:pointer">Abrir</button>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px; padding:14px 0; border-top:1px solid var(--grid)">
+            <div style="flex:1.6 1 220px; min-width:0">
+              <div style="font-size:15px; font-weight:600">Ventilador industrial VX-021</div>
+              <div class="mono" style="font-size:12px; color:var(--ink2)">OS-2492 · Preventiva</div>
+            </div>
+            <div style="flex:1 1 150px; font-size:13px; color:var(--ink2)">Hoje · 17:30 · est. 1h 30min</div>
+            <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--grid)">Pendente</span>
+            <button type="button" style="height:44px; min-width:96px; padding:0 16px; border-radius:10px; border:0; background:var(--ink); color:var(--sf); font:inherit; font-weight:600; cursor:pointer">Iniciar</button>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px 20px; padding:14px 0 0; border-top:1px solid var(--grid)">
+            <div style="flex:1.6 1 220px; min-width:0">
+              <div style="font-size:15px; font-weight:600">Prensa hidráulica PH-006</div>
+              <div class="mono" style="font-size:12px; color:var(--ink2)">OS-2496 · Preventiva</div>
+            </div>
+            <div style="flex:1 1 150px; font-size:13px; color:var(--ink2)">Amanhã · 08:00 · est. 2h</div>
+            <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--grid)">Pendente</span>
+            <button type="button" style="height:44px; min-width:96px; padding:0 16px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--ink); font:inherit; font-weight:600; cursor:pointer">Ver OS</button>
+          </div>
+        </section>
+
+        <section class="card" aria-label="Calendário de obrigações">
+          <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px">
+            <div>
+              <h2 class="ttl">Minhas obrigações em novembro</h2>
+              <p class="sub">{{totalN}} no mês · {{doneN}} cumpridas · {{execN}} em execução · {{pendN}} pendentes</p>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px; font-weight:600">
+              <span style="padding:3px 8px; border-radius:6px; background:var(--ok-bg); color:var(--ok-t)">✓ Cumprida</span>
+              <span style="padding:3px 8px; border-radius:6px; background:rgba(235,104,52,.18)">● Em execução</span>
+              <span style="padding:2px 7px; border-radius:6px; border:1px solid var(--line)">Pendente</span>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:6px; margin-bottom:6px">
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Dom</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Seg</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Ter</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Qua</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Qui</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Sex</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Sáb</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:6px">
+            <sc-for list="{{cells}}" as="c" hint-placeholder-count="35" style="display:contents">
+              <div style="min-height:92px; border-radius:10px; padding:7px; display:flex; flex-direction:column; gap:6px; background:{{c.bg}}; border:{{c.border}}">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px">
+                  <span style="min-width:26px; height:26px; padding:0 4px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; background:{{c.numBg}}; color:{{c.numColor}}">{{c.day}}</span>
+                  <span style="font-size:11px; color:var(--mut)">{{c.tag}}</span>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start">
+                  <sc-for list="{{c.pills}}" as="pl" style="display:contents">
+                    <span style="font-size:11px; font-weight:600; padding:2px 6px; border-radius:6px; background:{{pl.bg}}; color:{{pl.color}}; border:{{pl.bd}}">{{pl.t}}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+
+      <!-- Direita: cumpridas -->
+      <div style="flex:1 1 340px; min-width:0; display:flex; flex-direction:column; gap:20px">
+
+        <section class="card" aria-label="Cumprimento no prazo">
+          <h2 class="ttl">Cumpridas no prazo</h2>
+          <p class="sub">Últimas 5 semanas</p>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:20px; padding-top:16px">
+            <div style="position:relative; width:128px; height:128px; flex:none">
+              <svg viewBox="0 0 42 42" width="128" height="128" role="img" aria-label="31 de 34 obrigações cumpridas no prazo, 91%">
+                <circle cx="21" cy="21" r="15.9155" style="fill:none; stroke:var(--grid); stroke-width:5"></circle>
+                <circle cx="21" cy="21" r="15.9155" transform="rotate(-90 21 21)" style="fill:none; stroke:var(--green); stroke-width:5; stroke-dasharray:91.2 8.8; stroke-dashoffset:0"></circle>
+              </svg>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center"><span style="font-size:30px; font-weight:600">91%</span></div>
+            </div>
+            <div style="flex:1 1 140px; min-width:0; display:flex; flex-direction:column; gap:8px">
+              <div style="font-size:15px"><span style="font-weight:600">31 de 34</span> obrigações no prazo</div>
+              <div style="font-size:13px; color:var(--ink2)">3 fora do prazo</div>
+              <span style="display:inline-flex; align-items:center; gap:6px; align-self:flex-start; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:600; background:var(--ok-bg); color:var(--ok-t)"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 7-8.5 8.5-5-5L2 17"></path><path d="M16 7h6v6"></path></svg>Acima da meta de 90%</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card" aria-label="Cumpridas por semana">
+          <h2 class="ttl">Cumpridas por semana</h2>
+          <p class="sub">Semana iniciada em</p>
+          <div style="display:flex; flex-wrap:wrap; gap:14px; margin:10px 0 4px; font-size:12px; color:var(--ink2)">
+            <span style="display:inline-flex; align-items:center; gap:6px"><span style="width:10px; height:10px; border-radius:3px; background:var(--green)"></span>No prazo</span>
+            <span style="display:inline-flex; align-items:center; gap:6px"><span style="width:10px; height:10px; border-radius:3px; background:var(--crit)"></span>Fora do prazo</span>
+          </div>
+          <div style="display:flex; align-items:flex-end; gap:12px; height:200px">
+            <sc-for list="{{weeks}}" as="w" hint-placeholder-count="5" style="display:contents">
+              <div style="flex:1 1 0; min-width:0; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:2px">
+                <span style="font-size:13px; font-weight:600; margin-bottom:4px">{{w.total}}</span>
+                <div title="{{w.late}} fora do prazo" style="width:100%; max-width:44px; height:{{w.lateH}}px; border-radius:3px; background:var(--crit)"></div>
+                <div title="{{w.ok}} no prazo" style="width:100%; max-width:44px; height:{{w.okH}}px; border-radius:3px; background:var(--green); opacity:{{w.op}}"></div>
+                <div style="width:100%; height:1px; background:var(--line); margin-top:4px"></div>
+                <span style="font-size:12px; color:var(--ink2); margin-top:2px">{{w.label}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin:10px 0 0; font-size:12px; color:var(--ink2)">* Semana em andamento. Número acima da barra = obrigações da semana.</p>
+        </section>
+
+        <section class="card" aria-label="Cumpridas por tipo">
+          <h2 class="ttl">Cumpridas por tipo</h2>
+          <p class="sub" style="margin-bottom:12px">31 obrigações concluídas</p>
+          <div style="display:flex; flex-direction:column; gap:14px">
+            <sc-for list="{{types}}" as="t" hint-placeholder-count="3" style="display:contents">
+              <div style="display:flex; flex-direction:column; gap:6px">
+                <div style="display:flex; justify-content:space-between; gap:12px"><span style="font-weight:500">{{t.name}}</span><span style="font-weight:600">{{t.n}}</span></div>
+                <div style="height:8px; border-radius:4px; background:var(--grid)"><div style="width:{{t.pct}}%; height:100%; border-radius:4px; background:{{t.color}}"></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </div>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Obrigações do técnico em novembro de 2026: tipo (P/C/I) + estado (d = cumprida, x = em execução, p = pendente)
+    const agenda = {
+      3: 'Pd,Id', 4: 'Cd', 5: 'Cx,Pp', 6: 'Pp',
+      9: 'Pp,Pp', 10: 'Ip', 11: 'Pp', 12: 'Cp,Pp', 13: 'Ip,Pp',
+      16: 'Pp,Pp', 17: 'Cp', 18: 'Pp,Ip', 19: 'Pp',
+      23: 'Pp,Pp', 24: 'Ip', 25: 'Pp', 26: 'Pp,Cp', 27: 'Pp',
+      30: 'Pp,Ip'
+    };
+    const hol = { 2: 'Feriado', 15: 'Feriado', 20: 'Feriado' };
+    const name = { P: 'Prev', C: 'Corr', I: 'Insp' };
+    const st = {
+      d: { prefix: '✓ ', bg: 'var(--ok-bg)', color: 'var(--ok-t)', bd: '1px solid transparent' },
+      x: { prefix: '● ', bg: 'rgba(235,104,52,.18)', color: 'var(--ink)', bd: '1px solid transparent' },
+      p: { prefix: '', bg: 'transparent', color: 'var(--ink)', bd: '1px solid var(--line)' }
+    };
+    let doneN = 0, execN = 0, pendN = 0;
+    const cells = [];
+    for (let i = 0; i < 35; i++) {
+      const d = i + 1;
+      if (d > 30) {
+        cells.push({ day: '', tag: '', pills: [], bg: 'transparent', border: '1px solid transparent', numBg: 'transparent', numColor: 'var(--ink)' });
+        continue;
+      }
+      const pills = (agenda[d] ? agenda[d].split(',') : []).map((tok) => {
+        const s = st[tok[1]];
+        if (tok[1] === 'd') doneN++; else if (tok[1] === 'x') execN++; else pendN++;
+        return { t: s.prefix + name[tok[0]], bg: s.bg, color: s.color, bd: s.bd };
+      });
+      const today = d === 5;
+      cells.push({
+        day: d,
+        tag: today ? 'Hoje' : (hol[d] || ''),
+        pills,
+        bg: 'var(--bg)',
+        border: today ? '2px solid var(--blue)' : '1px solid var(--bd)',
+        numBg: today ? 'var(--ink)' : 'transparent',
+        numColor: today ? 'var(--sf)' : 'var(--ink)'
+      });
+    }
+    const totalN = doneN + execN + pendN;
+
+    // Cumpridas por semana: [semana, no prazo, fora do prazo]
+    const wk = [['5/10', 7, 0], ['12/10', 7, 1], ['19/10', 8, 1], ['26/10', 7, 1], ['2/11*', 2, 0]];
+    const unit = 16;
+    const weeks = wk.map(([label, ok, late], i) => ({
+      label, ok, late,
+      total: ok + late,
+      okH: ok * unit,
+      lateH: late * unit,
+      op: i === wk.length - 1 ? 0.55 : 1
+    }));
+
+    const ty = [['Preventiva', 14, 'var(--blue)'], ['Corretiva', 12, 'var(--orange)'], ['Inspeção', 5, 'var(--violet)']];
+    const types = ty.map(([n, v, color]) => ({ name: n, n: v, color, pct: Math.round(v / 14 * 100) }));
+
+    return { cells, doneN, execN, pendN, totalN, weeks, types };
+  }
+}
+</script>
+</body>
+</html>

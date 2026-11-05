@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AtivHub — Painel do administrador</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ah{
+  --bg:#ffffff; --sf:#ffffff; --ink:#14233a; --ink2:#4a5a70; --mut:#64748b;
+  --grid:#e9edf3; --line:#cbd5e1; --bd:rgba(20,35,58,.12);
+  --side:#0b1b33; --side-ink:#b6c3d6;
+  --blue:#2a78d6; --orange:#eb6834; --aqua:#1baf7a; --yellow:#eda100; --violet:#6250d6; --green:#008300; --red:#e34948;
+  --ok:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+  --ok-t:#006300; --warn-t:#8a5600; --crit-t:#b42323;
+  --ok-bg:rgba(12,163,12,.11); --warn-bg:rgba(250,178,25,.22); --crit-bg:rgba(208,59,59,.11);
+}
+.ah *{box-sizing:border-box}
+.ah .card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:20px}
+.ah .ttl{font-size:16px;font-weight:600;margin:0}
+.ah .sub{font-size:13px;color:var(--ink2);margin:2px 0 0}
+.ah .ic{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ah .nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border-radius:10px;color:var(--side-ink);text-decoration:none;font-size:15px;font-weight:500}
+.ah .nav:hover{background:rgba(255,255,255,.07);color:#fff}
+.ah .mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+</style>
+</helmet>
+
+<div class="ah" style="width:100%; display:flex; flex-wrap:wrap; align-items:stretch; background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif; font-size:14px; line-height:1.4">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="flex:1 1 232px; min-width:0; background:var(--side); padding:24px 16px; display:flex; flex-direction:column; gap:28px">
+    <div style="display:flex; align-items:center; gap:10px; padding:0 8px">
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><polygon points="16,2 28,9 28,23 16,30 4,23 4,9" style="fill:#ffffff"></polygon><circle cx="16" cy="16" r="5" style="fill:#0b1b33"></circle></svg>
+      <span style="font-size:20px; font-weight:700; color:#fff; letter-spacing:-0.01em">AtivHub</span>
+    </div>
+    <nav aria-label="Navegação principal" style="display:flex; flex-direction:column; gap:4px">
+      <a class="nav" href="#" style="background:rgba(255,255,255,.10); color:#fff"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>Painel</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg>Ordens de serviço</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>Ativos</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path></svg>Agenda</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Equipe</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>Relatórios</a>
+    </nav>
+    <div style="margin-top:auto; display:flex; align-items:center; gap:10px; padding:12px; border-radius:12px; background:rgba(255,255,255,.06)">
+      <span style="flex:none; width:36px; height:36px; border-radius:50%; background:#dbe7fa; color:#0b1b33; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">AD</span>
+      <div style="min-width:0"><div style="color:#fff; font-size:14px; font-weight:600">Administrador</div><div style="color:var(--side-ink); font-size:12px">Gestão de manutenção</div></div>
+    </div>
+  </aside>
+
+  <!-- ============ CONTEÚDO ============ -->
+  <main style="flex:999 1 640px; min-width:0; padding:28px 32px 40px; display:flex; flex-direction:column; gap:20px">
+
+    <!-- Cabeçalho -->
+    <header style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px">
+      <div>
+        <div style="font-size:13px; font-weight:600; color:var(--ink2); letter-spacing:.04em; text-transform:uppercase">Painel do administrador</div>
+        <h1 style="margin:2px 0 0; font-size:28px; font-weight:600; letter-spacing:-0.01em">Visão geral da manutenção</h1>
+        <div style="margin-top:2px; color:var(--ink2)">quinta-feira, 5 de novembro de 2026</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px">
+        <button type="button" style="display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 14px; border-radius:10px; border:1px solid var(--bd); background:var(--sf); color:var(--ink); font:inherit; font-weight:500; cursor:pointer"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path></svg>Últimos 30 dias</button>
+        <button type="button" aria-label="Buscar" style="width:44px; height:44px; border-radius:10px; border:1px solid var(--bd); background:var(--sf); color:var(--ink); display:inline-flex; align-items:center; justify-content:center; cursor:pointer"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></button>
+        <button type="button" aria-label="Notificações, 5 novas" style="position:relative; width:44px; height:44px; border-radius:10px; border:1px solid var(--bd); background:var(--sf); color:var(--ink); display:inline-flex; align-items:center; justify-content:center; cursor:pointer"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><span style="position:absolute; top:8px; right:9px; width:10px; height:10px; border-radius:50%; background:var(--crit); border:2px solid var(--sf)"></span></button>
+      </div>
+    </header>
+
+    <!-- Cards principais -->
+    <section aria-label="Indicadores de OS" style="display:flex; flex-wrap:wrap; gap:16px">
+      <div class="card" style="flex:1 1 230px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+          <span style="font-size:14px; font-weight:500; color:var(--ink2)">OS a fechar</span>
+          <span style="width:36px; height:36px; border-radius:10px; background:var(--grid); display:flex; align-items:center; justify-content:center"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="m9 14 2 2 4-4"></path></svg></span>
+        </div>
+        <div style="font-size:44px; font-weight:600; line-height:1; letter-spacing:-0.02em">14</div>
+        <div style="display:inline-flex; align-items:center; gap:6px; align-self:flex-start; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:500; background:var(--warn-bg); color:var(--warn-t)"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>3 aguardam há mais de 48 h</div>
+      </div>
+      <div class="card" style="flex:1 1 230px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+          <span style="font-size:14px; font-weight:500; color:var(--ink2)">OS fechadas</span>
+          <span style="width:36px; height:36px; border-radius:10px; background:var(--grid); display:flex; align-items:center; justify-content:center"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span>
+        </div>
+        <div style="font-size:44px; font-weight:600; line-height:1; letter-spacing:-0.02em">87</div>
+        <div style="display:inline-flex; align-items:center; gap:6px; align-self:flex-start; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:500; background:var(--ok-bg); color:var(--ok-t)"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 7-8.5 8.5-5-5L2 17"></path><path d="M16 7h6v6"></path></svg>+12% vs. 30 dias anteriores</div>
+      </div>
+      <div class="card" style="flex:1 1 230px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+          <span style="font-size:14px; font-weight:500; color:var(--ink2)">OS em execução</span>
+          <span style="width:36px; height:36px; border-radius:10px; background:var(--grid); display:flex; align-items:center; justify-content:center"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg></span>
+        </div>
+        <div style="font-size:44px; font-weight:600; line-height:1; letter-spacing:-0.02em">9</div>
+        <div style="display:inline-flex; align-items:center; gap:6px; align-self:flex-start; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:500; background:var(--crit-bg); color:var(--crit-t)"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>3 acima do tempo estimado</div>
+      </div>
+      <div class="card" style="flex:1 1 230px; display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px">
+          <span style="font-size:14px; font-weight:500; color:var(--ink2)">OS vencidas</span>
+          <span style="width:36px; height:36px; border-radius:10px; background:var(--crit-bg); color:var(--crit-t); display:flex; align-items:center; justify-content:center"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+        </div>
+        <div style="font-size:44px; font-weight:600; line-height:1; letter-spacing:-0.02em; color:var(--crit-t)">5</div>
+        <div style="display:inline-flex; align-items:center; gap:6px; align-self:flex-start; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:500; background:var(--crit-bg); color:var(--crit-t)">Prazo de atendimento expirado</div>
+      </div>
+    </section>
+
+    <!-- Duas colunas -->
+    <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start">
+
+      <!-- Coluna esquerda -->
+      <div style="flex:2 1 620px; min-width:0; display:flex; flex-direction:column; gap:20px">
+
+        <!-- Em andamento -->
+        <section class="card" aria-label="OS em andamento">
+          <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px">
+            <div>
+              <h2 class="ttl">Em andamento agora</h2>
+              <p class="sub">9 OS em execução · tempo decorrido × tempo estimado</p>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px">
+              <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--crit-bg); color:var(--crit-t)">{{nOver}} acima do estimado</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--warn-bg); color:var(--warn-t)">{{nWarn}} perto do limite</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--ok-bg); color:var(--ok-t)">{{nOk}} no prazo</span>
+            </div>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:12px 20px; padding:0 0 8px; font-size:12px; font-weight:600; color:var(--mut); text-transform:uppercase; letter-spacing:.04em">
+            <div style="flex:1.4 1 190px">Ativo / OS</div>
+            <div style="flex:1 1 150px">Executor</div>
+            <div style="flex:1.6 1 210px">Tempo</div>
+            <div style="flex:0 0 156px">Situação</div>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="9" style="display:contents">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:12px 20px; padding:14px 0; border-top:1px solid var(--grid)">
+              <div style="flex:1.4 1 190px; min-width:0">
+                <div style="font-size:15px; font-weight:600">{{r.asset}}</div>
+                <div class="mono" style="font-size:12px; color:var(--ink2)">{{r.os}}</div>
+              </div>
+              <div style="flex:1 1 150px; min-width:0; display:flex; align-items:center; gap:10px">
+                <span style="flex:none; width:32px; height:32px; border-radius:50%; background:var(--grid); color:var(--ink); font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center">{{r.ini}}</span>
+                <span style="font-size:14px">{{r.tech}}</span>
+              </div>
+              <div style="flex:1.6 1 210px; min-width:0">
+                <div style="display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; font-size:13px">
+                  <span><span class="mono" style="font-weight:500">{{r.elapsed}}</span> <span style="color:var(--ink2)">de {{r.est}}</span></span>
+                  <span style="font-weight:600; color:{{r.deltaColor}}">{{r.delta}}</span>
+                </div>
+                <div style="height:8px; border-radius:4px; background:var(--grid)"><div style="width:{{r.pct}}%; height:100%; border-radius:4px; background:{{r.barColor}}"></div></div>
+              </div>
+              <div style="flex:0 0 156px">
+                <sc-if value="{{r.isOver}}" hint-placeholder-val="{{ true }}">
+                  <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--crit-bg); color:var(--crit-t)"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Acima do estimado</span>
+                </sc-if>
+                <sc-if value="{{r.isWarn}}" hint-placeholder-val="{{ false }}">
+                  <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--warn-bg); color:var(--warn-t)"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>Perto do limite</span>
+                </sc-if>
+                <sc-if value="{{r.isOk}}" hint-placeholder-val="{{ false }}">
+                  <span style="display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--ok-bg); color:var(--ok-t)"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg>No prazo</span>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </section>
+
+        <!-- Calendário -->
+        <section class="card" aria-label="Agenda do mês">
+          <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px">
+            <div>
+              <h2 class="ttl">Agenda de novembro de 2026</h2>
+              <p class="sub">{{calTotal}} OS programadas no mês</p>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px; font-weight:600">
+              <span style="padding:3px 8px; border-radius:6px; background:rgba(42,120,214,.16)">P · Preventiva</span>
+              <span style="padding:3px 8px; border-radius:6px; background:rgba(235,104,52,.18)">C · Corretiva</span>
+              <span style="padding:3px 8px; border-radius:6px; background:rgba(98,80,214,.16)">I · Inspeção</span>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:6px; margin-bottom:6px">
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Dom</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Seg</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Ter</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Qua</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Qui</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Sex</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--mut)">Sáb</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:6px">
+            <sc-for list="{{cells}}" as="c" hint-placeholder-count="35" style="display:contents">
+              <div style="min-height:92px; border-radius:10px; padding:7px; display:flex; flex-direction:column; gap:6px; background:{{c.bg}}; border:{{c.border}}; opacity:{{c.opacity}}">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px">
+                  <span style="min-width:26px; height:26px; padding:0 4px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; background:{{c.numBg}}; color:{{c.numColor}}">{{c.day}}</span>
+                  <span style="font-size:11px; color:var(--mut)">{{c.tag}}</span>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:4px">
+                  <sc-for list="{{c.pills}}" as="pl" style="display:contents">
+                    <span style="font-size:11px; font-weight:600; padding:2px 6px; border-radius:6px; background:{{pl.bg}}">{{pl.t}}</span>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+
+      <!-- Coluna direita -->
+      <div style="flex:1 1 340px; min-width:0; display:flex; flex-direction:column; gap:20px">
+
+        <!-- Precisa de atenção -->
+        <section class="card" aria-label="Precisa de atenção">
+          <h2 class="ttl">Precisa de atenção</h2>
+          <p class="sub" style="margin-bottom:8px">O que pede uma decisão hoje</p>
+          <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-top:1px solid var(--grid)">
+            <span style="flex:none; width:36px; height:36px; border-radius:10px; background:var(--crit-bg); color:var(--crit-t); display:flex; align-items:center; justify-content:center"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></span>
+            <div style="flex:1; min-width:0"><div style="font-weight:600">3 OS acima do tempo estimado</div><div style="font-size:13px; color:var(--ink2)">ET-003, BC-014 e TC-011</div></div>
+            <a href="#" style="font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap">Ver →</a>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-top:1px solid var(--grid)">
+            <span style="flex:none; width:36px; height:36px; border-radius:10px; background:var(--crit-bg); color:var(--crit-t); display:flex; align-items:center; justify-content:center"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg></span>
+            <div style="flex:1; min-width:0"><div style="font-weight:600">17 ativos fora de operação</div><div style="font-size:13px; color:var(--ink2)">11 fora de serviço · 6 em desligamento de emergência</div></div>
+            <a href="#" style="font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap">Ver →</a>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-top:1px solid var(--grid)">
+            <span style="flex:none; width:36px; height:36px; border-radius:10px; background:var(--crit-bg); color:var(--crit-t); display:flex; align-items:center; justify-content:center"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span>
+            <div style="flex:1; min-width:0"><div style="font-weight:600">5 OS vencidas</div><div style="font-size:13px; color:var(--ink2)">Prazo de atendimento expirado</div></div>
+            <a href="#" style="font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap">Ver →</a>
+          </div>
+          <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 0 0; border-top:1px solid var(--grid)">
+            <span style="flex:none; width:36px; height:36px; border-radius:10px; background:var(--warn-bg); color:var(--warn-t); display:flex; align-items:center; justify-content:center"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="m9 14 2 2 4-4"></path></svg></span>
+            <div style="flex:1; min-width:0"><div style="font-weight:600">3 OS aguardam fechamento há +48 h</div><div style="font-size:13px; color:var(--ink2)">Validar para atualizar o histórico do ativo</div></div>
+            <a href="#" style="font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap">Ver →</a>
+          </div>
+        </section>
+
+        <!-- OS por status -->
+        <section class="card" aria-label="OS por status">
+          <h2 class="ttl">OS por status</h2>
+          <p class="sub">Últimos 30 dias · {{osTotal}} OS</p>
+          <div style="display:flex; justify-content:center; padding:18px 0 14px">
+            <div style="position:relative; width:176px; height:176px; flex:none">
+              <svg viewBox="0 0 42 42" width="176" height="176" role="img" aria-label="Gráfico de pizza das OS por status: 21 abertas, 9 em andamento, 6 em espera e 101 concluídas">
+                <circle cx="21" cy="21" r="15.9155" transform="rotate(-90 21 21)" style="fill:none; stroke:var(--blue); stroke-width:5.5; stroke-dasharray:14.5 85.5; stroke-dashoffset:0"></circle>
+                <circle cx="21" cy="21" r="15.9155" transform="rotate(-90 21 21)" style="fill:none; stroke:var(--aqua); stroke-width:5.5; stroke-dasharray:5.8 94.2; stroke-dashoffset:-15.3"></circle>
+                <circle cx="21" cy="21" r="15.9155" transform="rotate(-90 21 21)" style="fill:none; stroke:var(--yellow); stroke-width:5.5; stroke-dasharray:3.6 96.4; stroke-dashoffset:-21.9"></circle>
+                <circle cx="21" cy="21" r="15.9155" transform="rotate(-90 21 21)" style="fill:none; stroke:var(--green); stroke-width:5.5; stroke-dasharray:72.9 27.1; stroke-dashoffset:-26.3"></circle>
+              </svg>
+              <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center">
+                <span style="font-size:32px; font-weight:600; line-height:1">{{osTotal}}</span>
+                <span style="font-size:12px; color:var(--ink2)">OS no período</span>
+              </div>
+            </div>
+          </div>
+          <sc-for list="{{osLegend}}" as="s" hint-placeholder-count="4" style="display:contents">
+            <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--grid)">
+              <span style="flex:none; width:12px; height:12px; border-radius:3px; background:{{s.color}}"></span>
+              <span style="flex:1; font-size:14px">{{s.name}}</span>
+              <span style="font-size:14px; font-weight:600">{{s.n}}</span>
+              <span style="width:44px; text-align:right; font-size:13px; color:var(--ink2)">{{s.pct}}</span>
+            </div>
+          </sc-for>
+          <p style="margin:10px 0 0; font-size:12px; color:var(--ink2)">Concluídas = 87 fechadas + 14 a fechar.</p>
+        </section>
+
+        <!-- Status dos ativos -->
+        <section class="card" aria-label="Status dos ativos">
+          <h2 class="ttl">Status dos ativos</h2>
+          <p class="sub">{{asTotal}} ativos cadastrados</p>
+          <div style="display:flex; align-items:baseline; gap:10px; padding:16px 0 12px">
+            <span style="font-size:40px; font-weight:600; line-height:1; letter-spacing:-0.02em">{{opPct}}%</span>
+            <span style="font-size:14px; color:var(--ink2)">estão operacionais</span>
+          </div>
+          <div role="img" aria-label="Barra empilhada com a distribuição dos 248 ativos por status" style="display:flex; gap:2px; height:22px; margin-bottom:14px">
+            <sc-for list="{{assetRows}}" as="a" hint-placeholder-count="7" style="display:contents">
+              <div title="{{a.name}}: {{a.n}}" style="flex:{{a.n}} 1 0; min-width:0; border-radius:3px; background:{{a.color}}"></div>
+            </sc-for>
+          </div>
+          <sc-for list="{{assetRows}}" as="a" hint-placeholder-count="7" style="display:contents">
+            <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--grid)">
+              <span style="flex:none; width:12px; height:12px; border-radius:3px; background:{{a.color}}"></span>
+              <span style="flex:1; font-size:14px; min-width:0">{{a.name}}</span>
+              <span style="font-size:14px; font-weight:600">{{a.n}}</span>
+              <span style="width:50px; text-align:right; font-size:13px; color:var(--ink2)">{{a.pct}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+    </div>
+
+    <!-- Linha de análises -->
+    <section style="display:flex; flex-wrap:wrap; gap:20px; align-items:stretch">
+
+      <div class="card" style="flex:1 1 320px; min-width:0">
+        <h2 class="ttl">OS fechadas por semana</h2>
+        <p class="sub">Últimas 6 semanas · semana iniciada em</p>
+        <div style="display:flex; align-items:flex-end; gap:12px; height:240px; margin-top:12px">
+          <sc-for list="{{weeks}}" as="w" hint-placeholder-count="6" style="display:contents">
+            <div style="flex:1 1 0; min-width:0; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px">
+              <span style="font-size:13px; font-weight:600">{{w.v}}</span>
+              <div title="{{w.v}} OS fechadas" style="width:100%; max-width:44px; height:{{w.h}}px; border-radius:4px 4px 0 0; background:var(--blue); opacity:{{w.op}}"></div>
+              <div style="width:100%; height:1px; background:var(--line)"></div>
+              <span style="font-size:12px; color:var(--ink2)">{{w.label}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin:12px 0 0; font-size:12px; color:var(--ink2)">* Semana em andamento.</p>
+      </div>
+
+      <div class="card" style="flex:1 1 320px; min-width:0; display:flex; flex-direction:column; gap:14px">
+        <div>
+          <h2 class="ttl">Ativos com mais corretivas</h2>
+          <p class="sub">Últimos 90 dias · quantidade de OS corretivas</p>
+        </div>
+        <sc-for list="{{rank}}" as="k" hint-placeholder-count="5" style="display:contents">
+          <div style="display:flex; flex-direction:column; gap:6px">
+            <div style="display:flex; justify-content:space-between; gap:12px"><span style="font-weight:500">{{k.name}}</span><span style="font-weight:600">{{k.n}}</span></div>
+            <div style="height:8px; border-radius:4px; background:var(--grid)"><div style="width:{{k.pct}}%; height:100%; border-radius:4px; background:var(--orange)"></div></div>
+          </div>
+        </sc-for>
+        <p style="margin:auto 0 0; font-size:13px; color:var(--ink2)">Ativos com 4 ou mais corretivas em 90 dias são candidatos a revisão do plano preventivo.</p>
+      </div>
+
+      <div class="card" style="flex:1 1 320px; min-width:0; display:flex; flex-direction:column; gap:16px">
+        <div>
+          <h2 class="ttl">Indicadores de desempenho</h2>
+          <p class="sub">Últimos 30 dias</p>
+        </div>
+        <div style="padding-top:12px; border-top:1px solid var(--grid)">
+          <div style="font-size:13px; color:var(--ink2)">Tempo médio de reparo (MTTR)</div>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:4px">
+            <span style="font-size:28px; font-weight:600; letter-spacing:-0.01em">3h 42min</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:600; background:var(--ok-bg); color:var(--ok-t)"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 17-8.5-8.5-5 5L2 7"></path><path d="M16 17h6v-6"></path></svg>−18 min vs. período anterior</span>
+          </div>
+        </div>
+        <div style="padding-top:12px; border-top:1px solid var(--grid)">
+          <div style="font-size:13px; color:var(--ink2)">Plano preventivo cumprido</div>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:4px">
+            <span style="font-size:28px; font-weight:600; letter-spacing:-0.01em">88%</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:600; background:var(--warn-bg); color:var(--warn-t)">2 pontos abaixo da meta de 90%</span>
+          </div>
+          <div style="height:8px; border-radius:4px; background:var(--grid); margin-top:10px"><div style="width:88%; height:100%; border-radius:4px; background:var(--blue)"></div></div>
+        </div>
+        <div style="padding-top:12px; border-top:1px solid var(--grid)">
+          <div style="font-size:13px; color:var(--ink2)">Backlog (abertas há mais de 7 dias)</div>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:4px">
+            <span style="font-size:28px; font-weight:600; letter-spacing:-0.01em">8 OS</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:999px; font-size:12px; font-weight:600; background:var(--warn-bg); color:var(--warn-t)">2 aguardando peça</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2160}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const fmt = (m) => {
+      const h = Math.floor(m / 60), r = m % 60;
+      if (!h) return r + ' min';
+      return r ? h + 'h ' + String(r).padStart(2, '0') + 'min' : h + 'h';
+    };
+    const pc = (n, t, d) => (n / t * 100).toFixed(d || 0).replace('.', ',');
+
+    // OS em andamento: [ativo, OS, tipo, executor, decorrido (min), estimado (min)]
+    const work = [
+      ['Esteira transportadora ET-003', 'OS-2470', 'Corretiva', 'Marina Alves', 445, 360],
+      ['Bomba centrífuga BC-014', 'OS-2481', 'Corretiva', 'Rafael Lima', 310, 240],
+      ['Torno CNC TC-011', 'OS-2474', 'Corretiva', 'Diego Farias', 185, 150],
+      ['Gerador GR-002', 'OS-2477', 'Preventiva', 'Bruno Reis', 280, 300],
+      ['Painel elétrico PE-032', 'OS-2479', 'Inspeção', 'Carlos Mota', 110, 120],
+      ['Compressor de ar CP-007', 'OS-2476', 'Preventiva', 'Ana Souza', 125, 180],
+      ['Caldeira CA-001', 'OS-2483', 'Preventiva', 'João Pedro', 195, 480],
+      ['Câmara fria CF-004', 'OS-2485', 'Inspeção', 'Paulo Nery', 90, 240],
+      ['Ponte rolante PR-005', 'OS-2487', 'Preventiva', 'Luciana Prado', 40, 180]
+    ];
+    const rows = work.map(([asset, os, kind, tech, el, est]) => {
+      const ratio = el / est;
+      const over = ratio > 1;
+      const warn = !over && ratio >= 0.85;
+      return {
+        asset, tech,
+        os: os + ' · ' + kind,
+        ini: tech.split(' ').map((s) => s[0]).join(''),
+        elapsed: fmt(el), est: fmt(est),
+        pct: Math.min(100, Math.round(ratio * 100)),
+        delta: over ? '+' + fmt(el - est) : 'restam ' + fmt(est - el),
+        isOver: over, isWarn: warn, isOk: !over && !warn,
+        barColor: over ? 'var(--crit)' : warn ? 'var(--warn)' : 'var(--ok)',
+        deltaColor: over ? 'var(--crit-t)' : 'var(--ink2)'
+      };
+    });
+    const nOver = rows.filter((r) => r.isOver).length;
+    const nWarn = rows.filter((r) => r.isWarn).length;
+    const nOk = rows.filter((r) => r.isOk).length;
+
+    // OS por status
+    const os = [['Aberta', 21, 'var(--blue)'], ['Em andamento', 9, 'var(--aqua)'], ['Em espera', 6, 'var(--yellow)'], ['Concluída', 101, 'var(--green)']];
+    const osTotal = os.reduce((a, s) => a + s[1], 0);
+    const osLegend = os.map(([name, n, color]) => ({ name, n, color, pct: pc(n, osTotal) + '%' }));
+
+    // Status dos ativos
+    const as = [
+      ['Operacional', 176, 'var(--green)'],
+      ['Modernização', 12, 'var(--blue)'],
+      ['Em espera', 14, 'var(--yellow)'],
+      ['Inspeção agendada', 21, 'var(--violet)'],
+      ['Comissionamento', 8, 'var(--aqua)'],
+      ['Fora de serviço', 11, 'var(--orange)'],
+      ['Desligamento de emergência', 6, 'var(--red)']
+    ];
+    const asTotal = as.reduce((a, s) => a + s[1], 0);
+    const assetRows = as.map(([name, n, color]) => ({ name, n, color, pct: pc(n, asTotal, 1) + '%' }));
+    const opPct = Math.round(as[0][1] / asTotal * 100);
+
+    // Calendário de novembro de 2026 (1º é domingo): [preventiva, corretiva, inspeção]
+    const cal = [
+      [0,1,0],[0,1,0],[4,2,1],[3,3,0],[3,2,2],[4,1,1],[0,1,0],
+      [0,0,0],[5,2,1],[4,1,2],[3,2,0],[5,1,1],[4,2,2],[0,1,0],
+      [0,0,0],[5,1,1],[4,2,1],[3,1,3],[5,2,0],[0,1,0],[0,1,0],
+      [0,0,0],[6,2,1],[4,1,2],[5,1,1],[3,2,2],[4,1,1],[0,1,0],
+      [0,0,0],[5,1,2]
+    ];
+    const hol = { 2: 'Feriado', 15: 'Feriado', 20: 'Feriado' };
+    const tl = ['P', 'C', 'I'];
+    const tbg = ['rgba(42,120,214,.16)', 'rgba(235,104,52,.18)', 'rgba(98,80,214,.16)'];
+    const cells = [];
+    for (let i = 0; i < 35; i++) {
+      const d = i + 1;
+      if (d > 30) {
+        cells.push({ day: '', tag: '', pills: [], bg: 'transparent', border: '1px solid transparent', opacity: 1, numBg: 'transparent', numColor: 'var(--ink)' });
+        continue;
+      }
+      const v = cal[i];
+      const pills = [];
+      [0, 1, 2].forEach((k) => { if (v[k]) pills.push({ t: tl[k] + ' ' + v[k], bg: tbg[k] }); });
+      const today = d === 5;
+      cells.push({
+        day: d,
+        tag: today ? 'Hoje' : (hol[d] || ''),
+        pills,
+        bg: 'var(--bg)',
+        border: today ? '2px solid var(--blue)' : '1px solid var(--bd)',
+        opacity: d < 5 ? 0.6 : 1,
+        numBg: today ? 'var(--ink)' : 'transparent',
+        numColor: today ? 'var(--sf)' : 'var(--ink)'
+      });
+    }
+    const calTotal = cal.reduce((a, v) => a + v[0] + v[1] + v[2], 0);
+
+    // Fechamento semanal
+    const wk = [['28/9', 19], ['5/10', 22], ['12/10', 21], ['19/10', 24], ['26/10', 23], ['2/11*', 11]];
+    const weeks = wk.map(([label, v], i) => ({ label, v, h: Math.round(v / 24 * 150), op: i === wk.length - 1 ? 0.5 : 1 }));
+
+    // Ranking de corretivas
+    const rk = [['Bomba centrífuga BC-014', 7], ['Esteira transportadora ET-003', 6], ['Torno CNC TC-011', 5], ['Gerador GR-002', 4], ['Prensa hidráulica PH-006', 4]];
+    const rank = rk.map(([name, n]) => ({ name, n, pct: Math.round(n / 7 * 100) }));
+
+    return { rows, nOver, nWarn, nOk, osTotal, osLegend, asTotal, assetRows, opPct, cells, calTotal, weeks, rank };
+  }
+}
+</script>
+</body>
+</html>

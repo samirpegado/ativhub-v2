@@ -8,7 +8,7 @@ import { parseTaskList } from "@/lib/work-orders/tasks";
 
 function refresh() {
   revalidatePath("/settings");
-  revalidatePath("/");
+  revalidatePath("/work-orders");
 }
 
 function readFields(formData: FormData) {
