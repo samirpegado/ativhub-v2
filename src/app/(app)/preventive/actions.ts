@@ -12,6 +12,7 @@ import { parseTaskList, type WorkOrderTask } from "@/lib/work-orders/tasks";
 
 function refresh() {
   revalidatePath("/preventive");
+  revalidatePath("/preventive/[id]", "page");
   revalidatePath("/");
   revalidatePath("/work-orders");
 }

@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>AtivHub — Detalhes da OS</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ah{
+  --bg:#ffffff; --sf:#ffffff; --ink:#14233a; --ink2:#4a5a70; --mut:#5b6b80;
+  --grid:#e9edf3; --line:#cbd5e1; --bd:rgba(20,35,58,.12); --soft:#f5f7fb;
+  --side:#0b1b33; --side-ink:#b6c3d6;
+  --blue:#2a78d6; --green:#008300; --crit:#d03b3b;
+  --ok-t:#006300; --warn-t:#8a5600; --crit-t:#b42323;
+  --ok-bg:rgba(12,163,12,.11); --warn-bg:rgba(250,178,25,.22); --crit-bg:rgba(208,59,59,.11);
+}
+.ah *{box-sizing:border-box}
+.ah .card{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:24px}
+.ah .ttl{font-size:18px;font-weight:600;margin:0;letter-spacing:-0.005em}
+.ah .sub{font-size:13px;color:var(--ink2);margin:2px 0 0}
+.ah .sech{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.ah .ic{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ah .nav{display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border-radius:10px;color:var(--side-ink);text-decoration:none;font-size:15px;font-weight:500}
+.ah .nav:hover{background:rgba(255,255,255,.07);color:#fff}
+.ah .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ah .btn:hover{background:var(--soft)}
+.ah .btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.ah .btn-icon{width:44px;height:44px;padding:0;border:0;background:transparent;color:var(--crit-t)}
+.ah .btn-icon:hover{background:var(--crit-bg)}
+.ah .mono{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.ah .lbl{font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+</style>
+</helmet>
+
+<div class="ah" style="width:100%; display:flex; flex-wrap:wrap; align-items:stretch; background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif; font-size:14px; line-height:1.4">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="flex:1 1 232px; min-width:0; background:var(--side); padding:24px 16px; display:flex; flex-direction:column; gap:28px">
+    <div style="display:flex; align-items:center; gap:10px; padding:0 8px">
+      <svg width="32" height="32" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,4 56.2,18 56.2,46 32,60 7.8,46 7.8,18" style="fill:#ffffff; stroke:#ffffff; stroke-width:4; stroke-linejoin:round"></polygon><path transform="translate(32 32) rotate(40) scale(0.86) translate(0 4.25)" d="M -3.5 -19 L -3.5 -25.75 A 8.5 8.5 0 0 0 -3.5 -10.25 L -3.5 14.5 A 3.5 3.5 0 0 0 3.5 14.5 L 3.5 -10.25 A 8.5 8.5 0 0 0 3.5 -25.75 L 3.5 -19 Z M 1.5 14.5 A 1.5 1.5 0 1 0 -1.5 14.5 A 1.5 1.5 0 1 0 1.5 14.5 Z" style="fill:#0b1b33; fill-rule:evenodd"></path></svg>
+      <span style="font-size:20px; font-weight:700; color:#fff; letter-spacing:-0.01em">AtivHub</span>
+    </div>
+    <nav aria-label="Navegação principal" style="display:flex; flex-direction:column; gap:4px">
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>Dashboard</a>
+      <a class="nav" href="#" aria-current="page" style="background:rgba(255,255,255,.10); color:#fff"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M12 11h4"></path><path d="M12 16h4"></path><path d="M8 11h.01"></path><path d="M8 16h.01"></path></svg>Ordens de serviço</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4"></path><path d="M12 14l3-3"></path><circle cx="12" cy="14" r="8"></circle></svg>Preventiva</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>Solicitações</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4"></path><path d="M10 10h4"></path><path d="M10 14h4"></path><path d="M10 18h4"></path></svg>Clientes</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>Localizações</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>Ativos</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>Peças e inventário</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path><path d="M15 18H9"></path><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"></path><circle cx="17" cy="18" r="2"></circle><circle cx="7" cy="18" r="2"></circle></svg>Fornecedores</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Pessoas e equipes</a>
+      <a class="nav" href="#"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>Configurações</a>
+    </nav>
+  </aside>
+
+  <!-- ============ ÁREA PRINCIPAL ============ -->
+  <div style="flex:999 1 640px; min-width:0; display:flex; flex-direction:column">
+
+    <!-- Barra superior -->
+    <header style="min-height:72px; padding:12px 32px; border-bottom:1px solid var(--grid); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px">
+      <nav aria-label="Caminho" style="display:flex; align-items:center; gap:8px; font-size:15px">
+        <a href="#" style="color:var(--ink2); text-decoration:none; font-weight:500">Ordens de serviço</a>
+        <svg class="ic" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--mut)"><path d="m9 18 6-6-6-6"></path></svg>
+        <span class="mono" style="font-weight:500">OS-000008</span>
+      </nav>
+      <div style="display:flex; align-items:center; gap:12px">
+        <button type="button" aria-label="Notificações" class="btn" style="width:44px; padding:0"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg></button>
+        <span aria-label="Usuário: Samir Gomes" style="width:40px; height:40px; border-radius:50%; background:#dbe7fa; color:#0b1b33; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center">SG</span>
+      </div>
+    </header>
+
+    <main style="padding:28px 32px 48px; display:flex; flex-direction:column; gap:24px">
+
+      <!-- Voltar + título -->
+      <div style="display:flex; flex-direction:column; gap:14px">
+        <a href="#" style="display:inline-flex; align-items:center; gap:8px; align-self:flex-start; min-height:32px; color:var(--ink2); text-decoration:none; font-weight:500"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>Voltar para as ordens de serviço</a>
+
+        <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:20px">
+          <div style="flex:1 1 420px; min-width:0">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px">
+              <span class="mono" style="font-size:14px; color:var(--ink2)">OS-000008</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; background:#eef3fb; color:#0b1b33"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>Corretiva</span>
+              <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600; background:var(--crit-bg); color:var(--crit-t)"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><path d="M4 22v-7"></path></svg>Prioridade alta</span>
+            </div>
+            <h1 style="margin:10px 0 0; font-size:32px; font-weight:600; letter-spacing:-0.015em; line-height:1.15">Manutenção na Catraca</h1>
+            <p style="margin:6px 0 0; font-size:16px; color:var(--ink2)">resolver problema no motor da catraca</p>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:10px">
+            <button type="button" class="btn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg>Relatório PDF</button>
+            <button type="button" class="btn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>Enviar por e-mail</button>
+            <button type="button" class="btn" style="background:var(--ink); border-color:var(--ink); color:#fff"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>Editar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Andamento -->
+      <section class="card" aria-label="Andamento da OS">
+        <div class="sech" style="margin-bottom:24px">
+          <div>
+            <h2 class="ttl">Andamento</h2>
+            <p class="sub">Em que etapa a ordem está</p>
+          </div>
+          <button type="button" class="btn" aria-haspopup="listbox" aria-label="Alterar status. Status atual: Concluído" style="min-width:200px; justify-content:space-between">
+            <span style="display:inline-flex; align-items:center; gap:10px"><span style="width:10px; height:10px; border-radius:50%; background:var(--green)"></span>Concluído</span>
+            <svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+        </div>
+
+        <div role="group" aria-label="Etapas da OS: Aberta, Em andamento e Concluída (etapa atual)" style="display:flex; align-items:flex-start; max-width:760px; margin:0 auto 28px">
+          <div style="flex:none; width:130px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center">
+            <span style="width:32px; height:32px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:3"><path d="M20 6 9 17l-5-5"></path></svg></span>
+            <span style="font-size:14px; font-weight:600">Aberta</span>
+          </div>
+          <div aria-hidden="true" style="flex:1 1 0; height:3px; border-radius:2px; background:var(--green); margin-top:15px"></div>
+          <div style="flex:none; width:130px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center">
+            <span style="width:32px; height:32px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:3"><path d="M20 6 9 17l-5-5"></path></svg></span>
+            <span style="font-size:14px; font-weight:600">Em andamento</span>
+          </div>
+          <div aria-hidden="true" style="flex:1 1 0; height:3px; border-radius:2px; background:var(--green); margin-top:15px"></div>
+          <div style="flex:none; width:130px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center">
+            <span style="width:32px; height:32px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 5px rgba(0,131,0,.18)"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:3"><path d="M20 6 9 17l-5-5"></path></svg></span>
+            <span style="font-size:14px; font-weight:700">Concluída</span>
+            <span style="font-size:12px; color:var(--ok-t); font-weight:600; margin-top:-4px">Etapa atual</span>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:16px">
+          <div style="flex:1 1 200px; padding:16px 18px; border-radius:12px; background:var(--soft)">
+            <div style="font-size:13px; font-weight:500; color:var(--mut)">Vencimento</div>
+            <div style="margin-top:4px; font-size:24px; font-weight:600; letter-spacing:-0.01em">08/11/2026</div>
+            <div style="font-size:13px; color:var(--ink2)">às 02:00</div>
+          </div>
+          <div style="flex:1 1 200px; padding:16px 18px; border-radius:12px; background:var(--soft)">
+            <div style="font-size:13px; font-weight:500; color:var(--mut)">Tempo registrado</div>
+            <div style="margin-top:4px; font-size:24px; font-weight:600; letter-spacing:-0.01em">0h 04m</div>
+            <div style="font-size:13px; color:var(--ink2)">1 lançamento</div>
+          </div>
+          <div style="flex:1 1 200px; padding:16px 18px; border-radius:12px; background:var(--soft)">
+            <div style="font-size:13px; font-weight:500; color:var(--mut)">Tarefas</div>
+            <div style="margin-top:4px; font-size:24px; font-weight:600; letter-spacing:-0.01em">1 de 1</div>
+            <div style="font-size:13px; color:var(--ink2)">respondida</div>
+          </div>
+          <div style="flex:1 1 200px; padding:16px 18px; border-radius:12px; background:var(--soft)">
+            <div style="font-size:13px; font-weight:500; color:var(--mut)">Peças</div>
+            <div style="margin-top:4px; font-size:24px; font-weight:600; letter-spacing:-0.01em">0</div>
+            <div style="font-size:13px; color:var(--ink2)">nenhuma utilizada</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Corpo em duas colunas -->
+      <div style="display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start">
+
+        <!-- Coluna principal -->
+        <div style="flex:2 1 560px; min-width:0; display:flex; flex-direction:column; gap:20px">
+
+          <section class="card" aria-label="Tarefas">
+            <div class="sech">
+              <div>
+                <h2 class="ttl">Tarefas</h2>
+                <p class="sub">1 de 1 respondida</p>
+              </div>
+              <button type="button" class="btn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="m9 14 2 2 4-4"></path></svg>Executar tarefas</button>
+            </div>
+            <div style="display:flex; gap:14px; align-items:flex-start">
+              <span style="flex:none; width:28px; height:28px; border-radius:50%; background:var(--green); color:#fff; display:flex; align-items:center; justify-content:center; margin-top:1px"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:3"><path d="M20 6 9 17l-5-5"></path></svg></span>
+              <div style="flex:1; min-width:0">
+                <div style="font-size:16px; font-weight:600">Descrever reparo feito no equipamento</div>
+                <div style="margin-top:12px; padding:14px 16px; border-radius:10px; background:var(--soft)">
+                  <div class="lbl">Resposta</div>
+                  <div style="margin-top:4px; font-size:15px">Foi feito a lubrificação dos rolamentos e o problema foi resolvido</div>
+                </div>
+                <div style="margin-top:8px; font-size:13px; color:var(--ink2)">Respondida em 07/11/2026, 11:44</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Peças">
+            <div class="sech">
+              <div>
+                <h2 class="ttl">Peças</h2>
+                <p class="sub">Itens do inventário usados nesta ordem</p>
+              </div>
+              <button type="button" class="btn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Adicionar peças</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:14px; padding:20px; border:1px dashed var(--line); border-radius:12px">
+              <span style="flex:none; width:40px; height:40px; border-radius:10px; background:var(--soft); color:var(--mut); display:flex; align-items:center; justify-content:center"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg></span>
+              <span style="color:var(--ink2); font-size:15px">Nenhuma peça nesta ordem.</span>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Mão de obra">
+            <div class="sech">
+              <div>
+                <h2 class="ttl">Mão de obra</h2>
+                <p class="sub">Tempo trabalhado por técnico</p>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:10px">
+                <button type="button" class="btn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>Executar temporizador</button>
+                <button type="button" class="btn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>Adicionar tempo</button>
+              </div>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:12px 20px; padding:0 0 8px">
+              <div class="lbl" style="flex:1 1 110px">Data</div>
+              <div class="lbl" style="flex:1.4 1 170px">Técnico</div>
+              <div class="lbl" style="flex:0 0 80px">Tempo</div>
+              <div class="lbl" style="flex:0 0 130px">Origem</div>
+              <div style="flex:0 0 44px"></div>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px; padding:8px 0; border-top:1px solid var(--grid)">
+              <div style="flex:1 1 110px; font-size:15px">07/11/2026</div>
+              <div style="flex:1.4 1 170px; display:flex; align-items:center; gap:10px">
+                <span style="flex:none; width:32px; height:32px; border-radius:50%; background:#dbe7fa; color:#0b1b33; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center">SG</span>
+                <span style="font-size:15px">Samir Gomes</span>
+              </div>
+              <div class="mono" style="flex:0 0 80px; font-size:14px">0h 04m</div>
+              <div style="flex:0 0 130px"><span style="display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; background:var(--soft); color:var(--ink2)"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2h4"></path><path d="M12 14l3-3"></path><circle cx="12" cy="14" r="8"></circle></svg>Temporizador</span></div>
+              <button type="button" class="btn btn-icon" aria-label="Remover lançamento de 07/11/2026"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:12px; padding-top:12px; border-top:1px solid var(--grid); font-size:15px"><span style="color:var(--ink2)">Total registrado</span><span class="mono" style="font-weight:500">0h 04m</span></div>
+          </section>
+
+          <section class="card" aria-label="Arquivos">
+            <div class="sech">
+              <div>
+                <h2 class="ttl">Arquivos</h2>
+                <p class="sub">Fotos e documentos da ordem</p>
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:10px">
+                <button type="button" class="btn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3"></circle></svg>Adicionar foto</button>
+                <button type="button" class="btn"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>Adicionar arquivo</button>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:14px; padding:12px; border:1px solid var(--bd); border-radius:12px">
+              <span style="flex:none; width:56px; height:56px; border-radius:10px; background:#dbe7fa; color:#0b1b33; display:flex; align-items:center; justify-content:center"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"></path></svg></span>
+              <div style="flex:1; min-width:0">
+                <a href="#" style="font-size:15px; font-weight:600; color:var(--blue); text-decoration:none">bomba.jpg</a>
+                <div style="font-size:13px; color:var(--ink2)">Imagem</div>
+              </div>
+              <button type="button" class="btn btn-icon" aria-label="Remover arquivo bomba.jpg"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+            </div>
+          </section>
+        </div>
+
+        <!-- Coluna lateral -->
+        <div style="flex:1 1 320px; min-width:0; display:flex; flex-direction:column; gap:20px">
+
+          <section class="card" aria-label="Informações">
+            <h2 class="ttl" style="margin-bottom:6px">Informações</h2>
+            <div style="display:flex; gap:14px; align-items:flex-start; padding:14px 0; border-top:1px solid var(--grid); margin-top:12px">
+              <span style="flex:none; width:36px; height:36px; border-radius:10px; background:#eef3fb; color:#0b1b33; display:flex; align-items:center; justify-content:center"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"></path><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"></path><path d="M10 6h4"></path><path d="M10 10h4"></path><path d="M10 14h4"></path><path d="M10 18h4"></path></svg></span>
+              <div style="min-width:0"><div class="lbl">Cliente</div><div style="margin-top:2px; font-size:15px; font-weight:600">Condomínio Porto das Dunas</div><div style="font-size:14px; color:var(--ink2)">(84) 99612-0303</div></div>
+            </div>
+            <div style="display:flex; gap:14px; align-items:flex-start; padding:14px 0; border-top:1px solid var(--grid)">
+              <span style="flex:none; width:36px; height:36px; border-radius:10px; background:#eef3fb; color:#0b1b33; display:flex; align-items:center; justify-content:center"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg></span>
+              <div style="min-width:0"><div class="lbl">Ativo</div><div style="margin-top:2px; font-size:15px; font-weight:600">Catraca de acesso</div></div>
+            </div>
+            <div style="display:flex; gap:14px; align-items:flex-start; padding:14px 0; border-top:1px solid var(--grid)">
+              <span style="flex:none; width:36px; height:36px; border-radius:10px; background:#eef3fb; color:#0b1b33; display:flex; align-items:center; justify-content:center"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg></span>
+              <div style="min-width:0"><div class="lbl">Localização</div><div style="margin-top:2px; font-size:15px; font-weight:600">Anexo</div></div>
+            </div>
+            <div style="display:flex; gap:14px; align-items:flex-start; padding:14px 0 0; border-top:1px solid var(--grid)">
+              <span style="flex:none; width:36px; height:36px; border-radius:10px; background:#eef3fb; color:#0b1b33; display:flex; align-items:center; justify-content:center"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"></rect><path d="M9 22v-4h6v4"></path><path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path><path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path><path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path></svg></span>
+              <div style="min-width:0"><div class="lbl">Empresa</div><div style="margin-top:2px; font-size:15px; font-weight:600">AtivHub</div></div>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Responsáveis">
+            <h2 class="ttl" style="margin-bottom:6px">Responsáveis</h2>
+            <div style="display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--grid); margin-top:12px">
+              <span style="flex:none; width:36px; height:36px; border-radius:50%; background:#dbe7fa; color:#0b1b33; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center">MG</span>
+              <span style="font-size:15px; font-weight:500">Micneias Gomes</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; padding:12px 0 0; border-top:1px solid var(--grid)">
+              <span style="flex:none; width:36px; height:36px; border-radius:50%; background:#dbe7fa; color:#0b1b33; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center">SG</span>
+              <span style="font-size:15px; font-weight:500">Samir Gomes</span>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Timeline">
+            <h2 class="ttl" style="margin-bottom:18px">Timeline</h2>
+            <div style="display:flex; gap:14px">
+              <div style="display:flex; flex-direction:column; align-items:center; width:12px"><span style="flex:none; width:12px; height:12px; border-radius:50%; background:var(--green); margin-top:4px"></span><span style="flex:1; width:2px; background:var(--grid); margin:4px 0"></span></div>
+              <div style="padding-bottom:18px"><div style="font-size:14px; font-weight:600">Status alterado para Concluído</div><div style="font-size:13px; color:var(--ink2)">07/11/2026</div></div>
+            </div>
+            <div style="display:flex; gap:14px">
+              <div style="display:flex; flex-direction:column; align-items:center; width:12px"><span style="flex:none; width:12px; height:12px; border-radius:50%; background:var(--blue); margin-top:4px"></span><span style="flex:1; width:2px; background:var(--grid); margin:4px 0"></span></div>
+              <div style="padding-bottom:18px"><div style="font-size:14px; font-weight:600">Arquivo anexado: bomba.jpg</div><div style="font-size:13px; color:var(--ink2)">07/11/2026</div></div>
+            </div>
+            <div style="display:flex; gap:14px">
+              <div style="display:flex; flex-direction:column; align-items:center; width:12px"><span style="flex:none; width:12px; height:12px; border-radius:50%; background:var(--blue); margin-top:4px"></span><span style="flex:1; width:2px; background:var(--grid); margin:4px 0"></span></div>
+              <div style="padding-bottom:18px"><div style="font-size:14px; font-weight:600">Tempo registrado: 0h 04m</div><div style="font-size:13px; color:var(--ink2)">Samir Gomes · 07/11/2026</div></div>
+            </div>
+            <div style="display:flex; gap:14px">
+              <div style="display:flex; flex-direction:column; align-items:center; width:12px"><span style="flex:none; width:12px; height:12px; border-radius:50%; background:var(--blue); margin-top:4px"></span><span style="flex:1; width:2px; background:var(--grid); margin:4px 0"></span></div>
+              <div style="padding-bottom:18px"><div style="font-size:14px; font-weight:600">Tarefa respondida</div><div style="font-size:13px; color:var(--ink2)">07/11/2026, 11:44</div></div>
+            </div>
+            <div style="display:flex; gap:14px">
+              <div style="display:flex; flex-direction:column; align-items:center; width:12px"><span style="flex:none; width:12px; height:12px; border-radius:50%; background:var(--line); margin-top:4px"></span></div>
+              <div><div style="font-size:14px; font-weight:600">OS criada</div><div style="font-size:13px; color:var(--ink2)">Corretiva · prioridade alta · 07/11/2026</div></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

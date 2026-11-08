@@ -15,14 +15,14 @@ export default async function HomePage({
 }: {
   searchParams: Promise<{ range?: string }>;
 }) {
-  const { tenantId, appUser } = await requireArea("work_orders", "view", { redirect: true });
+  const { appUser } = await requireArea("work_orders", "view", { redirect: true });
   const canEdit = can(appUser, "work_orders", "edit");
   const range = parseTechRange((await searchParams).range);
   const overview = await loadMaintenanceOverview(canEdit ? null : appUser.membershipId, range);
 
   if (!canEdit) {
-    return <TechDashboard data={overview} firstName={appUser.firstName} tenantId={tenantId} range={range} />;
+    return <TechDashboard data={overview} firstName={appUser.firstName} range={range} />;
   }
 
-  return <AdminDashboard data={overview} tenantId={tenantId} range={range} />;
+  return <AdminDashboard data={overview} range={range} />;
 }

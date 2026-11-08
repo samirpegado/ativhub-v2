@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useState, useTransition } from "react";
+import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { ClipboardCheck, ListFilter, Pencil, Plus, Search, Trash2 } from "lucide-react";
@@ -10,7 +10,6 @@ import { RowCheckbox } from "@/components/lists/row-checkbox";
 import { listTdClass, listTdIdClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
 import { useRowSelection } from "@/components/lists/use-row-selection";
-import { WorkOrderDrawer } from "@/components/work-orders/work-order-drawer";
 import {
   WorkOrderFiltersDialog,
   type WorkOrderFilterDraft,
@@ -101,7 +100,7 @@ export function WorkOrdersView({
   checklists,
   customers,
   canEdit,
-  tenantId,
+  presetAssetId = null,
 }: {
   query: WorkOrderListQuery;
   orders: WorkOrderRecord[];
@@ -115,15 +114,13 @@ export function WorkOrdersView({
   checklists: ChecklistRecord[];
   customers: { id: string; name: string; email: string | null }[];
   canEdit: boolean;
-  tenantId: string;
+  presetAssetId?: string | null;
 }) {
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
   const [editing, setEditing] = useState<WorkOrderRecord | null | "new">(null);
   const [initialDue, setInitialDue] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
   const [answering, setAnswering] = useState<WorkOrderRecord | null>(null);
-  const [taskRevision, setTaskRevision] = useState(0);
   const [dateField, setDateField] = useState<"start" | "due" | null>(null);
   const [dateValue, setDateValue] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
@@ -138,7 +135,22 @@ export function WorkOrdersView({
   const close = useCallback(() => {
     setEditing(null);
     setInitialDue(null);
-  }, []);
+    if (!presetAssetId) return;
+    startNavigation(() => {
+      router.replace(workOrderListHref(query), { scroll: false });
+    });
+  }, [presetAssetId, query, router, startNavigation]);
+  const presetHandled = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!presetAssetId) {
+      presetHandled.current = null;
+      return;
+    }
+    if (!canEdit || presetHandled.current === presetAssetId) return;
+    presetHandled.current = presetAssetId;
+    setEditing("new");
+  }, [canEdit, presetAssetId]);
 
   useEffect(() => {
     setSearch(query.search);
@@ -301,7 +313,7 @@ export function WorkOrdersView({
           <WorkOrderCalendar
             orders={calendar}
             canEdit={canEdit}
-            onOpen={setOpenId}
+            onOpen={(id) => router.push(`/work-orders/${id}`)}
             onCreate={(date, allDay) => {
               const next = new Date(date);
               if (allDay) next.setHours(9, 0, 0, 0);
@@ -351,7 +363,7 @@ export function WorkOrdersView({
                   <tr
                     key={order.id}
                     className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
-                    onClick={() => setOpenId(order.id)}
+                    onClick={() => router.push(`/work-orders/${order.id}`)}
                   >
                     {canEdit ? (
                       <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
@@ -483,9 +495,10 @@ export function WorkOrdersView({
       >
         {editing ? (
           <WorkOrderForm
-            key={editing === "new" ? `new-${initialDue ?? ""}` : editing.id}
+            key={editing === "new" ? `new-${initialDue ?? ""}-${presetAssetId ?? ""}` : editing.id}
             order={editing === "new" ? undefined : editing}
             initialDueDate={editing === "new" ? initialDue : null}
+            presetAssetId={editing === "new" ? presetAssetId : null}
             locations={locations}
             assets={assets}
             people={people}
@@ -497,23 +510,6 @@ export function WorkOrdersView({
           />
         ) : null}
       </FormDialog>
-
-      <WorkOrderDrawer
-        orderId={openId}
-        order={orders.find((order) => order.id === openId) ?? null}
-        tenantId={tenantId}
-        open={openId !== null}
-        onOpenChange={(next) => {
-          if (!next) setOpenId(null);
-        }}
-        onEdit={(order) => {
-          setOpenId(null);
-          setEditing(order);
-        }}
-        onAnswer={setAnswering}
-        reloadToken={taskRevision}
-        canEdit={canEdit}
-      />
 
       <FormDialog
         open={dateField !== null}
@@ -570,7 +566,6 @@ export function WorkOrdersView({
         }}
         onExecuted={(next) => {
           setAnswering(next);
-          setTaskRevision((current) => current + 1);
         }}
       />
     </div>

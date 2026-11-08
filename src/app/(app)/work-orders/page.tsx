@@ -28,16 +28,18 @@ export default async function WorkOrdersPage({
     to?: string;
     page?: string;
     view?: string;
+    asset?: string;
   }>;
 }) {
   const params = await searchParams;
-  const { tenantId, appUser } = await requireArea("work_orders", "view", { redirect: true });
+  const { appUser } = await requireArea("work_orders", "view", { redirect: true });
   const query = parseWorkOrderListQuery(params);
   const screen = await listWorkOrdersScreen(query);
   const pageCount = workOrderPageCount(screen.total);
   if (query.page > pageCount) {
     redirect(workOrderListHref({ ...query, page: pageCount }));
   }
+  const presetAssetId = /^[0-9a-f-]{36}$/i.test(params.asset ?? "") ? params.asset : null;
 
   return (
     <WorkOrdersView
@@ -53,7 +55,7 @@ export default async function WorkOrdersPage({
       checklists={screen.checklists}
       customers={screen.customers}
       canEdit={can(appUser, "work_orders", "edit")}
-      tenantId={tenantId}
+      presetAssetId={presetAssetId}
     />
   );
 }

@@ -66,6 +66,7 @@ export type PreventiveScreen = {
   people: PreventivePerson[];
   teams: PreventiveTeam[];
   checklists: ChecklistRecord[];
+  customers: { id: string; name: string }[];
 };
 
 export type PreventiveDetail = {
@@ -189,6 +190,7 @@ export function readPreventiveScreen(data: unknown): PreventiveScreen {
       if (!row || !id || !name) return [];
       return [{ id, name }];
     }),
+    customers: [],
     checklists: asList(screen.checklists).flatMap((item) => {
       const row = asRecord(item);
       const id = text(row?.id);

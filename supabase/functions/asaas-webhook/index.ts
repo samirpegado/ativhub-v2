@@ -29,6 +29,9 @@ function json(body: Record<string, unknown>, status = 200) {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Método inválido." }, 405);
 
+  const app = new URL(req.url).searchParams.get("app");
+  if (app !== "ativhub") return json({ ok: true, ignored: true });
+
   const expected = Deno.env.get("ASAAS_WEBHOOK_TOKEN");
   const received = req.headers.get("asaas-access-token");
   if (!expected || received !== expected) return json({ error: "Não autorizado." }, 401);

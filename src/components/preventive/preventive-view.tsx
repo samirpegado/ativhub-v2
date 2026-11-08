@@ -7,7 +7,6 @@ import { deletePreventive, deletePreventives } from "@/app/(app)/preventive/acti
 import { FormDialog } from "@/components/forms/form-dialog";
 import { BulkActionBar } from "@/components/lists/bulk-action-bar";
 import { RowCheckbox } from "@/components/lists/row-checkbox";
-import { PreventiveDrawer } from "@/components/preventive/preventive-drawer";
 import { PreventiveForm } from "@/components/preventive/preventive-form";
 import { listTdClass, listTdNameClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
@@ -46,7 +45,6 @@ export function PreventiveView({
   const [navigating, startNavigation] = useTransition();
   const [search, setSearch] = useState(query.search);
   const [editing, setEditing] = useState<PreventiveRecord | "new" | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
   const [state, remove, pending] = useActionState<MutationState, FormData>(deletePreventive, undefined);
   const selection = useRowSelection(screen.items.map((item) => item.id));
 
@@ -83,7 +81,6 @@ export function PreventiveView({
     }
     const data = new FormData();
     data.set("id", schedule.id);
-    setOpenId(null);
     startNavigation(() => {
       remove(data);
     });
@@ -202,7 +199,7 @@ export function PreventiveView({
                   <tr
                     key={item.id}
                     className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
-                    onClick={() => setOpenId(item.id)}
+                    onClick={() => router.push(`/preventive/${item.id}`)}
                   >
                     {canEdit ? (
                       <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
@@ -293,6 +290,7 @@ export function PreventiveView({
             schedule={editing === "new" ? undefined : editing}
             locations={screen.locations}
             assets={screen.assets}
+            customers={screen.customers}
             people={screen.people}
             teams={screen.teams}
             checklists={screen.checklists}
@@ -302,18 +300,6 @@ export function PreventiveView({
         ) : null}
       </FormDialog>
 
-      <PreventiveDrawer
-        scheduleId={openId}
-        open={openId !== null}
-        onOpenChange={(open) => {
-          if (!open) setOpenId(null);
-        }}
-        onEdit={(schedule) => {
-          setOpenId(null);
-          setEditing(schedule);
-        }}
-        onDelete={removeSchedule}
-      />
     </div>
   );
 }

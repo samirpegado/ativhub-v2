@@ -1,6 +1,7 @@
 import { requireArea } from "@/lib/auth/permissions";
 import { requireTenant } from "@/lib/auth/current-user";
 import { readAssetDetail } from "@/lib/assets/detail";
+import { ASSET_HISTORY_PAGE_SIZE, type AssetHistoryQuery } from "@/lib/assets/history-params";
 import type { AssetListQuery } from "@/lib/assets/list-params";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import { relationName } from "@/lib/forms/parse";
@@ -169,9 +170,14 @@ export async function listAssetsScreen(query: AssetListQuery) {
   };
 }
 
-export async function loadAssetDetail(assetId: string) {
-  const { supabase } = await requireTenant();
-  const { data, error } = await supabase.rpc("asset_detail", { p_asset_id: assetId });
+export async function loadAssetDetail(assetId: string, history: AssetHistoryQuery) {
+  const { supabase } = await requireArea("assets", "view");
+  const { data, error } = await supabase.rpc("asset_detail", {
+    p_asset_id: assetId,
+    p_history_type: history.type ?? undefined,
+    p_limit: ASSET_HISTORY_PAGE_SIZE,
+    p_offset: history.offset,
+  });
   if (error || data == null) throw new Error("Não foi possível carregar o ativo.");
   return readAssetDetail(supabase, data);
 }

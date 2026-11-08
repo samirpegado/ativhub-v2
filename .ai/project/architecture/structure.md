@@ -54,7 +54,8 @@ Describe the real structural organization of the repository and the architectura
 - Cada empresa nasce com 14 dias de teste no plano `STANDARD` (R$ 99,90/mês).
   O catálogo fica em `plan` e a situação em `subscription`. O administrador abre
   o link do Asaas em `/subscription`. A edge `asaas-create-checkout` usa
-  `ASAAS_IS_PROD` (padrão falso, sandbox). O webhook `asaas-webhook` confirma o
+  `ASAAS_IS_PROD` (padrão falso, sandbox). O webhook `asaas-webhook` só trata
+  chamadas com `?app=ativhub`; as demais recebem 200 e são ignoradas. Ele confirma o
   pagamento. Sem teste vigente ou assinatura ativa, só `/subscription`, o perfil
   e o logout continuam disponíveis.
 - Auth via `@supabase/ssr` (cookies) + `src/proxy.ts` (convenção Next 16).
@@ -73,17 +74,19 @@ Describe the real structural organization of the repository and the architectura
   (esta semana, últimos 15 ou 30 dias; o padrão é 30 dias). O técnico vê a OS em execução,
   a fila desse período e o cumprimento no prazo.
   `/dashboard` redireciona para `/`. A lista de ordens fica em `/work-orders`.
-  O técnico consulta as ordens sem alterar o cadastro. A lista abre o cadastro em modal. Os filtros (status,
+  O técnico consulta as ordens sem alterar o cadastro. O clique na linha abre a página
+  `/work-orders/[id]`; o lápis continua abrindo o cadastro em modal. Os filtros (status,
   prioridade, tipo, local, em atraso e vencimento de/até) ficam num modal ao
   lado de "+ Ordem de serviço". A listagem e os dados do formulário vêm da
   função `work_orders_screen`, chamada no servidor com a sessão do usuário,
   com no máximo 20 ordens por página e RLS do tenant. O intervalo de vencimento
   usa o dia civil em `America/Sao_Paulo`.
   Sem filtro na URL, a lista inclui abertas, em andamento, em espera e concluídas.
-  O formulário da ordem pede responsáveis e não edita mais o trabalhador principal
-  (`work_order.primary_user_id` permanece no banco). O painel da ordem aceita foto
-  além de arquivo. O calendário pede a mesma função com todas as ordens, sem esses filtros. O clique na ordem chama
-  `work_order_detail()` no servidor para o painel. Toda lista em tabela deve seguir esse padrão:
+  O formulário da ordem pede o cliente antes da localização e o ativo só da localização escolhida.
+  Também pede responsáveis e não edita mais o trabalhador principal
+  (`work_order.primary_user_id` permanece no banco). A página da ordem aceita foto
+  além de arquivo. O calendário pede a mesma função com todas as ordens, sem esses filtros. O clique na ordem abre
+  `/work-orders/[id]`, que chama `work_order_detail()` no servidor. Toda lista em tabela deve seguir esse padrão:
   filtros, busca e paginação na RPC, com a query devolvendo os dados completos da tela.
   Localizações, ativos, pessoas, equipes e listas de verificação ainda paginam 20 itens no navegador.
   Ativos, ordens e preventivas marcam os registros da página e excluem o lote por server action.
@@ -102,8 +105,8 @@ Describe the real structural organization of the repository and the architectura
   A subtarefa é um item concluído ou pendente. A tabela `work_order_update` permanece, sem tela de escrita. A peça lançada vem do inventário: o estoque baixa, exceto quando
   a peça não controla estoque, e remover a linha devolve a quantidade.
 - `/preventive` lista os agendamentos. `preventive_screen` recebe busca, prioridade,
-  limit e offset, no máximo 20, e devolve o payload da tela. O clique chama
-  `preventive_detail`. Cada agendamento define a recorrência (dia, semana, mês
+  limit e offset, no máximo 20, e devolve o payload da tela. O clique abre
+  `/preventive/[id]`, que chama `preventive_detail`. Cada agendamento define a recorrência (dia, semana, mês
   ou ano, pela data marcada ou pela conclusão da ordem anterior) e os dados da
   ordem que será criada. `generate_due_preventive_work_orders` cria a ordem
   quando a data chega. Ela roda de hora em hora e também ao abrir as ordens ou
@@ -143,11 +146,13 @@ Describe the real structural organization of the repository and the architectura
   Endereço de localização em campos separados; `address` é o texto formatado.
   A imagem do ativo fica em `attachments/{tenant}/assets/` e o caminho em
   `asset.image_url`. `asset.category_id` aponta para uma categoria do tipo `ASSET`.
-  O campo `asset.area` aparece como local de instalação. O clique no ativo abre o
-  histórico em `asset_detail`: ordens com custo de peças e mão de obra, e paradas.
+  O campo `asset.area` aparece como local de instalação. O clique no ativo abre
+  `/assets/[id]`. A RPC `asset_detail` devolve confiabilidade, custos e o histórico
+  de ordens paginado, no máximo 10 por página.
   A planilha de ativos é CSV, importada e exportada na própria lista.
   A localização e a categoria da planilha são opcionais: nome existente associa, nome novo cria o cadastro, e célula vazia deixa o ativo sem esse vínculo. A categoria nova recebe uma cor aleatória.
   A ordem tem tipo (preventiva, corretiva, preditiva), cliente opcional e sinal de atraso.
   A lista filtra por localização, tipo e atraso. Datas de início e vencimento mudam em lote;
   a exclusão em lote arquiva. O relatório da ordem também sai por e-mail.
   A preventiva guarda vários ativos em `pm_asset` e gera uma ordem para cada um.
+  O formulário pede o cliente antes da localização e só então os ativos daquela localização.

@@ -55,11 +55,13 @@ export function WorkOrderForm({
   checklists,
   customers,
   initialDueDate,
+  presetAssetId,
   onCancel,
   onSuccess,
 }: {
   order?: WorkOrderRecord;
   initialDueDate?: string | null;
+  presetAssetId?: string | null;
   locations: LocationOption[];
   assets: AssetOption[];
   people: PersonRecord[];
@@ -74,9 +76,23 @@ export function WorkOrderForm({
     action,
     undefined,
   );
-  const [locationId, setLocationId] = useState(order?.locationId ?? "");
-  const [customerId, setCustomerId] = useState(order?.customerId ?? "");
-  const [assetId, setAssetId] = useState(order?.assetId ?? "");
+  const savedLocation = locations.find((item) => item.id === order?.locationId);
+  const savedCustomerId = order?.customerId || savedLocation?.customer_id || "";
+  const savedLocationId = savedLocation && savedLocation.customer_id === savedCustomerId ? savedLocation.id : "";
+  const savedAsset = assets.find((item) => item.id === order?.assetId);
+  const savedAssetId = savedAsset && savedLocationId && savedAsset.location_id === savedLocationId ? savedAsset.id : "";
+  const presetAsset = !order && presetAssetId ? assets.find((item) => item.id === presetAssetId) : undefined;
+  const presetLocation = presetAsset?.location_id
+    ? locations.find((item) => item.id === presetAsset.location_id)
+    : undefined;
+  const initialCustomerId = savedCustomerId || presetLocation?.customer_id || "";
+  const initialLocationId = savedLocationId || (presetLocation?.customer_id ? presetLocation.id : "");
+  const initialAssetId =
+    savedAssetId ||
+    (presetAsset && initialLocationId && presetAsset.location_id === initialLocationId ? presetAsset.id : "");
+  const [locationId, setLocationId] = useState(initialLocationId);
+  const [customerId, setCustomerId] = useState(initialCustomerId);
+  const [assetId, setAssetId] = useState(initialAssetId);
   const [tasks, setTasks] = useState<WorkOrderTask[]>(order?.tasks ?? []);
   const [billingMode, setBillingMode] = useState(order?.billingMode ?? "NONE");
 
@@ -84,9 +100,23 @@ export function WorkOrderForm({
     if (state?.success) onSuccess();
   }, [state, onSuccess]);
 
-  const visibleAssets = locationId
+  const visibleLocations = customerId
+    ? locations.filter((location) => location.customer_id === customerId)
+    : [];
+  const visibleAssets = customerId && locationId
     ? assets.filter((asset) => asset.location_id === locationId)
-    : assets;
+    : [];
+
+  function changeCustomer(next: string) {
+    setCustomerId(next);
+    setLocationId("");
+    setAssetId("");
+  }
+
+  function changeLocation(next: string) {
+    setLocationId(next);
+    setAssetId("");
+  }
 
   return (
     <form action={formAction} className="space-y-4">
@@ -199,68 +229,74 @@ export function WorkOrderForm({
             ))}
           </NativeSelect>
         </Field>
-        <Field label="Cliente" htmlFor="customer_id">
-          <NativeSelect
-            id="customer_id"
-            name="customer_id"
-            className="h-9"
-            value={customerId}
-            onChange={(event) => setCustomerId(event.target.value)}
-          >
-            <option value="">Nenhum</option>
-            {customers.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
-        <Field label="Localização" htmlFor="location_id">
-          <NativeSelect
-            id="location_id"
-            name="location_id"
-            className="h-9"
-            value={locationId}
-            onChange={(event) => {
-              const next = event.target.value;
-              setLocationId(next);
-              const location = locations.find((item) => item.id === next);
-              if (location?.customer_id) setCustomerId(location.customer_id);
-              const asset = assets.find((item) => item.id === assetId);
-              if (asset && next && asset.location_id !== next) setAssetId("");
-            }}
-          >
-            <option value="">Nenhuma</option>
-            {locations.map((location) => (
-              <option key={location.id} value={location.id}>
-                {location.custom_id ? `${location.custom_id} · ` : ""}
-                {location.name}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
-        <Field label="Ativo" htmlFor="asset_id">
-          <NativeSelect
-            id="asset_id"
-            name="asset_id"
-            className="h-9"
-            value={assetId}
-            onChange={(event) => {
-              const next = event.target.value;
-              setAssetId(next);
-              const asset = assets.find((item) => item.id === next);
-              if (asset?.location_id) setLocationId(asset.location_id);
-            }}
-          >
-            <option value="">Nenhum</option>
-            {visibleAssets.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.custom_id ? `${asset.custom_id} · ` : ""}
-                {asset.name}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-3 sm:col-span-2">
+          <div>
+            <p className="text-sm font-medium">Onde será o serviço</p>
+            <p className="text-xs text-muted-foreground">Escolha o cliente, depois a localização e, por último, o ativo.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="1. Cliente" htmlFor="customer_id">
+              <NativeSelect
+                id="customer_id"
+                name="customer_id"
+                className="h-9"
+                value={customerId}
+                onChange={(event) => changeCustomer(event.target.value)}
+              >
+                <option value="">Selecione</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field
+              label="2. Localização"
+              htmlFor="location_id"
+              hint={customerId ? (visibleLocations.length === 0 ? "Este cliente não tem localizações." : undefined) : "Disponível depois do cliente."}
+            >
+              <NativeSelect
+                id="location_id"
+                name="location_id"
+                className="h-9"
+                value={locationId}
+                disabled={!customerId}
+                onChange={(event) => changeLocation(event.target.value)}
+              >
+                <option value="">{customerId ? "Selecione" : "Selecione o cliente"}</option>
+                {visibleLocations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.custom_id ? `${location.custom_id} · ` : ""}
+                    {location.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field
+              label="3. Ativo"
+              htmlFor="asset_id"
+              hint={!customerId ? "Disponível depois do cliente." : !locationId ? "Disponível depois da localização." : visibleAssets.length === 0 ? "Esta localização não tem ativos." : undefined}
+            >
+              <NativeSelect
+                id="asset_id"
+                name="asset_id"
+                className="h-9"
+                value={assetId}
+                disabled={!customerId || !locationId}
+                onChange={(event) => setAssetId(event.target.value)}
+              >
+                <option value="">{locationId ? "Selecione" : customerId ? "Selecione a localização" : "Selecione o cliente"}</option>
+                {visibleAssets.map((asset) => (
+                  <option key={asset.id} value={asset.id}>
+                    {asset.custom_id ? `${asset.custom_id} · ` : ""}
+                    {asset.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+          </div>
+        </div>
         <Field label="Cobrança" htmlFor="billing_mode">
           <NativeSelect
             id="billing_mode"

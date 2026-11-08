@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { ListFilter, Pencil, Plus, QrCode, Search, Trash2 } from "lucide-react";
 import { deleteAsset, deleteAssets } from "@/app/(app)/assets/actions";
 import { exportAssetsCsv } from "@/app/(app)/assets/csv-actions";
-import { AssetDrawer } from "@/components/assets/asset-drawer";
 import { AssetFiltersDialog } from "@/components/assets/asset-filters-dialog";
 import { AssetForm } from "@/components/assets/asset-form";
 import { AssetImportDialog } from "@/components/assets/asset-import-dialog";
@@ -58,7 +57,6 @@ export function AssetsView({
   const [search, setSearch] = useState(query.search);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editing, setEditing] = useState<AssetRecord | null | "new">(null);
-  const [openId, setOpenId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [qrAsset, setQrAsset] = useState<AssetRecord | null>(null);
   const [printing, setPrinting] = useState(false);
@@ -234,7 +232,11 @@ export function AssetsView({
                     <tr
                       key={asset.id}
                       className="group cursor-pointer border-b last:border-0 hover:bg-muted/40"
-                      onClick={() => setOpenId(asset.id)}
+                      onClick={() => {
+                        startNavigation(() => {
+                          router.push(`/assets/${asset.id}`);
+                        });
+                      }}
                     >
                       {canEdit ? (
                         <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
@@ -246,7 +248,11 @@ export function AssetsView({
                         </td>
                       ) : null}
                       <td className={listTdIdClass}>{asset.custom_id ?? "—"}</td>
-                      <td className={listTdNameClass}>{asset.name}</td>
+                      <td className={listTdNameClass}>
+                        <Link href={`/assets/${asset.id}`} className="hover:underline" onClick={(event) => event.stopPropagation()}>
+                          {asset.name}
+                        </Link>
+                      </td>
                       <td className={listTdClass}>{asset.categoryName ?? "—"}</td>
                       <td className={listTdClass}>
                         <span className={cn("inline-flex rounded-md px-2 py-0.5 text-xs font-semibold", assetStatusClass(asset.status))}>
@@ -346,19 +352,6 @@ export function AssetsView({
           />
         ) : null}
       </FormDialog>
-
-      <AssetDrawer
-        assetId={openId}
-        open={openId !== null}
-        canEdit={canEdit}
-        onOpenChange={(open) => {
-          if (!open) setOpenId(null);
-        }}
-        onEdit={(id) => {
-          setOpenId(null);
-          setEditing(assets.find((item) => item.id === id) ?? null);
-        }}
-      />
 
       <AssetImportDialog
         open={importing}

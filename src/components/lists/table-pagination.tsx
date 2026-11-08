@@ -5,12 +5,14 @@ export function TablePagination({
   pageSize,
   total,
   pending = false,
+  buttonClassName,
   onPageChange,
 }: {
   page: number;
   pageSize: number;
   total: number;
   pending?: boolean;
+  buttonClassName?: string;
   onPageChange: (page: number) => void;
 }) {
   if (total <= 0) return null;
@@ -29,6 +31,7 @@ export function TablePagination({
           type="button"
           variant="outline"
           size="sm"
+          className={buttonClassName}
           disabled={pending || current <= 1}
           onClick={() => onPageChange(current - 1)}
         >
@@ -41,6 +44,7 @@ export function TablePagination({
           type="button"
           variant="outline"
           size="sm"
+          className={buttonClassName}
           disabled={pending || current >= pages}
           onClick={() => onPageChange(current + 1)}
         >

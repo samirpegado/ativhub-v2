@@ -2,12 +2,10 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Clock3, ClipboardCheck, Wrench } from "lucide-react";
-import { WorkOrderDrawer } from "@/components/work-orders/work-order-drawer";
-import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
 import { PeriodSelect } from "@/components/dashboard/period-select";
 import { DashCard, DashTitle, Donut, Kpi, Meter } from "@/components/dashboard/widgets";
-import type { WorkOrderRecord } from "@/lib/work-orders/queries";
 import {
   clock,
   longDate,
@@ -23,16 +21,12 @@ import { workOrderStatusLabel, workOrderTypeLabel } from "@/lib/work-orders/stat
 
 export function AdminDashboard({
   data,
-  tenantId,
   range,
 }: {
   data: MaintenanceOverview;
-  tenantId: string;
   range: TechRange;
 }) {
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [answering, setAnswering] = useState<WorkOrderRecord | null>(null);
-  const [taskRevision, setTaskRevision] = useState(0);
+  const router = useRouter();
   const queue = data.board;
   const overItems = queue.filter((item) => pace(item.elapsedSeconds, item.estimatedSeconds) === "over");
   const warn = queue.filter((item) => pace(item.elapsedSeconds, item.estimatedSeconds) === "warn").length;
@@ -113,7 +107,7 @@ export function AdminDashboard({
                   <div className="w-[156px]">Situação</div>
                 </div>
                 {queue.map((item) => (
-                  <RunningRow key={item.id} item={item} onOpen={() => setOpenId(item.id)} />
+                  <RunningRow key={item.id} item={item} onOpen={() => router.push(`/work-orders/${item.id}`)} />
                 ))}
               </div>
             )}
@@ -268,29 +262,6 @@ export function AdminDashboard({
         </div>
       </div>
 
-      <WorkOrderDrawer
-        orderId={openId}
-        order={null}
-        tenantId={tenantId}
-        open={openId !== null}
-        canEdit
-        reloadToken={taskRevision}
-        onOpenChange={(next) => {
-          if (!next) setOpenId(null);
-        }}
-        onEdit={() => setOpenId(null)}
-        onAnswer={setAnswering}
-      />
-      <WorkOrderTasksDialog
-        order={answering}
-        onOpenChange={(next) => {
-          if (!next) setAnswering(null);
-        }}
-        onExecuted={(next) => {
-          setAnswering(next);
-          setTaskRevision((value) => value + 1);
-        }}
-      />
     </div>
   );
 }

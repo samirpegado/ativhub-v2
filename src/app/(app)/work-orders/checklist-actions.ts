@@ -52,6 +52,7 @@ export async function saveChecklist(
 
   revalidatePath("/");
   revalidatePath("/work-orders");
+  revalidatePath("/work-orders/[id]", "page");
   revalidatePath("/checklists");
   return { id: data.id, name: data.name, tasks: parsed };
 }

@@ -7,7 +7,6 @@ import { completeWorkOrder, loadWorkOrderActivity, toggleWorkOrderTimer } from "
 import { PeriodSelect } from "@/components/dashboard/period-select";
 import { DashCard, DashTitle, Meter } from "@/components/dashboard/widgets";
 import { Button } from "@/components/ui/button";
-import { WorkOrderDrawer } from "@/components/work-orders/work-order-drawer";
 import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
 import {
   civilDay,
@@ -27,18 +26,14 @@ import { workOrderTypeLabel } from "@/lib/work-orders/status";
 export function TechDashboard({
   data,
   firstName,
-  tenantId,
   range,
 }: {
   data: MaintenanceOverview;
   firstName: string;
-  tenantId: string;
   range: TechRange;
 }) {
   const router = useRouter();
-  const [openId, setOpenId] = useState<string | null>(null);
   const [answering, setAnswering] = useState<WorkOrderRecord | null>(null);
-  const [taskRevision, setTaskRevision] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const active = data.running[0] ?? null;
@@ -196,7 +191,7 @@ export function TechDashboard({
                   today={data.today}
                   tomorrow={tomorrow}
                   pending={pending}
-                  onOpen={() => setOpenId(item.id)}
+                  onOpen={() => router.push(`/work-orders/${item.id}`)}
                   onStart={() => run(() => toggleWorkOrderTimer(item.id))}
                 />
               ))
@@ -276,28 +271,12 @@ export function TechDashboard({
         </div>
       </div>
 
-      <WorkOrderDrawer
-        orderId={openId}
-        order={null}
-        tenantId={tenantId}
-        open={openId !== null}
-        canEdit={false}
-        reloadToken={taskRevision}
-        onOpenChange={(next) => {
-          if (!next) setOpenId(null);
-        }}
-        onEdit={() => setOpenId(null)}
-        onAnswer={setAnswering}
-      />
       <WorkOrderTasksDialog
         order={answering}
         onOpenChange={(next) => {
           if (!next) setAnswering(null);
         }}
-        onExecuted={(next) => {
-          setAnswering(next);
-          setTaskRevision((value) => value + 1);
-        }}
+        onExecuted={setAnswering}
       />
     </div>
   );

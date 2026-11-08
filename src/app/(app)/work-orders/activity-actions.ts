@@ -26,6 +26,7 @@ async function readActivity(workOrderId: string): Promise<WorkOrderActivity> {
 function refresh() {
   revalidatePath("/");
   revalidatePath("/work-orders");
+  revalidatePath("/work-orders/[id]", "page");
   revalidatePath("/inventory");
   revalidatePath("/assets");
 }

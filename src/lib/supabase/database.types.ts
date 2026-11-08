@@ -1767,7 +1767,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      asset_detail: { Args: { p_asset_id: string }; Returns: Json }
+      asset_detail: {
+        Args: {
+          p_asset_id: string
+          p_history_type?: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: Json
+      }
       assets_screen: {
         Args: {
           p_search?: string

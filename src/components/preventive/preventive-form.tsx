@@ -43,6 +43,7 @@ export function PreventiveForm({
   schedule,
   locations,
   assets,
+  customers,
   people,
   teams,
   checklists,
@@ -52,6 +53,7 @@ export function PreventiveForm({
   schedule?: PreventiveRecord;
   locations: LocationOption[];
   assets: PreventiveAsset[];
+  customers: { id: string; name: string }[];
   people: PreventivePerson[];
   teams: PreventiveTeam[];
   checklists: ChecklistRecord[];
@@ -71,10 +73,18 @@ export function PreventiveForm({
       : "DAILY",
   );
   const [days, setDays] = useState<number[]>(schedule?.daysOfWeek ?? []);
-  const [locationId, setLocationId] = useState(schedule?.locationId ?? "");
-  const [assetIds, setAssetIds] = useState<string[]>(
-    schedule?.assetIds?.length ? schedule.assetIds : schedule?.assetId ? [schedule.assetId] : [],
+  const savedLocation = locations.find((item) => item.id === schedule?.locationId);
+  const savedCustomerId = savedLocation?.customer_id || "";
+  const savedLocationId = savedLocation && savedLocation.customer_id === savedCustomerId ? savedLocation.id : "";
+  const savedAssetIds = (schedule?.assetIds?.length ? schedule.assetIds : schedule?.assetId ? [schedule.assetId] : []).filter(
+    (id) => {
+      const asset = assets.find((item) => item.id === id);
+      return Boolean(asset && savedLocationId && asset.location_id === savedLocationId);
+    },
   );
+  const [customerId, setCustomerId] = useState(savedCustomerId);
+  const [locationId, setLocationId] = useState(savedLocationId);
+  const [assetIds, setAssetIds] = useState<string[]>(savedAssetIds);
   const [tasks, setTasks] = useState<WorkOrderTask[]>(schedule?.tasks ?? []);
 
   useEffect(() => {
@@ -82,9 +92,23 @@ export function PreventiveForm({
   }, [state, onSuccess]);
 
   const showDays = recurrenceType === "WEEKLY" && basedOn === "SCHEDULED_DATE";
-  const visibleAssets = locationId
+  const visibleLocations = customerId
+    ? locations.filter((location) => location.customer_id === customerId)
+    : [];
+  const visibleAssets = customerId && locationId
     ? assets.filter((asset) => asset.location_id === locationId)
-    : assets;
+    : [];
+
+  function changeCustomer(next: string) {
+    setCustomerId(next);
+    setLocationId("");
+    setAssetIds([]);
+  }
+
+  function changeLocation(next: string) {
+    setLocationId(next);
+    setAssetIds([]);
+  }
 
   function toggleDay(day: number) {
     setDays((current) =>
@@ -279,58 +303,98 @@ export function PreventiveForm({
             ))}
           </NativeSelect>
         </Field>
-        <Field label="Localização" htmlFor="location_id">
-          <NativeSelect
-            id="location_id"
-            name="location_id"
-            className="h-9"
-            value={locationId}
-            onChange={(event) => {
-              const next = event.target.value;
-              setLocationId(next);
-              if (!next) return;
-              setAssetIds((current) =>
-                current.filter((id) => assets.find((item) => item.id === id)?.location_id === next),
-              );
-            }}
-          >
-            <option value="">Nenhuma</option>
-            {locations.map((location) => (
-              <option key={location.id} value={location.id}>
-                {location.custom_id ? `${location.custom_id} · ` : ""}
-                {location.name}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
-        <Field label="Ativos" htmlFor="asset_ids" hint="Cada ativo gera a própria ordem quando o agendamento vence.">
-          <div id="asset_ids" className="max-h-40 space-y-1 overflow-y-auto rounded-md border p-2">
-            {visibleAssets.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum ativo nesta localização.</p>
-            ) : (
-              visibleAssets.map((asset) => (
-                <label key={asset.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name="asset_ids"
-                    value={asset.id}
-                    checked={assetIds.includes(asset.id)}
-                    onChange={(event) => {
-                      setAssetIds((current) =>
-                        event.target.checked
-                          ? [...current, asset.id]
-                          : current.filter((id) => id !== asset.id),
-                      );
-                      if (event.target.checked && asset.location_id) setLocationId(asset.location_id);
-                    }}
-                  />
-                  {asset.custom_id ? `${asset.custom_id} · ` : ""}
-                  {asset.name}
-                </label>
-              ))
-            )}
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-3 sm:col-span-2">
+          <div>
+            <p className="text-sm font-medium">Onde será o serviço</p>
+            <p className="text-xs text-muted-foreground">Escolha o cliente, depois a localização e, por último, um ou mais ativos.</p>
           </div>
-        </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="1. Cliente" htmlFor="customer_id">
+              <NativeSelect
+                id="customer_id"
+                className="h-9"
+                value={customerId}
+                onChange={(event) => changeCustomer(event.target.value)}
+              >
+                <option value="">Selecione</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field
+              label="2. Localização"
+              htmlFor="location_id"
+              hint={customerId ? (visibleLocations.length === 0 ? "Este cliente não tem localizações." : undefined) : "Disponível depois do cliente."}
+            >
+              <NativeSelect
+                id="location_id"
+                name="location_id"
+                className="h-9"
+                value={locationId}
+                disabled={!customerId}
+                onChange={(event) => changeLocation(event.target.value)}
+              >
+                <option value="">{customerId ? "Selecione" : "Selecione o cliente"}</option>
+                {visibleLocations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.custom_id ? `${location.custom_id} · ` : ""}
+                    {location.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field
+              label="3. Ativos"
+              htmlFor="asset_ids"
+              className="sm:col-span-2"
+              hint={
+                !customerId
+                  ? "Disponível depois do cliente."
+                  : !locationId
+                    ? "Disponível depois da localização."
+                    : visibleAssets.length === 0
+                      ? "Esta localização não tem ativos."
+                      : "Cada ativo gera a própria ordem quando o agendamento vence."
+              }
+            >
+              <div
+                id="asset_ids"
+                className={`max-h-40 space-y-1 overflow-y-auto rounded-md border bg-white p-2 ${customerId && locationId ? "" : "opacity-50"}`}
+              >
+                {!customerId || !locationId ? (
+                  <p className="text-sm text-muted-foreground">
+                    {customerId ? "Selecione a localização." : "Selecione o cliente."}
+                  </p>
+                ) : visibleAssets.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum ativo nesta localização.</p>
+                ) : (
+                  visibleAssets.map((asset) => (
+                    <label key={asset.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="asset_ids"
+                        value={asset.id}
+                        checked={assetIds.includes(asset.id)}
+                        onChange={(event) => {
+                          setAssetIds((current) =>
+                            event.target.checked
+                              ? [...current, asset.id]
+                              : current.filter((id) => id !== asset.id),
+                          );
+                        }}
+                      />
+                      {asset.custom_id ? `${asset.custom_id} · ` : ""}
+                      {asset.name}
+                    </label>
+                  ))
+                )}
+              </div>
+            </Field>
+          </div>
+        </div>
       </div>
       <TaskEditor tasks={tasks} checklists={checklists} onChange={setTasks} />
       <FormActions pending={pending} onCancel={onCancel} />

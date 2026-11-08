@@ -154,6 +154,8 @@ export async function updateAsset(
       next: fields.status,
       at: new Date().toISOString(),
     });
+    revalidatePath("/assets");
+    revalidatePath(`/assets/${id}`);
   } catch (error) {
     return {
       error:
@@ -163,7 +165,43 @@ export async function updateAsset(
     };
   }
 
+  return { success: true } as const;
+}
+
+export async function setAssetStatus(assetId: string, status: string): Promise<MutationState> {
+  const { supabase, tenantId } = await requireArea("assets", "edit");
+
+  try {
+    const id = parseUuid(assetId);
+    if (!id) throw new Error("Ativo inválido.");
+    if (!ASSET_STATUSES.some((item) => item.value === status)) {
+      throw new Error("Status inválido.");
+    }
+    const { data: current, error: readError } = await supabase
+      .from("asset")
+      .select("status")
+      .eq("id", id)
+      .maybeSingle();
+    if (readError || !current) throw new Error("Ativo inválido.");
+    if (current.status !== status) {
+      const { error } = await supabase.from("asset").update({ status }).eq("id", id);
+      if (error) return { error: mutationError(error) };
+      await syncAssetDowntime(supabase, {
+        tenantId,
+        assetId: id,
+        previous: current.status,
+        next: status,
+        at: new Date().toISOString(),
+      });
+    }
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Não foi possível atualizar o status do ativo.",
+    };
+  }
+
   revalidatePath("/assets");
+  revalidatePath(`/assets/${assetId}`);
   return { success: true } as const;
 }
 
