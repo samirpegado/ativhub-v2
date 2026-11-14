@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { ImagePlus, Loader2, Plus, X } from "lucide-react";
+import { useActionState, useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { CategoryForm } from "@/components/categories/category-form";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,17 +16,7 @@ import { ASSET_STATUSES } from "@/lib/assets/status";
 import type { AssetCategory } from "@/lib/categories/queries";
 import type { LocationOption } from "@/lib/locations/queries";
 import type { MutationState } from "@/lib/forms/state";
-import { createClient } from "@/lib/supabase/client";
 import { createAsset, updateAsset } from "@/app/(app)/assets/actions";
-
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
-
-function extensionFor(file: File) {
-  if (file.type === "image/png") return "png";
-  if (file.type === "image/webp") return "webp";
-  if (file.type === "image/jpeg") return "jpg";
-  return null;
-}
 
 type AssetValues = {
   id?: string;
@@ -45,7 +35,6 @@ type AssetValues = {
   in_service_date: string | null;
   warranty_expiration_date: string | null;
   additional_infos: string | null;
-  imageUrl?: string | null;
 };
 
 export function AssetForm({
@@ -53,7 +42,6 @@ export function AssetForm({
   locations,
   categories,
   canManageCategories,
-  tenantId,
   onCancel,
   onSuccess,
 }: {
@@ -61,7 +49,6 @@ export function AssetForm({
   locations: LocationOption[];
   categories: AssetCategory[];
   canManageCategories: boolean;
-  tenantId: string;
   onCancel: () => void;
   onSuccess: () => void;
 }) {
@@ -70,136 +57,23 @@ export function AssetForm({
     action,
     undefined,
   );
-  const [isPending, startTransition] = useTransition();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(asset?.imageUrl ?? null);
   const [categoryOptions, setCategoryOptions] = useState(categories);
   const [categoryId, setCategoryId] = useState(asset?.category_id ?? "");
   const [creatingCategory, setCreatingCategory] = useState(false);
-  const [removed, setRemoved] = useState(false);
-  const [imageError, setImageError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (state?.success) onSuccess();
   }, [state, onSuccess]);
 
-  function onFile(next: File | null) {
-    setImageError(null);
-    if (!next) return;
-    const extension = extensionFor(next);
-    if (!extension) {
-      setImageError("Envie uma imagem PNG, JPG ou WebP.");
-      return;
-    }
-    if (next.size > MAX_IMAGE_BYTES) {
-      setImageError("A imagem deve ter no máximo 2 MB.");
-      return;
-    }
-    setFile(next);
-    setRemoved(false);
-    setPreview(URL.createObjectURL(next));
-  }
-
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setImageError(null);
-    const formData = new FormData(event.currentTarget);
-
-    if (file) {
-      const extension = extensionFor(file);
-      if (!extension) return;
-      const path = `${tenantId}/assets/${asset?.id ?? crypto.randomUUID()}.${extension}`;
-      setUploading(true);
-      const supabase = createClient();
-      const { error } = await supabase.storage.from("attachments").upload(path, file, {
-        upsert: true,
-        contentType: file.type,
-        cacheControl: "3600",
-      });
-      setUploading(false);
-      if (error) {
-        setImageError("Não foi possível enviar a imagem.");
-        return;
-      }
-      formData.set("image_path", path);
-    } else if (removed) {
-      formData.set("image_path", "");
-    }
-
-    startTransition(() => {
-      formAction(formData);
-    });
-  }
-
-  const busy = pending || isPending || uploading;
-
   return (
     <>
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form action={formAction} className="space-y-5">
       {asset?.id ? <input type="hidden" name="id" value={asset.id} /> : null}
       {state?.error ? (
         <Alert variant="destructive">
           <AlertDescription>{state.error}</AlertDescription>
         </Alert>
       ) : null}
-
-      <Field
-        label="Imagem"
-        htmlFor="asset_image"
-        className="flex flex-col items-center text-center"
-      >
-        <div className="relative mx-auto w-full max-w-sm">
-          <button
-            id="asset_image"
-            type="button"
-            className="flex h-36 w-full items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/40 text-muted-foreground hover:bg-muted"
-            onClick={() => fileRef.current?.click()}
-          >
-            {preview ? (
-              // Prévia local ou URL assinada do Storage.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="" className="size-full object-cover" />
-            ) : (
-              <span className="flex flex-col items-center gap-2 px-4 text-center text-sm">
-                {uploading ? (
-                  <Loader2 className="size-5 animate-spin" />
-                ) : (
-                  <ImagePlus className="size-5" />
-                )}
-                Clique para enviar a imagem do ativo
-              </span>
-            )}
-          </button>
-          {preview ? (
-            <button
-              type="button"
-              className="absolute top-2 right-2 flex size-8 items-center justify-center rounded-md bg-background/90 text-muted-foreground shadow-sm hover:text-foreground"
-              aria-label="Remover imagem"
-              onClick={() => {
-                setFile(null);
-                setPreview(null);
-                setRemoved(true);
-              }}
-            >
-              <X className="size-4" />
-            </button>
-          ) : null}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="sr-only"
-            onChange={(event) => {
-              const next = event.target.files?.[0] ?? null;
-              event.target.value = "";
-              onFile(next);
-            }}
-          />
-        </div>
-        {imageError ? <p className="text-xs text-destructive">{imageError}</p> : null}
-      </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Nome" htmlFor="name" required>
@@ -357,7 +231,7 @@ export function AssetForm({
         </Field>
       </div>
 
-      <FormActions pending={busy} onCancel={onCancel} />
+      <FormActions pending={pending} onCancel={onCancel} />
     </form>
     <FormDialog
       open={creatingCategory}

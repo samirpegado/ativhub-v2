@@ -18,9 +18,9 @@ export function Field({
 }) {
   return (
     <div className={cn("space-y-2", className)}>
-      <Label htmlFor={htmlFor}>
+      <Label htmlFor={htmlFor} className="inline-flex w-fit gap-0">
         {label}
-        {required ? <span className="text-destructive"> *</span> : null}
+        {required ? <span className="text-[#FF1943]">*</span> : null}
       </Label>
       {children}
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}

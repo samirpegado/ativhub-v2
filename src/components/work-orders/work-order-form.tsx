@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { LockedAsset } from "@/components/assets/locked-asset";
+import { PreventiveAssetPicker } from "@/components/preventive/preventive-asset-picker";
 import { TaskEditor } from "@/components/work-orders/task-editor";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -22,6 +24,8 @@ import {
   WORK_ORDER_STATUSES,
   WORK_ORDER_TYPES,
 } from "@/lib/work-orders/status";
+import type { PreventiveAssetHit } from "@/app/(app)/preventive/filter-actions";
+import type { AssetPickerHit } from "@/lib/assets/picker";
 import {
   createWorkOrder,
   updateWorkOrder,
@@ -53,15 +57,16 @@ export function WorkOrderForm({
   people,
   teams,
   checklists,
-  customers,
   initialDueDate,
   presetAssetId,
+  lockedAsset = null,
   onCancel,
   onSuccess,
 }: {
   order?: WorkOrderRecord;
   initialDueDate?: string | null;
   presetAssetId?: string | null;
+  lockedAsset?: AssetPickerHit | null;
   locations: LocationOption[];
   assets: AssetOption[];
   people: PersonRecord[];
@@ -69,27 +74,20 @@ export function WorkOrderForm({
   checklists: ChecklistRecord[];
   customers: { id: string; name: string; email: string | null }[];
   onCancel: () => void;
-  onSuccess: () => void;
+  onSuccess: (id?: string) => void;
 }) {
   const action = order ? updateWorkOrder : createWorkOrder;
   const [state, formAction, pending] = useActionState<MutationState, FormData>(
     action,
     undefined,
   );
-  const savedLocation = locations.find((item) => item.id === order?.locationId);
-  const savedCustomerId = order?.customerId || savedLocation?.customer_id || "";
-  const savedLocationId = savedLocation && savedLocation.customer_id === savedCustomerId ? savedLocation.id : "";
-  const savedAsset = assets.find((item) => item.id === order?.assetId);
-  const savedAssetId = savedAsset && savedLocationId && savedAsset.location_id === savedLocationId ? savedAsset.id : "";
-  const presetAsset = !order && presetAssetId ? assets.find((item) => item.id === presetAssetId) : undefined;
+  const presetAsset = !order && !lockedAsset && presetAssetId ? assets.find((item) => item.id === presetAssetId) : undefined;
   const presetLocation = presetAsset?.location_id
     ? locations.find((item) => item.id === presetAsset.location_id)
     : undefined;
-  const initialCustomerId = savedCustomerId || presetLocation?.customer_id || "";
-  const initialLocationId = savedLocationId || (presetLocation?.customer_id ? presetLocation.id : "");
-  const initialAssetId =
-    savedAssetId ||
-    (presetAsset && initialLocationId && presetAsset.location_id === initialLocationId ? presetAsset.id : "");
+  const initialAssetId = order?.assetId || lockedAsset?.id || presetAsset?.id || "";
+  const initialLocationId = order?.locationId || lockedAsset?.locationId || presetAsset?.location_id || "";
+  const initialCustomerId = order?.customerId || lockedAsset?.customerId || presetLocation?.customer_id || "";
   const [locationId, setLocationId] = useState(initialLocationId);
   const [customerId, setCustomerId] = useState(initialCustomerId);
   const [assetId, setAssetId] = useState(initialAssetId);
@@ -97,30 +95,26 @@ export function WorkOrderForm({
   const [billingMode, setBillingMode] = useState(order?.billingMode ?? "NONE");
 
   useEffect(() => {
-    if (state?.success) onSuccess();
+    if (state?.success) onSuccess(state.id);
   }, [state, onSuccess]);
 
-  const visibleLocations = customerId
-    ? locations.filter((location) => location.customer_id === customerId)
-    : [];
-  const visibleAssets = customerId && locationId
-    ? assets.filter((asset) => asset.location_id === locationId)
-    : [];
-
-  function changeCustomer(next: string) {
-    setCustomerId(next);
-    setLocationId("");
-    setAssetId("");
-  }
-
-  function changeLocation(next: string) {
-    setLocationId(next);
-    setAssetId("");
+  function chooseAsset(asset: PreventiveAssetHit | null) {
+    if (!asset) {
+      setAssetId("");
+      setLocationId("");
+      setCustomerId("");
+      return;
+    }
+    setAssetId(asset.id);
+    setLocationId(asset.locationId ?? "");
+    setCustomerId(asset.customerId ?? "");
   }
 
   return (
     <form action={formAction} className="space-y-4">
       {order ? <input type="hidden" name="id" value={order.id} /> : null}
+      <input type="hidden" name="customer_id" value={customerId} />
+      <input type="hidden" name="location_id" value={locationId} />
       <input type="hidden" name="tasks_json" value={JSON.stringify(tasks)} />
       {state?.error ? (
         <Alert variant="destructive">
@@ -229,74 +223,13 @@ export function WorkOrderForm({
             ))}
           </NativeSelect>
         </Field>
-        <div className="space-y-3 rounded-lg border bg-muted/30 p-3 sm:col-span-2">
-          <div>
-            <p className="text-sm font-medium">Onde será o serviço</p>
-            <p className="text-xs text-muted-foreground">Escolha o cliente, depois a localização e, por último, o ativo.</p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="1. Cliente" htmlFor="customer_id">
-              <NativeSelect
-                id="customer_id"
-                name="customer_id"
-                className="h-9"
-                value={customerId}
-                onChange={(event) => changeCustomer(event.target.value)}
-              >
-                <option value="">Selecione</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
-            <Field
-              label="2. Localização"
-              htmlFor="location_id"
-              hint={customerId ? (visibleLocations.length === 0 ? "Este cliente não tem localizações." : undefined) : "Disponível depois do cliente."}
-            >
-              <NativeSelect
-                id="location_id"
-                name="location_id"
-                className="h-9"
-                value={locationId}
-                disabled={!customerId}
-                onChange={(event) => changeLocation(event.target.value)}
-              >
-                <option value="">{customerId ? "Selecione" : "Selecione o cliente"}</option>
-                {visibleLocations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.custom_id ? `${location.custom_id} · ` : ""}
-                    {location.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
-            <Field
-              label="3. Ativo"
-              htmlFor="asset_id"
-              hint={!customerId ? "Disponível depois do cliente." : !locationId ? "Disponível depois da localização." : visibleAssets.length === 0 ? "Esta localização não tem ativos." : undefined}
-            >
-              <NativeSelect
-                id="asset_id"
-                name="asset_id"
-                className="h-9"
-                value={assetId}
-                disabled={!customerId || !locationId}
-                onChange={(event) => setAssetId(event.target.value)}
-              >
-                <option value="">{locationId ? "Selecione" : customerId ? "Selecione a localização" : "Selecione o cliente"}</option>
-                {visibleAssets.map((asset) => (
-                  <option key={asset.id} value={asset.id}>
-                    {asset.custom_id ? `${asset.custom_id} · ` : ""}
-                    {asset.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
-          </div>
-        </div>
+        <Field label="Ativo" className="sm:col-span-2">
+          {lockedAsset ? (
+            <LockedAsset asset={lockedAsset} />
+          ) : (
+            <PreventiveAssetPicker selection="single" selectedId={assetId || null} onSelected={chooseAsset} />
+          )}
+        </Field>
         <Field label="Cobrança" htmlFor="billing_mode">
           <NativeSelect
             id="billing_mode"

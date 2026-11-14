@@ -6,8 +6,9 @@ import { parseUuid } from "@/lib/forms/parse";
 import type { MutationState } from "@/lib/forms/state";
 import { loadWorkOrderEditor, type WorkOrderEditorData } from "@/lib/work-orders/queries";
 
-function refresh() {
+function refresh(id?: string | null) {
   revalidatePath("/requests");
+  if (id) revalidatePath(`/requests/${id}`);
   revalidatePath("/", "layout");
 }
 
@@ -20,6 +21,8 @@ function parseIdList(ids: string[]) {
   return unique;
 }
 
+const IMAGE_FILE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$/i;
+
 function requestFields(formData: FormData) {
   const titleInput = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -29,6 +32,15 @@ function requestFields(formData: FormData) {
   if (!description) throw new Error("Descreva o que aconteceu.");
   if (title.length > 200) throw new Error("O título deve ter no máximo 200 caracteres.");
   return { title, description, assetId };
+}
+
+function readImagePath(formData: FormData, tenantId: string) {
+  const raw = String(formData.get("image_path") ?? "").trim();
+  if (!raw) return null;
+  const prefix = `${tenantId}/requests/`;
+  const fileName = raw.startsWith(prefix) ? raw.slice(prefix.length) : "";
+  if (!IMAGE_FILE.test(fileName) || raw.includes("..")) throw new Error("Imagem inválida.");
+  return raw;
 }
 
 function message(error: unknown, fallback: string) {
@@ -44,7 +56,7 @@ export async function approveRequest(
     if (!id) throw new Error("Solicitação inválida.");
     const { data, error } = await supabase.rpc("approve_request", { p_request_id: id });
     if (error || !data) throw new Error(error?.message || "Não foi possível aprovar a solicitação.");
-    refresh();
+    refresh(id);
     try {
       const editor = await loadWorkOrderEditor(data);
       return { ok: true, editor };
@@ -60,9 +72,9 @@ export async function rejectRequest(
   requestId: string,
   reason: string,
 ): Promise<{ error: string } | { ok: true }> {
+  const id = parseUuid(requestId);
   try {
     const { supabase } = await requireAdmin();
-    const id = parseUuid(requestId);
     const text = reason.trim();
     if (!id) throw new Error("Solicitação inválida.");
     if (!text) throw new Error("Informe o motivo da recusa.");
@@ -78,7 +90,7 @@ export async function rejectRequest(
   } catch (error) {
     return { error: message(error, "Não foi possível recusar a solicitação.") };
   }
-  refresh();
+  refresh(id);
   return { ok: true };
 }
 
@@ -101,7 +113,7 @@ export async function createRequest(
   try {
     const fields = requestFields(formData);
     const { supabase, asset } = await assetLocation(fields.assetId);
-    const { error } = await supabase.from("request").insert({
+    const { data, error } = await supabase.from("request").insert({
       tenant_id: tenantId,
       title: fields.title,
       description: fields.description,
@@ -109,22 +121,25 @@ export async function createRequest(
       asset_id: asset.id,
       location_id: asset.location_id,
       requester_name: appUser.displayName,
-    });
-    if (error) throw new Error("Não foi possível criar a solicitação.");
+      kind: "SERVICE",
+      image_url: readImagePath(formData, tenantId),
+    }).select("id").single();
+    if (error || !data) throw new Error("Não foi possível criar a solicitação.");
+    refresh();
+    return { success: true, id: data.id };
   } catch (error) {
     return { error: message(error, "Não foi possível criar a solicitação.") };
   }
-  refresh();
-  return { success: true };
 }
 
 export async function updateRequest(
   _prev: MutationState,
   formData: FormData,
 ): Promise<MutationState> {
+  const id = parseUuid(formData.get("id"));
   try {
-    const id = parseUuid(formData.get("id"));
     if (!id) throw new Error("Solicitação inválida.");
+    const { tenantId } = await requireArea("requests", "edit");
     const fields = requestFields(formData);
     const { supabase, asset } = await assetLocation(fields.assetId);
     const { data, error } = await supabase
@@ -134,33 +149,37 @@ export async function updateRequest(
         description: fields.description,
         asset_id: asset.id,
         location_id: asset.location_id,
+        kind: "SERVICE",
+        image_url: readImagePath(formData, tenantId),
       })
       .eq("id", id)
       .eq("cancelled", false)
       .is("work_order_id", null)
       .select("id");
     if (error) throw new Error("Não foi possível salvar a solicitação.");
-    if (!data?.length) throw new Error("Só é possível editar uma solicitação pendente.");
+    if (!data?.length) throw new Error("Só é possível editar uma solicitação pendente ou em tratamento.");
   } catch (error) {
     return { error: message(error, "Não foi possível salvar a solicitação.") };
   }
-  refresh();
+  refresh(id);
   return { success: true };
 }
 
 export async function deleteRequests(ids: string[]): Promise<MutationState> {
   try {
     const unique = parseIdList(ids);
-    const { supabase } = await requireArea("requests", "edit");
-    const { data, error } = await supabase
-      .from("request")
-      .delete()
-      .in("id", unique)
-      .eq("cancelled", false)
-      .is("work_order_id", null)
-      .select("id");
+    const { supabase, appUser } = await requireArea("requests", "edit");
+    let query = supabase.from("request").delete().in("id", unique).eq("cancelled", false);
+    if (!appUser.isAdmin) query = query.is("work_order_id", null);
+    const { data, error } = await query.select("id");
     if (error) throw new Error("Não foi possível excluir as solicitações.");
-    if (!data?.length) throw new Error("Só é possível excluir solicitações pendentes.");
+    if (!data?.length) {
+      throw new Error(
+        appUser.isAdmin
+          ? "Solicitações recusadas não podem ser excluídas."
+          : "Só é possível excluir solicitações pendentes ou em tratamento.",
+      );
+    }
   } catch (error) {
     return { error: message(error, "Não foi possível excluir as solicitações.") };
   }

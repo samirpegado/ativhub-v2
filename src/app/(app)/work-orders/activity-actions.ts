@@ -9,6 +9,7 @@ import type { WorkOrderActivity } from "@/lib/work-orders/activity";
 import { loadWorkOrderDetail, type WorkOrderRecord } from "@/lib/work-orders/queries";
 import { canExecuteWorkOrder } from "@/lib/work-orders/access";
 import { workOrderCompletionBlock } from "@/lib/work-orders/completion";
+import { isWorkOrderPhotoName, WORK_ORDER_PHOTO_LIMIT } from "@/lib/images/compress-work-order-photo";
 import { isWorkOrderStatus, statusTimestamps, type WorkOrderStatus } from "@/lib/work-orders/status";
 import {
   INSPECTION_ANSWERS,
@@ -364,8 +365,6 @@ export async function deleteWorkOrderLabor(
   }
 }
 
-const FILE_EXT = "pdf|png|jpe?g|webp|txt|docx?|xlsx?";
-
 export async function registerWorkOrderFile(
   workOrderId: string,
   path: string,
@@ -373,13 +372,22 @@ export async function registerWorkOrderFile(
 ): Promise<ActivityResult> {
   try {
     const { supabase, tenantId, workOrderId: id } = await ownedOrder(workOrderId, "execute");
-    const fileName = name.trim().slice(0, 180);
-    if (!fileName) throw new Error("Arquivo inválido.");
-    const pattern = new RegExp(
-      `^${tenantId}/work-orders/${id}/[0-9a-f-]{36}\\.(${FILE_EXT})$`,
-      "i",
+    const base = name.trim().replace(/\.[^.]+$/, "").slice(0, 176);
+    const fileName = `${base || "foto"}.jpg`;
+    const pattern = new RegExp(`^${tenantId}/work-orders/${id}/[0-9a-f-]{36}\\.jpe?g$`, "i");
+    if (!pattern.test(path)) throw new Error("Envie uma foto JPG.");
+
+    const { data: existing, error: countError } = await supabase
+      .from("file")
+      .select("name, url")
+      .eq("tenant_id", tenantId)
+      .eq("entity_type", "WORK_ORDER")
+      .eq("entity_id", id);
+    if (countError) throw new Error("Não foi possível salvar a foto.");
+    const photos = (existing ?? []).filter(
+      (row) => isWorkOrderPhotoName(row.name ?? "") || isWorkOrderPhotoName(row.url ?? ""),
     );
-    if (!pattern.test(path)) throw new Error("Arquivo inválido.");
+    if (photos.length >= WORK_ORDER_PHOTO_LIMIT) throw new Error("A ordem aceita no máximo 3 fotos.");
 
     const { error } = await supabase.from("file").insert({
       tenant_id: tenantId,

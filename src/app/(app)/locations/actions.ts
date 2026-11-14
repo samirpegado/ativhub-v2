@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateFilterCatalog } from "@/lib/filters/catalog";
 import { requireArea } from "@/lib/auth/permissions";
 import {
   addressFromForm,
@@ -46,6 +47,7 @@ export async function createLocation(
   }
 
   revalidatePath("/locations");
+  revalidateFilterCatalog();
   return { success: true } as const;
 }
 
@@ -74,6 +76,7 @@ export async function updateLocation(
   }
 
   revalidatePath("/locations");
+  revalidateFilterCatalog();
   return { success: true } as const;
 }
 
@@ -99,4 +102,5 @@ export async function deleteLocation(
 
   revalidatePath("/locations");
   revalidatePath("/assets");
+  revalidateFilterCatalog();
 }

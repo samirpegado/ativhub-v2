@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { AssetQrScanButton } from "@/components/assets/asset-qr-scan-dialog";
 import { Logo } from "@/components/brand/logo";
 import { UserMenu } from "@/components/layout/user-menu";
 import { navItems } from "@/components/layout/nav";
@@ -196,6 +197,7 @@ export function AppShell({
           </h1>
         </div>
         <div className="flex items-center gap-1">
+          {can(user, "assets", "view") ? <AssetQrScanButton /> : null}
           {pendingRequestCount !== null ? (
             <Button variant="ghost" size="icon" className="relative size-10" asChild>
               <Link

@@ -130,11 +130,13 @@ export async function submitPublicRequest(
   if (!description) return { error: "Descreva o que aconteceu." };
 
   const supabase = await createClient();
+
   const { error } = await supabase.rpc("submit_public_request", {
     p_token: token,
     p_name: name,
     p_phone: formatPhone(phoneRaw),
     p_description: description,
+    p_kind: "SERVICE",
   });
   if (error) return { error: publicError(error.message, "Não foi possível enviar a solicitação.") };
   return { success: true };

@@ -9,13 +9,11 @@ import {
   Camera,
   Check,
   ClipboardCheck,
-  FileText,
   Flag,
   Loader2,
   Mail,
   MapPin,
   Package,
-  Paperclip,
   Pencil,
   Play,
   Plus,
@@ -40,6 +38,7 @@ import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-
 import { OpenWorkOrderReportButton } from "@/components/work-orders/open-work-order-report-button";
 import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
 import { ASSET_STATUSES } from "@/lib/assets/status";
+import { compressWorkOrderPhoto, isWorkOrderPhotoName, WORK_ORDER_PHOTO_LIMIT } from "@/lib/images/compress-work-order-photo";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -101,6 +100,7 @@ export function WorkOrderDetail({
   const [status, setStatus] = useState(initialOrder.status);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [partsOpen, setPartsOpen] = useState(false);
   const [laborOpen, setLaborOpen] = useState(false);
@@ -178,6 +178,7 @@ export function WorkOrderDetail({
     labors: activity.labors,
     tasks: order.tasks,
   });
+  const photos = activity.files.filter((file) => isWorkOrderPhotoName(file.name));
 
   function openStatus() {
     setDraftStatus(status);
@@ -199,32 +200,33 @@ export function WorkOrderDetail({
   }
 
   async function onFile(file: File | null) {
-    if (!file) return;
-    const allowed = ["pdf", "png", "jpg", "jpeg", "webp", "txt", "doc", "docx", "xls", "xlsx"];
-    const fromName = file.name.includes(".") ? (file.name.split(".").pop()?.toLowerCase() ?? "") : "";
-    const fromType = file.type === "image/jpeg" ? "jpg" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "";
-    const extension = allowed.includes(fromName) ? fromName : fromType;
-    if (!extension) {
-      setError("Envie PDF, imagem, texto ou planilha.");
+    if (!file || uploading) return;
+    const photos = activity.files.filter((item) => isWorkOrderPhotoName(item.name));
+    if (photos.length >= WORK_ORDER_PHOTO_LIMIT) {
+      setError("A ordem aceita no máximo 3 fotos.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setError("O arquivo deve ter no máximo 10 MB.");
-      return;
-    }
-    const path = `${tenantId}/work-orders/${order.id}/${crypto.randomUUID()}.${extension}`;
-    setBusy(true);
+    setUploading(true);
+    setError(null);
+    let path = "";
     const supabase = createClient();
-    const { error: uploadError } = await supabase.storage.from("attachments").upload(path, file, { contentType: file.type || undefined, upsert: false });
-    if (uploadError) {
-      setBusy(false);
-      setError("Não foi possível enviar o arquivo.");
-      return;
+    try {
+      const photo = await compressWorkOrderPhoto(file);
+      path = `${tenantId}/work-orders/${order.id}/${crypto.randomUUID()}.jpg`;
+      const { error: uploadError } = await supabase.storage.from("attachments").upload(path, photo, { contentType: "image/jpeg", upsert: false });
+      if (uploadError) {
+        setError("Não foi possível enviar a foto.");
+        return;
+      }
+      const result = await registerWorkOrderFile(order.id, path, photo.name);
+      if ("error" in result) await supabase.storage.from("attachments").remove([path]);
+      apply(result);
+    } catch (error) {
+      if (path) await supabase.storage.from("attachments").remove([path]);
+      setError(error instanceof Error ? error.message : "Não foi possível processar a imagem.");
+    } finally {
+      setUploading(false);
     }
-    const result = await registerWorkOrderFile(order.id, path, file.name.trim() || `foto.${extension}`);
-    setBusy(false);
-    if ("error" in result) await supabase.storage.from("attachments").remove([path]);
-    apply(result);
   }
 
   return (
@@ -247,7 +249,7 @@ export function WorkOrderDetail({
                 Prioridade {workOrderPriorityLabel(order.priority).toLowerCase()}
               </span>
             </div>
-            <h1 className="mt-2.5 text-[32px] leading-tight font-semibold tracking-tight">{order.title}</h1>
+            <h1 className="mt-2.5 text-xl leading-tight font-semibold tracking-tight sm:text-2xl lg:text-[32px]">{order.title}</h1>
             {order.description ? <p className="mt-1.5 text-base text-[#4a5a70]">{order.description}</p> : null}
           </div>
           <div className="flex flex-wrap gap-2.5">
@@ -486,35 +488,27 @@ export function WorkOrderDetail({
               </div>
             ))}
           </section>
-          <section className="min-w-0 rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Arquivos">
-            <SectionHead title="Arquivos" subtitle="Fotos e documentos da ordem">
-              <div className="flex flex-wrap gap-2.5">
-                <FileButton label="Adicionar foto" icon={<Camera className="size-[18px]" />} accept="image/*" capture onFile={onFile} />
-                <FileButton label="Adicionar arquivo" icon={<Paperclip className="size-[18px]" />} onFile={onFile} />
-              </div>
+          <section className="min-w-0 rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Fotos">
+            <SectionHead title="Fotos" subtitle="Até 3 fotos, com no máximo 2 MB cada">
+              {photos.length < WORK_ORDER_PHOTO_LIMIT ? (
+                <FileButton label={uploading ? "Enviando" : "Adicionar foto"} icon={uploading ? <Loader2 className="size-[18px] animate-spin" /> : <Camera className="size-[18px]" />} accept="image/png,image/jpeg,image/webp" capture disabled={uploading} onFile={onFile} />
+              ) : null}
             </SectionHead>
-            {activity.files.length === 0 ? <EmptyBox icon={<Paperclip className="size-5" />} text="Nenhum arquivo nesta ordem." /> : (
+            {photos.length === 0 ? <EmptyBox icon={<Camera className="size-5" />} text="Nenhuma foto nesta ordem." /> : (
               <ul className="space-y-2.5">
-                {activity.files.map((file) => {
-                  const image = /\.(png|jpe?g|webp|gif)$/i.test(file.name);
-                  return (
-                    <li key={file.id} className="flex min-w-0 items-center gap-3.5 overflow-hidden rounded-xl border border-[#14233a]/12 p-3">
-                      {image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={file.url} alt="" className="size-14 flex-none rounded-[10px] object-cover" />
-                      ) : (
-                        <span className="flex size-14 flex-none items-center justify-center rounded-[10px] bg-[#dbe7fa] text-[#0b1b33]"><FileText className="size-6" /></span>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <a href={file.url} target="_blank" rel="noreferrer" title={file.name} className="block truncate text-[15px] font-semibold text-[#2a78d6]">{file.name}</a>
-                        <div className="text-[13px] text-[#4a5a70]">{image ? "Imagem" : "Arquivo"}</div>
-                      </div>
-                      <button type="button" className="flex size-11 flex-none items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover arquivo ${file.name}`} onClick={() => deleteWorkOrderFile(order.id, file.id).then(apply)}>
-                        <Trash2 className="size-[18px]" />
-                      </button>
-                    </li>
-                  );
-                })}
+                {photos.map((file) => (
+                  <li key={file.id} className="flex min-w-0 items-center gap-3.5 overflow-hidden rounded-xl border border-[#14233a]/12 p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={file.url} alt="" className="size-14 flex-none rounded-[10px] object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <a href={file.url} target="_blank" rel="noreferrer" title={file.name} className="block truncate text-[15px] font-semibold text-[#2a78d6]">{file.name}</a>
+                      <div className="text-[13px] text-[#4a5a70]">Imagem</div>
+                    </div>
+                    <button type="button" className="flex size-11 flex-none items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover foto ${file.name}`} onClick={() => deleteWorkOrderFile(order.id, file.id).then(apply)}>
+                      <Trash2 className="size-[18px]" />
+                    </button>
+                  </li>
+                ))}
               </ul>
             )}
           </section>
@@ -659,12 +653,12 @@ function EmptyBox({ icon, text }: { icon: ReactNode; text: string }) {
   );
 }
 
-function FileButton({ label, icon, accept, capture, onFile }: { label: string; icon: ReactNode; accept?: string; capture?: boolean; onFile: (file: File | null) => void }) {
+function FileButton({ label, icon, accept, capture, disabled, onFile }: { label: string; icon: ReactNode; accept?: string; capture?: boolean; disabled?: boolean; onFile: (file: File | null) => void }) {
   return (
-    <label className={`inline-flex cursor-pointer items-center gap-2 px-4 text-sm font-semibold ${whiteButton}`}>
+    <label className={`inline-flex items-center gap-2 px-4 text-sm font-semibold ${whiteButton} ${disabled ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
       {icon}
       {label}
-      <input type="file" accept={accept} capture={capture ? "environment" : undefined} className="sr-only" onChange={(event) => { onFile(event.target.files?.[0] ?? null); event.target.value = ""; }} />
+      <input type="file" accept={accept} capture={capture ? "environment" : undefined} disabled={disabled} className="sr-only" onChange={(event) => { onFile(event.target.files?.[0] ?? null); event.target.value = ""; }} />
     </label>
   );
 }

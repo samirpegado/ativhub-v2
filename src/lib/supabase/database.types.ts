@@ -1022,6 +1022,9 @@ export type Database = {
           custom_id: string | null
           description: string | null
           id: string
+          image_url: string | null
+          in_treatment: boolean
+          kind: string
           location_id: string | null
           primary_user_id: string | null
           priority: string
@@ -1040,6 +1043,9 @@ export type Database = {
           custom_id?: string | null
           description?: string | null
           id?: string
+          image_url?: string | null
+          in_treatment?: boolean
+          kind?: string
           location_id?: string | null
           primary_user_id?: string | null
           priority?: string
@@ -1058,6 +1064,9 @@ export type Database = {
           custom_id?: string | null
           description?: string | null
           id?: string
+          image_url?: string | null
+          in_treatment?: boolean
+          kind?: string
           location_id?: string | null
           primary_user_id?: string | null
           priority?: string
@@ -1462,6 +1471,12 @@ export type Database = {
         Row: { pm_id: string; asset_id: string }
         Insert: { pm_id: string; asset_id: string }
         Update: { pm_id?: string; asset_id?: string }
+        Relationships: []
+      }
+      pm_assignee: {
+        Row: { pm_id: string; membership_id: string }
+        Insert: { pm_id: string; membership_id: string }
+        Update: { pm_id?: string; membership_id?: string }
         Relationships: []
       }
       work_order: {
@@ -1900,6 +1915,7 @@ export type Database = {
       submit_public_request: {
         Args: {
           p_description: string
+          p_kind?: string
           p_name: string
           p_phone: string
           p_token: string

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { searchWorkOrderLocations } from "@/app/(app)/work-orders/filter-actions";
+import { CatalogSelect } from "@/components/filters/catalog-select";
+import { useFilterCatalog } from "@/components/filters/filter-catalog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -71,6 +72,7 @@ export function WorkOrderFiltersDialog({
   onOpenChange: (open: boolean) => void;
   onApply: (draft: WorkOrderFilterDraft) => void;
 }) {
+  const catalog = useFilterCatalog();
   const [draft, setDraft] = useState<WorkOrderFilterDraft>(() => filtersFromQuery(query));
 
   useEffect(() => {
@@ -107,7 +109,11 @@ export function WorkOrderFiltersDialog({
             selected={draft.types}
             onChange={(values) => change("types", values)}
           />
-          <LocationSelect
+          <CatalogSelect
+            label="Localização"
+            placeholder="Buscar localização"
+            emptyLabel="Nenhuma localização encontrada."
+            options={catalog.locations}
             selected={draft.locationIds}
             onChange={(values) => change("locationIds", values)}
           />
@@ -209,107 +215,6 @@ function MultiSelect({
               {option.label}
             </label>
           ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function LocationSelect({
-  selected,
-  onChange,
-}: {
-  selected: string[];
-  onChange: (values: string[]) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [term, setTerm] = useState("");
-  const [options, setOptions] = useState<{ id: string; name: string }[]>([]);
-  const [names, setNames] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
-  const selectedRef = useRef(selected);
-  selectedRef.current = selected;
-
-  useEffect(() => {
-    const missing = selected.filter((id) => !names[id]);
-    if (missing.length === 0) return;
-    let cancelled = false;
-    searchWorkOrderLocations("", missing).then((rows) => {
-      if (cancelled) return;
-      setNames((current) => {
-        const next = { ...current };
-        for (const id of missing) next[id] = rows.find((row) => row.id === id)?.name ?? "Local";
-        return next;
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [selected, names]);
-
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    const handle = window.setTimeout(() => {
-      setLoading(true);
-      searchWorkOrderLocations(term, selectedRef.current).then((rows) => {
-        if (cancelled) return;
-        setOptions(rows);
-        setNames((current) => {
-          const next = { ...current };
-          for (const row of rows) next[row.id] = row.name;
-          return next;
-        });
-        setLoading(false);
-      });
-    }, 250);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(handle);
-    };
-  }, [open, term]);
-
-  const summary = selected.length === 0 ? "Todos" : selected.map((id) => names[id] ?? "Local").join(", ");
-
-  function toggle(id: string) {
-    onChange(selected.includes(id) ? selected.filter((item) => item !== id) : [...selected, id]);
-  }
-
-  return (
-    <div className="space-y-1.5">
-      <Label>Local</Label>
-      <button
-        type="button"
-        className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-input bg-white px-2.5 text-left text-sm"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-      >
-        <span className="truncate">{summary}</span>
-        <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-      </button>
-      {open ? (
-        <div className="space-y-1 rounded-lg border p-1">
-          <Input
-            value={term}
-            placeholder="Buscar local"
-            className="h-8"
-            onChange={(event) => setTerm(event.target.value)}
-          />
-          <div className="max-h-40 space-y-0.5 overflow-y-auto">
-            {loading && options.length === 0 ? <p className="px-2 py-1.5 text-sm text-muted-foreground">Buscando…</p> : null}
-            {!loading && options.length === 0 ? <p className="px-2 py-1.5 text-sm text-muted-foreground">Nenhum local encontrado.</p> : null}
-            {options.map((option) => (
-              <label key={option.id} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
-                <input
-                  type="checkbox"
-                  className="size-4 accent-primary"
-                  checked={selected.includes(option.id)}
-                  onChange={() => toggle(option.id)}
-                />
-                {option.name}
-              </label>
-            ))}
-          </div>
         </div>
       ) : null}
     </div>

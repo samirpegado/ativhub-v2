@@ -238,6 +238,7 @@ export async function createWorkOrder(
   formData: FormData,
 ): Promise<MutationState> {
   const { supabase, tenantId, appUser } = await requireArea("work_orders", "edit");
+  let createdId = "";
 
   try {
     const fields = await readFields(formData, supabase, tenantId);
@@ -265,6 +266,7 @@ export async function createWorkOrder(
       .single();
 
     if (error || !data) return { error: mutationError(error ?? {}) };
+    createdId = data.id;
 
     try {
       await replaceLinks(supabase, tenantId, data.id, assigneeIds, tasks);
@@ -307,7 +309,7 @@ export async function createWorkOrder(
   }
 
   refreshOrders();
-  return { success: true };
+  return { success: true, id: createdId };
 }
 
 export async function updateWorkOrder(

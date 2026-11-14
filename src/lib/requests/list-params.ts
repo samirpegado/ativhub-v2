@@ -2,6 +2,7 @@ import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 
 export const REQUEST_STATUSES = [
   { value: "pending", label: "Pendentes" },
+  { value: "treating", label: "Em tratamento" },
   { value: "approved", label: "Aprovadas" },
   { value: "rejected", label: "Recusadas" },
 ] as const;

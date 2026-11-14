@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { WorkOrdersView } from "@/components/work-orders/work-orders-view";
+import { loadAssetPickerHit } from "@/lib/assets/picker";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
 import {
@@ -32,7 +33,7 @@ export default async function WorkOrdersPage({
   }>;
 }) {
   const params = await searchParams;
-  const { appUser } = await requireArea("work_orders", "view", { redirect: true });
+  const { supabase, appUser } = await requireArea("work_orders", "view", { redirect: true });
   const query = parseWorkOrderListQuery(params);
   const screen = await listWorkOrdersScreen(query);
   const pageCount = workOrderPageCount(screen.total);
@@ -40,6 +41,7 @@ export default async function WorkOrdersPage({
     redirect(workOrderListHref({ ...query, page: pageCount }));
   }
   const presetAssetId = /^[0-9a-f-]{36}$/i.test(params.asset ?? "") ? params.asset : null;
+  const lockedAsset = presetAssetId ? await loadAssetPickerHit(supabase, presetAssetId) : null;
 
   return (
     <WorkOrdersView
@@ -56,6 +58,7 @@ export default async function WorkOrdersPage({
       customers={screen.customers}
       canEdit={can(appUser, "work_orders", "edit")}
       presetAssetId={presetAssetId}
+      lockedAsset={lockedAsset}
     />
   );
 }

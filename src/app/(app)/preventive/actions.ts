@@ -80,10 +80,10 @@ async function readFields(
     throw new Error("O nome e o título devem ter no máximo 200 caracteres.");
   }
 
-  const priority = String(formData.get("priority") ?? "NONE");
+  const priority = String(formData.get("priority") ?? "").trim();
   const recurrenceBasedOn = String(formData.get("recurrence_based_on") ?? "");
   const recurrenceType = String(formData.get("recurrence_type") ?? "");
-  if (!isWorkOrderPriority(priority)) throw new Error("Prioridade inválida.");
+  if (!isWorkOrderPriority(priority) || priority === "NONE") throw new Error("Informe a prioridade.");
   if (!isRecurrenceBase(recurrenceBasedOn)) throw new Error("Base da recorrência inválida.");
   if (!isRecurrenceType(recurrenceType)) throw new Error("Tipo de recorrência inválido.");
 
@@ -104,7 +104,6 @@ async function readFields(
     throw new Error("O fim precisa ser depois do início.");
   }
 
-  const locationId = parseUuid(formData.get("location_id"));
   const assetIds = [
     ...new Set(
       formData
@@ -114,19 +113,30 @@ async function readFields(
     ),
   ];
   const teamId = parseUuid(formData.get("team_id"));
-  const primaryUserId = parseUuid(formData.get("primary_user_id"));
+  const assigneeIds = [
+    ...new Set(
+      formData
+        .getAll("assignee_ids")
+        .map((value) => parseUuid(value))
+        .filter((value): value is string => Boolean(value)),
+    ),
+  ];
 
-  if (assetIds.length > 0) {
-    const { data: assets } = await supabase
-      .from("asset")
-      .select("id, location_id")
-      .eq("tenant_id", tenantId)
-      .in("id", assetIds);
-    if ((assets ?? []).length !== assetIds.length) throw new Error("Há um ativo inválido.");
-    if (locationId && (assets ?? []).some((asset) => asset.location_id && asset.location_id !== locationId)) {
-      throw new Error("Um dos ativos não pertence à localização selecionada.");
-    }
-  }
+  if (assetIds.length === 0) throw new Error("Selecione pelo menos um ativo.");
+  if (assigneeIds.length === 0) throw new Error("Selecione pelo menos um responsável.");
+  const dueDateDelay = parseDelay(formData.get("due_date_delay"));
+  if (dueDateDelay === null) throw new Error("Informe o vencimento.");
+  const tasks = readTasks(formData);
+  if (tasks.length === 0) throw new Error("Adicione pelo menos uma tarefa.");
+
+  const { data: assets } = await supabase
+    .from("asset")
+    .select("id, location_id")
+    .eq("tenant_id", tenantId)
+    .in("id", assetIds);
+  if ((assets ?? []).length !== assetIds.length) throw new Error("Há um ativo inválido.");
+  const locations = new Set((assets ?? []).flatMap((asset) => (asset.location_id ? [asset.location_id] : [])));
+  const locationId = locations.size === 1 ? [...locations][0] : null;
 
   return {
     name,
@@ -139,14 +149,15 @@ async function readFields(
     days_of_week: days.length > 0 ? days : null,
     starts_on: startsOn!,
     ends_on: endsOn,
-    due_date_delay: parseDelay(formData.get("due_date_delay")),
+    due_date_delay: dueDateDelay,
     estimated_duration: parseDuration(formData.get("estimated_duration")),
     location_id: locationId,
     asset_id: assetIds[0] ?? null,
     assetIds,
     team_id: teamId,
-    primary_user_id: primaryUserId,
-    tasks: readTasks(formData),
+    primary_user_id: assigneeIds[0] ?? null,
+    assigneeIds,
+    tasks,
   };
 }
 
@@ -160,6 +171,29 @@ async function replaceAssets(
   if (assetIds.length === 0) return;
   const { error } = await supabase.from("pm_asset").insert(assetIds.map((assetId) => ({ pm_id: scheduleId, asset_id: assetId })));
   if (error) throw new Error("Não foi possível salvar os ativos.");
+}
+
+async function replaceAssignees(
+  supabase: Awaited<ReturnType<typeof requireArea>>["supabase"],
+  tenantId: string,
+  scheduleId: string,
+  assigneeIds: string[],
+) {
+  const { data, error: peopleError } = await supabase
+    .from("membership")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("enabled", true)
+    .in("id", assigneeIds);
+  if (peopleError || (data ?? []).length !== assigneeIds.length) {
+    throw new Error("Há responsáveis inválidos.");
+  }
+  const { error: clearError } = await supabase.from("pm_assignee").delete().eq("pm_id", scheduleId);
+  if (clearError) throw new Error("Não foi possível salvar os responsáveis.");
+  const { error } = await supabase.from("pm_assignee").insert(
+    assigneeIds.map((membershipId) => ({ pm_id: scheduleId, membership_id: membershipId })),
+  );
+  if (error) throw new Error("Não foi possível salvar os responsáveis.");
 }
 
 async function replaceTasks(
@@ -205,7 +239,7 @@ export async function createPreventive(
 ): Promise<MutationState> {
   const { supabase, tenantId } = await requireArea("preventive", "edit");
   try {
-    const { tasks, assetIds, ...columns } = await readFields(formData, supabase, tenantId);
+    const { tasks, assetIds, assigneeIds, ...columns } = await readFields(formData, supabase, tenantId);
     const { data, error } = await supabase
       .from("preventive_maintenance")
       .insert({ tenant_id: tenantId, ...columns })
@@ -213,34 +247,12 @@ export async function createPreventive(
       .single();
     if (error || !data) return { error: error ? mutationError(error) : "Não foi possível criar o agendamento." };
     await replaceAssets(supabase, data.id, assetIds);
+    await replaceAssignees(supabase, tenantId, data.id, assigneeIds);
     await replaceTasks(supabase, tenantId, data.id, tasks);
     await syncSchedule(supabase, data.id);
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Não foi possível criar o agendamento.",
-    };
-  }
-  refresh();
-  return { success: true };
-}
-
-export async function updatePreventive(
-  _prev: MutationState,
-  formData: FormData,
-): Promise<MutationState> {
-  const { supabase, tenantId } = await requireArea("preventive", "edit");
-  try {
-    const id = parseUuid(formData.get("id"));
-    if (!id) throw new Error("Agendamento inválido.");
-    const { tasks, assetIds, ...columns } = await readFields(formData, supabase, tenantId);
-    const { error } = await supabase.from("preventive_maintenance").update(columns).eq("id", id);
-    if (error) return { error: mutationError(error) };
-    await replaceAssets(supabase, id, assetIds);
-    await replaceTasks(supabase, tenantId, id, tasks);
-    await syncSchedule(supabase, id);
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Não foi possível atualizar o agendamento.",
     };
   }
   refresh();

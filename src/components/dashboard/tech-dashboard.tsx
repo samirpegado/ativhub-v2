@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ClipboardCheck, Clock3, Wrench } from "lucide-react";
 import { completeWorkOrder, loadWorkOrderActivity, toggleWorkOrderTimer } from "@/app/(app)/work-orders/activity-actions";
 import { PeriodSelect } from "@/components/dashboard/period-select";
-import { DashCard, DashTitle, Meter } from "@/components/dashboard/widgets";
+import { DashCard, DashTitle, Kpi, Meter } from "@/components/dashboard/widgets";
 import { Button } from "@/components/ui/button";
 import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
 import {
@@ -85,43 +85,32 @@ export function TechDashboard({
         <PeriodSelect range={range} />
       </header>
 
-      <section aria-label="Minhas OS" className="flex flex-wrap gap-4">
-        <DashCard className="flex min-w-[220px] flex-1 flex-col gap-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium text-[#4a5a70]">A fechar</span>
-            <span className="flex size-9 items-center justify-center rounded-[10px] bg-[#e9edf3]"><ClipboardCheck className="size-5" /></span>
-          </div>
-          <div className="text-[44px] leading-none font-semibold tracking-tight">{data.readyCount}</div>
-          <p className="text-[13px] text-[#4a5a70]">Com tempo e tarefas feitos, aguardando conclusão</p>
-        </DashCard>
-        <DashCard className="flex min-w-[220px] flex-1 flex-col gap-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium text-[#4a5a70]">Fechadas</span>
-            <span className="flex size-9 items-center justify-center rounded-[10px] bg-[#e9edf3]"><CheckCircle2 className="size-5" /></span>
-          </div>
-          <div className="text-[44px] leading-none font-semibold tracking-tight">{data.closed5w}</div>
-          <p className="text-[13px] text-[#4a5a70]">{period.closed}</p>
-        </DashCard>
-        <DashCard className="flex min-w-[220px] flex-1 flex-col gap-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium text-[#4a5a70]">Em execução</span>
-            <span className="flex size-9 items-center justify-center rounded-[10px] bg-[#e9edf3]"><Wrench className="size-5" /></span>
-          </div>
-          <div className="text-[44px] leading-none font-semibold tracking-tight">{data.running.length}</div>
-          {state === "over" ? (
-            <span className="self-start rounded-full bg-[rgba(208,59,59,0.11)] px-2.5 py-1 text-[13px] font-medium text-[#b42323]">Acima do tempo estimado</span>
-          ) : (
-            <p className="text-[13px] text-[#4a5a70]">{active ? "Dentro do tempo estimado" : "Nenhuma OS com o tempo correndo"}</p>
-          )}
-        </DashCard>
-        <DashCard className="flex min-w-[220px] flex-1 flex-col gap-3.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium text-[#4a5a70]">A iniciar</span>
-            <span className="flex size-9 items-center justify-center rounded-[10px] bg-[#e9edf3]"><Clock3 className="size-5" /></span>
-          </div>
-          <div className="text-[44px] leading-none font-semibold tracking-tight">{data.toStartCount}</div>
-          <p className="text-[13px] text-[#4a5a70]">{period.start}</p>
-        </DashCard>
+      <section aria-label="Minhas OS" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <Kpi
+          label="A fechar"
+          value={String(data.readyCount)}
+          icon={<ClipboardCheck className="size-5" />}
+          note="Com tempo e tarefas feitos, aguardando conclusão"
+        />
+        <Kpi
+          label="Fechadas"
+          value={String(data.closed5w)}
+          icon={<CheckCircle2 className="size-5" />}
+          note={period.closed}
+        />
+        <Kpi
+          label="Em execução"
+          value={String(data.running.length)}
+          icon={<Wrench className="size-5" />}
+          tone={state === "over" ? "crit" : "neutral"}
+          note={state === "over" ? "Acima do tempo estimado" : active ? "Dentro do tempo estimado" : "Nenhuma OS com o tempo correndo"}
+        />
+        <Kpi
+          label="A iniciar"
+          value={String(data.toStartCount)}
+          icon={<Clock3 className="size-5" />}
+          note={period.start}
+        />
       </section>
 
       <DashCard label="OS em execução" className="flex flex-wrap items-center gap-8">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -8,7 +8,6 @@ import {
   Building2,
   CalendarCheck,
   Check,
-  ChevronDown,
   ChevronRight,
   CircleDollarSign,
   MapPin,
@@ -17,13 +16,17 @@ import {
   Shield,
   Zap,
 } from "lucide-react";
-import { setAssetStatus } from "@/app/(app)/assets/actions";
 import { AssetForm } from "@/components/assets/asset-form";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { RequestForm } from "@/components/requests/request-form";
+import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { TablePagination } from "@/components/lists/table-pagination";
 import { Button } from "@/components/ui/button";
-import { ASSET_STATUSES, assetStatusColor, assetStatusLabel } from "@/lib/assets/status";
+import { assetStatusColor, assetStatusLabel } from "@/lib/assets/status";
 import type { AssetDetail } from "@/lib/assets/detail";
+import type { AssetPickerHit } from "@/lib/assets/picker";
+import type { ChecklistRecord } from "@/lib/checklists/queries";
+import type { PersonRecord, TeamRecord } from "@/lib/people/queries";
 import {
   ASSET_HISTORY_PAGE_SIZE,
   assetDetailHref,
@@ -54,7 +57,13 @@ export function AssetDetailView({
   canManageCategories,
   canEdit,
   canCreateOrder,
+  canCreateRequest,
   tenantId,
+  lockedAsset,
+  people,
+  teams,
+  checklists,
+  customers,
 }: {
   detail: AssetDetail;
   history: AssetHistoryQuery;
@@ -63,19 +72,19 @@ export function AssetDetailView({
   canManageCategories: boolean;
   canEdit: boolean;
   canCreateOrder: boolean;
+  canCreateRequest: boolean;
   tenantId: string;
+  lockedAsset: AssetPickerHit | null;
+  people: PersonRecord[];
+  teams: TeamRecord[];
+  checklists: ChecklistRecord[];
+  customers: { id: string; name: string; email: string | null }[];
 }) {
   const router = useRouter();
   const asset = detail.asset;
-  const [status, setStatus] = useState(asset.status);
-  const [statusError, setStatusError] = useState<string | null>(null);
-  const [statusBusy, setStatusBusy] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [creating, setCreating] = useState<"order" | "request" | null>(null);
   const [pending, startNavigation] = useTransition();
-
-  useEffect(() => {
-    setStatus(asset.status);
-  }, [asset.status]);
 
   function visit(next: { page?: number; type?: AssetHistoryType | null }) {
     const type = "type" in next ? (next.type ?? null) : history.type;
@@ -83,21 +92,6 @@ export function AssetDetailView({
     startNavigation(() => {
       router.push(assetDetailHref(asset.id, { type, page }), { scroll: false });
     });
-  }
-
-  async function changeStatus(next: string) {
-    const previous = status;
-    setStatus(next);
-    setStatusError(null);
-    setStatusBusy(true);
-    const result = await setAssetStatus(asset.id, next);
-    setStatusBusy(false);
-    if (result?.error) {
-      setStatus(previous);
-      setStatusError(result.error);
-      return;
-    }
-    router.refresh();
   }
 
   const place = [asset.locationName, asset.area].filter(Boolean).join(" · ");
@@ -149,9 +143,9 @@ export function AssetDetailView({
           <div className="min-w-0 flex-[1_1_420px]">
             <div className="flex flex-wrap items-center gap-2.5">
               {asset.customId ? <span className="font-mono text-sm text-[#4a5a70]">{asset.customId}</span> : null}
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${assetChipClass(status)}`}>
-                {status === "OPERATIONAL" ? <Check className="size-3.5" strokeWidth={3} /> : <span className="size-2 rounded-full" style={{ background: assetStatusColor(status) }} />}
-                {assetStatusLabel(status)}
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${assetChipClass(asset.status)}`}>
+                {asset.status === "OPERATIONAL" ? <Check className="size-3.5" strokeWidth={3} /> : <span className="size-2 rounded-full" style={{ background: assetStatusColor(asset.status) }} />}
+                {assetStatusLabel(asset.status)}
               </span>
               {asset.categoryName ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eef3fb] px-2.5 py-1 text-xs font-semibold text-[#0b1b33]">
@@ -165,11 +159,15 @@ export function AssetDetailView({
           </div>
           <div className="flex flex-wrap gap-2.5">
             {canCreateOrder ? (
-              <Button asChild variant="outline" className={whiteButton}>
-                <Link href={`/work-orders?asset=${asset.id}`}>
-                  <Plus />
-                  Abrir nova OS
-                </Link>
+              <Button type="button" variant="outline" className={whiteButton} onClick={() => setCreating("order")}>
+                <Plus />
+                Nova OS
+              </Button>
+            ) : null}
+            {canCreateRequest ? (
+              <Button type="button" variant="outline" className={whiteButton} onClick={() => setCreating("request")}>
+                <Plus />
+                Nova solicitação
               </Button>
             ) : null}
             {canEdit ? (
@@ -183,39 +181,10 @@ export function AssetDetailView({
       </div>
 
       <section className={card} aria-label="Confiabilidade">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Confiabilidade</h2>
-            <p className="text-[13px] text-[#4a5a70]">Disponibilidade e paradas do ativo</p>
-          </div>
-          {canEdit ? (
-            <label className="relative inline-flex min-w-[220px]">
-              <span className="pointer-events-none absolute top-1/2 left-4 size-2.5 -translate-y-1/2 rounded-full" style={{ background: assetStatusColor(status) }} />
-              <select
-                className="h-11 w-full appearance-none rounded-[10px] border border-[#cbd5e1] bg-white pr-10 pl-9 text-sm font-semibold outline-none focus-visible:border-[#2a78d6] focus-visible:ring-2 focus-visible:ring-[#2a78d6]"
-                value={status}
-                disabled={statusBusy}
-                aria-label={`Alterar status do ativo. Status atual: ${assetStatusLabel(status)}`}
-                onChange={(event) => {
-                  void changeStatus(event.target.value);
-                }}
-              >
-                {ASSET_STATUSES.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-[18px] -translate-y-1/2" />
-            </label>
-          ) : (
-            <span className="inline-flex h-11 min-w-[220px] items-center gap-2.5 rounded-[10px] border border-[#cbd5e1] px-4 text-sm font-semibold">
-              <span className="size-2.5 rounded-full" style={{ background: assetStatusColor(status) }} />
-              {assetStatusLabel(status)}
-            </span>
-          )}
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold tracking-tight">Confiabilidade</h2>
+          <p className="text-[13px] text-[#4a5a70]">Disponibilidade e paradas do ativo</p>
         </div>
-        {statusError ? <p className="mb-4 text-sm text-[#b42323]">{statusError}</p> : null}
         <div className="flex flex-wrap gap-4">
           <div className="min-w-[200px] flex-1 rounded-xl bg-[#f5f7fb] px-[18px] py-4">
             <div className="text-[13px] font-medium text-[#5b6b80]">Disponibilidade</div>
@@ -234,8 +203,8 @@ export function AssetDetailView({
             <div className="text-[13px] text-[#4a5a70]">do tempo em operação</div>
           </div>
           <Stat label="Tempo parado" value={formatDuration(detail.downtimeSeconds)} note="acumulado" />
-          <Stat label="MTTR" value={detail.mttrSeconds == null ? "—" : formatDuration(detail.mttrSeconds)} note="Tempo médio de reparo" muted={detail.mttrSeconds == null} />
-          <Stat label="MTBF" value={detail.mtbfSeconds == null ? "—" : formatDuration(detail.mtbfSeconds)} note="Tempo médio entre falhas" muted={detail.mtbfSeconds == null} />
+          <Stat label="MTTR" value={detail.mttrSeconds == null ? "—" : formatReliabilityDuration(detail.mttrSeconds)} note="Tempo médio de reparo" muted={detail.mttrSeconds == null} />
+          <Stat label="MTBF" value={detail.mtbfSeconds == null ? "—" : formatReliabilityDuration(detail.mtbfSeconds)} note="Tempo médio entre falhas" muted={detail.mtbfSeconds == null} />
         </div>
       </section>
 
@@ -453,16 +422,55 @@ export function AssetDetailView({
               in_service_date: asset.inServiceDate,
               warranty_expiration_date: asset.warrantyExpirationDate,
               additional_infos: asset.additionalInfos,
-              imageUrl: asset.imageUrl,
             }}
             locations={locations}
             categories={categories}
             canManageCategories={canManageCategories}
-            tenantId={tenantId}
             onCancel={() => setEditing(false)}
             onSuccess={() => {
               setEditing(false);
               router.refresh();
+            }}
+          />
+        ) : null}
+      </FormDialog>
+
+      <FormDialog
+        open={creating === "order"}
+        onOpenChange={(open) => { if (!open) setCreating(null); }}
+        title="Nova ordem de serviço"
+        description="Só o título é obrigatório. O restante pode ser preenchido depois."
+      >
+        {creating === "order" && lockedAsset ? (
+          <WorkOrderForm
+            lockedAsset={lockedAsset}
+            locations={locations}
+            assets={[]}
+            people={people}
+            teams={teams}
+            checklists={checklists}
+            customers={customers}
+            onCancel={() => setCreating(null)}
+            onSuccess={(id) => {
+              if (id) router.push(`/work-orders/${id}`);
+            }}
+          />
+        ) : null}
+      </FormDialog>
+
+      <FormDialog
+        open={creating === "request"}
+        onOpenChange={(open) => { if (!open) setCreating(null); }}
+        title="Nova solicitação"
+        description="Peça manutenção para este ativo. O administrador transforma a solicitação em ordem."
+      >
+        {creating === "request" && lockedAsset ? (
+          <RequestForm
+            tenantId={tenantId}
+            lockedAsset={lockedAsset}
+            onCancel={() => setCreating(null)}
+            onSuccess={(id) => {
+              if (id) router.push(`/requests/${id}`);
             }}
           />
         ) : null}
@@ -518,6 +526,17 @@ function availabilityColor(value: number | null) {
   if (value >= 0.9) return "#008300";
   if (value >= 0.7) return "#eda100";
   return "#d03b3b";
+}
+
+function formatReliabilityDuration(totalSeconds: number) {
+  const total = Math.max(0, Math.floor(totalSeconds));
+  const day = 24 * 60 * 60;
+  if (total < day) return formatDuration(total);
+  const days = Math.floor(total / day);
+  const hours = Math.floor((total % day) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  return `${days}d ${hours}h ${minutes}m ${seconds}s`;
 }
 
 function formatAvailability(value: number | null) {

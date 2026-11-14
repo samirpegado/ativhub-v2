@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateFilterCatalog } from "@/lib/filters/catalog";
 import { ASSET_CATEGORY_TYPE } from "@/lib/categories/queries";
 import { requireAdmin } from "@/lib/auth/permissions";
 import { deleteError, mutationError, parseUuid } from "@/lib/forms/parse";
@@ -64,6 +65,7 @@ export async function createCategory(
     if (error || !data) return { error: mutationError(error ?? {}) };
     revalidatePath("/settings");
     revalidatePath("/assets");
+    revalidateFilterCatalog();
     return { success: true, category: data };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Não foi possível criar a categoria." };
@@ -93,6 +95,7 @@ export async function updateCategory(
   }
   revalidatePath("/settings");
   revalidatePath("/assets");
+  revalidateFilterCatalog();
   return { success: true };
 }
 
@@ -115,5 +118,6 @@ export async function deleteCategory(
   }
   revalidatePath("/settings");
   revalidatePath("/assets");
+  revalidateFilterCatalog();
   return { success: true };
 }

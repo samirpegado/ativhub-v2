@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2 } from "lucide-react";
 import { deletePreventive, deletePreventives } from "@/app/(app)/preventive/actions";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { BulkActionBar } from "@/components/lists/bulk-action-bar";
@@ -44,7 +44,7 @@ export function PreventiveView({
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
   const [search, setSearch] = useState(query.search);
-  const [editing, setEditing] = useState<PreventiveRecord | "new" | null>(null);
+  const [creating, setCreating] = useState(false);
   const [state, remove, pending] = useActionState<MutationState, FormData>(deletePreventive, undefined);
   const selection = useRowSelection(screen.items.map((item) => item.id));
 
@@ -89,8 +89,10 @@ export function PreventiveView({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">Preventiva</h1>
-        <Button className="h-9 font-semibold" onClick={() => setEditing("new")}>
+        <p className="text-sm font-normal text-muted-foreground">
+          Agendamentos que criam ordens de serviço automaticamente.
+        </p>
+        <Button className="h-9 font-semibold" onClick={() => setCreating(true)}>
           <Plus />
           Agendamento
         </Button>
@@ -184,7 +186,7 @@ export function PreventiveView({
                       />
                     </th>
                   ) : null}
-                  {["Nome", "Ordem", "Prioridade", "Próxima", "Trabalhador", "Local", "Ativo"].map(
+                  {["Nome", "Ordem", "Prioridade", "Próxima", "Responsáveis"].map(
                     (header) => (
                       <th key={header} className={listThClass}>
                         {header}
@@ -229,23 +231,11 @@ export function PreventiveView({
                       </span>
                     </td>
                     <td className={listTdClass}>{nextRunLabel(item)}</td>
-                    <td className={listTdClass}>{item.primaryUserName ?? "—"}</td>
-                    <td className={listTdClass}>{item.locationName ?? "—"}</td>
-                    <td className={listTdClass}>{item.assetName ?? "—"}</td>
+                    <td className={listTdClass}>
+                      <span className="line-clamp-2 block w-40 max-w-40 break-words">{item.assigneeNames ?? "—"}</span>
+                    </td>
                     <td className={listTdClass}>
                       <div className="flex justify-center gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="size-8"
-                          aria-label={`Editar ${item.name}`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setEditing(item);
-                          }}
-                        >
-                          <Pencil />
-                        </Button>
                         <Button
                           type="button"
                           variant="ghost"
@@ -277,25 +267,18 @@ export function PreventiveView({
       </Card>
 
       <FormDialog
-        open={editing !== null}
-        onOpenChange={(open) => {
-          if (!open) setEditing(null);
-        }}
-        title={editing && editing !== "new" ? "Editar agendamento" : "Novo agendamento"}
+        open={creating}
+        onOpenChange={setCreating}
+        title="Novo agendamento"
         description="A recorrência cria ordens de serviço com estes dados."
       >
-        {editing ? (
+        {creating ? (
           <PreventiveForm
-            key={editing === "new" ? "new" : editing.id}
-            schedule={editing === "new" ? undefined : editing}
-            locations={screen.locations}
-            assets={screen.assets}
-            customers={screen.customers}
             people={screen.people}
             teams={screen.teams}
             checklists={screen.checklists}
-            onCancel={() => setEditing(null)}
-            onSuccess={() => setEditing(null)}
+            onCancel={() => setCreating(false)}
+            onSuccess={() => setCreating(false)}
           />
         ) : null}
       </FormDialog>

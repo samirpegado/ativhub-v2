@@ -14,6 +14,7 @@ export type RequestRecord = {
   assetName: string | null;
   locationId: string | null;
   locationName: string | null;
+  inTreatment: boolean;
 };
 
 export type RequestsScreen = {
@@ -36,9 +37,10 @@ function countOf(value: unknown) {
   return Number.isFinite(count) ? count : 0;
 }
 
-export function requestState(item: Pick<RequestRecord, "cancelled" | "workOrderId">) {
+export function requestState(item: Pick<RequestRecord, "cancelled" | "workOrderId" | "inTreatment">) {
   if (item.workOrderId) return "approved" as const;
   if (item.cancelled) return "rejected" as const;
+  if (item.inTreatment) return "treating" as const;
   return "pending" as const;
 }
 
@@ -71,6 +73,7 @@ export function readRequestsScreen(data: unknown): RequestsScreen {
           assetName: text(row.assetName),
           locationId: text(row.locationId),
           locationName: text(row.locationName),
+          inTreatment: row.inTreatment === true,
         },
       ];
     }),

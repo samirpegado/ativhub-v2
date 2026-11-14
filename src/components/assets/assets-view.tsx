@@ -28,7 +28,7 @@ import type { AssetRecord } from "@/lib/assets/queries";
 import type { AssetCategory } from "@/lib/categories/queries";
 import type { MutationState } from "@/lib/forms/state";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
-import type { LocationOption } from "@/lib/locations/queries";
+import type { LocationRecord } from "@/lib/locations/queries";
 import { cn } from "@/lib/utils";
 
 export function AssetsView({
@@ -40,17 +40,15 @@ export function AssetsView({
   categories,
   canManageCategories,
   canEdit,
-  tenantId,
 }: {
   query: AssetListQuery;
   assets: AssetRecord[];
   total: number;
   totalAll: number;
-  locations: LocationOption[];
+  locations: LocationRecord[];
   categories: AssetCategory[];
   canManageCategories: boolean;
   canEdit: boolean;
-  tenantId: string;
 }) {
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
@@ -65,6 +63,7 @@ export function AssetsView({
   const selection = useRowSelection(canEdit ? assets.map((asset) => asset.id) : []);
   const close = useCallback(() => setEditing(null), []);
   const activeFilters = assetActiveFilterCount(query);
+  const customerByLocation = new Map(locations.map((location) => [location.id, location.customer_name]));
 
   useEffect(() => {
     setSearch(query.search);
@@ -259,7 +258,12 @@ export function AssetsView({
                           {assetStatusLabel(asset.status)}
                         </span>
                       </td>
-                      <td className={listTdClass}>{asset.locationName ?? "—"}</td>
+                      <td className={listTdClass}>
+                        <span className="block">{asset.locationName ?? "—"}</span>
+                        {asset.location_id && customerByLocation.get(asset.location_id) ? (
+                          <span className="block text-xs text-muted-foreground">{customerByLocation.get(asset.location_id)}</span>
+                        ) : null}
+                      </td>
                       <td className={listTdClass}>{asset.area ?? "—"}</td>
                       {canEdit ? (
                         <td className={`${listTdClass} sticky right-0 z-10 bg-card group-hover:bg-muted/40`} onClick={(event) => event.stopPropagation()}>
@@ -303,8 +307,6 @@ export function AssetsView({
       <AssetFiltersDialog
         open={filtersOpen}
         query={query}
-        categories={categories}
-        locations={locations}
         onOpenChange={setFiltersOpen}
         onApply={(draft) => {
           setFiltersOpen(false);
@@ -342,7 +344,6 @@ export function AssetsView({
             locations={locations}
             categories={categories}
             canManageCategories={canManageCategories}
-            tenantId={tenantId}
             onCancel={close}
             onSuccess={() => {
               close();

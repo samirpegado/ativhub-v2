@@ -18,7 +18,7 @@ export default async function AssetsPage({
   searchParams: Promise<{ q?: string; status?: string; category?: string; location?: string; page?: string }>;
 }) {
   const query = parseAssetListQuery(await searchParams);
-  const { tenantId, appUser } = await requireArea("assets", "view", { redirect: true });
+  const { appUser } = await requireArea("assets", "view", { redirect: true });
   const [screen, locations, categories] = await Promise.all([
     listAssetsScreen(query),
     listLocations(),
@@ -37,7 +37,6 @@ export default async function AssetsPage({
       categories={categories}
       canManageCategories={appUser.isAdmin}
       canEdit={can(appUser, "assets", "edit")}
-      tenantId={tenantId}
     />
   );
 }

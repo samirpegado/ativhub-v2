@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateFilterCatalog } from "@/lib/filters/catalog";
 import { requireArea } from "@/lib/auth/permissions";
 import { emptyToNull } from "@/lib/address/format";
 import { readCompanySettings } from "@/lib/company/profile";
@@ -13,6 +14,7 @@ function refresh() {
   revalidatePath("/customers");
   revalidatePath("/vendors");
   revalidatePath("/locations");
+  revalidateFilterCatalog();
 }
 
 function readPin(value: FormDataEntryValue | null, required: boolean) {

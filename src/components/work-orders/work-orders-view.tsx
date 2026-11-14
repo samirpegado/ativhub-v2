@@ -34,14 +34,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { deleteWorkOrder, deleteWorkOrders, updateWorkOrderDates } from "@/app/(app)/work-orders/actions";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
+import type { AssetPickerHit } from "@/lib/assets/picker";
 import type { LocationOption } from "@/lib/locations/queries";
 import type { MutationState } from "@/lib/forms/state";
 import type { PersonRecord, TeamRecord } from "@/lib/people/queries";
@@ -50,11 +45,7 @@ import {
   workOrderListHref,
   type WorkOrderListQuery,
 } from "@/lib/work-orders/list-params";
-import type {
-  WorkOrderCalendarItem,
-  WorkOrderPerson,
-  WorkOrderRecord,
-} from "@/lib/work-orders/queries";
+import type { WorkOrderCalendarItem, WorkOrderRecord } from "@/lib/work-orders/queries";
 import {
   workOrderIsOverdue,
   workOrderPriorityLabel,
@@ -101,6 +92,7 @@ export function WorkOrdersView({
   customers,
   canEdit,
   presetAssetId = null,
+  lockedAsset = null,
 }: {
   query: WorkOrderListQuery;
   orders: WorkOrderRecord[];
@@ -115,6 +107,7 @@ export function WorkOrdersView({
   customers: { id: string; name: string; email: string | null }[];
   canEdit: boolean;
   presetAssetId?: string | null;
+  lockedAsset?: AssetPickerHit | null;
 }) {
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
@@ -220,7 +213,6 @@ export function WorkOrdersView({
   const activeFilters = workOrderActiveFilterCount(query);
 
   return (
-    <TooltipProvider>
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
@@ -260,10 +252,12 @@ export function WorkOrdersView({
               </span>
             ) : null}
           </Button>
-          <Button className="h-9 font-semibold" onClick={() => openNew()}>
-            <Plus />
-            Ordem de serviço
-          </Button>
+          {canEdit ? (
+            <Button className="h-9 font-semibold" onClick={() => openNew()}>
+              <Plus />
+              Ordem de serviço
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -323,7 +317,9 @@ export function WorkOrdersView({
             </p>
             <p className="text-sm text-muted-foreground">
               {totalAll === 0
-                ? "Pressione o botão '+' para criar uma Ordem de Serviço"
+                ? canEdit
+                  ? "Pressione o botão '+' para criar uma Ordem de Serviço"
+                  : "As ordens aparecem aqui."
                 : "Tente outro termo ou ajuste os filtros."}
             </p>
           </div>
@@ -349,7 +345,7 @@ export function WorkOrdersView({
                       </th>
                     ),
                   )}
-                  <th className={`${listThClass} text-center`}>Ações</th>
+                  {canEdit ? <th className={`${listThClass} text-center`}>Ações</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -401,59 +397,66 @@ export function WorkOrdersView({
                       </span>
                     </td>
                     <td className={listTdClass}>
-                      <PersonAvatars people={order.assignees} />
+                      <span className="line-clamp-2 block w-40 max-w-40 break-words">
+                        {order.assignees.map((person) => person.name).join(", ") || "—"}
+                      </span>
                     </td>
                     <td className={listTdClass}>
-                      <span className="line-clamp-2 w-36 max-w-36 break-words">{order.locationName ?? "—"}</span>
+                      <span className="line-clamp-2 block w-36 max-w-36 break-words">{order.locationName ?? "—"}</span>
+                      {order.customerName ? (
+                        <span className="block w-36 max-w-36 truncate text-xs text-muted-foreground">{order.customerName}</span>
+                      ) : null}
                     </td>
                     <td className={listTdClass}>
                       <span className="line-clamp-2 w-36 max-w-36 break-words">{order.assetName ?? "—"}</span>
                     </td>
                     <td className={`${listTdClass} whitespace-nowrap`}>{formatWhen(order.dueDate)}</td>
-                    <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-primary hover:bg-primary/10 hover:text-primary"
-                          aria-label={`Responder tarefas de ${order.title}`}
-                          onClick={() => setAnswering(order)}
-                        >
-                          <ClipboardCheck className="size-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-primary hover:bg-primary/10 hover:text-primary"
-                          aria-label={`Editar ${order.title}`}
-                          onClick={() => setEditing(order)}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <form
-                          action={formAction}
-                          onSubmit={(event) => {
-                            if (!window.confirm(`Excluir a ordem "${order.title}"?`)) {
-                              event.preventDefault();
-                            }
-                          }}
-                        >
-                          <input type="hidden" name="id" value={order.id} />
+                    {canEdit ? (
+                      <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-1">
                           <Button
-                            type="submit"
+                            type="button"
                             variant="ghost"
                             size="icon-sm"
-                            disabled={pending}
-                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            aria-label={`Remover ${order.title}`}
+                            className="text-primary hover:bg-primary/10 hover:text-primary"
+                            aria-label={`Responder tarefas de ${order.title}`}
+                            onClick={() => setAnswering(order)}
                           >
-                            <Trash2 className="size-4" />
+                            <ClipboardCheck className="size-4" />
                           </Button>
-                        </form>
-                      </div>
-                    </td>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-primary hover:bg-primary/10 hover:text-primary"
+                            aria-label={`Editar ${order.title}`}
+                            onClick={() => setEditing(order)}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                          <form
+                            action={formAction}
+                            onSubmit={(event) => {
+                              if (!window.confirm(`Excluir a ordem "${order.title}"?`)) {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
+                            <input type="hidden" name="id" value={order.id} />
+                            <Button
+                              type="submit"
+                              variant="ghost"
+                              size="icon-sm"
+                              disabled={pending}
+                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              aria-label={`Remover ${order.title}`}
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </form>
+                        </div>
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
@@ -492,6 +495,7 @@ export function WorkOrdersView({
             order={editing === "new" ? undefined : editing}
             initialDueDate={editing === "new" ? initialDue : null}
             presetAssetId={editing === "new" ? presetAssetId : null}
+            lockedAsset={editing === "new" ? lockedAsset : null}
             locations={locations}
             assets={assets}
             people={people}
@@ -561,43 +565,6 @@ export function WorkOrdersView({
           setAnswering(next);
         }}
       />
-    </div>
-    </TooltipProvider>
-  );
-}
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
-
-function PersonAvatars({ people }: { people: WorkOrderPerson[] }) {
-  if (people.length === 0) return <span className="text-muted-foreground">—</span>;
-
-  return (
-    <div className="flex items-center pl-1">
-      {people.map((person) => (
-        <Tooltip key={person.id}>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              className="-ml-1 flex size-8 items-center justify-center overflow-hidden rounded-full border-2 border-card bg-muted text-[11px] font-semibold text-foreground"
-              aria-label={person.name}
-            >
-              {person.imageUrl ? (
-                // URL assinada do Storage.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={person.imageUrl} alt="" className="size-full object-cover" />
-              ) : (
-                initials(person.name)
-              )}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>{person.name}</TooltipContent>
-        </Tooltip>
-      ))}
     </div>
   );
 }

@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 
 export function FormActions({
   pending,
+  disabled = false,
   onCancel,
 }: {
   pending: boolean;
+  disabled?: boolean;
   onCancel: () => void;
 }) {
   return (
@@ -14,7 +16,7 @@ export function FormActions({
         type="submit"
         size="lg"
         className="h-9 font-semibold"
-        disabled={pending}
+        disabled={pending || disabled}
       >
         {pending ? <Loader2 className="animate-spin" /> : null}
         Salvar

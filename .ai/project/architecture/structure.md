@@ -74,18 +74,18 @@ Describe the real structural organization of the repository and the architectura
   (esta semana, últimos 15 ou 30 dias; o padrão é 30 dias). O técnico vê a OS em execução,
   a fila desse período e o cumprimento no prazo.
   `/dashboard` redireciona para `/`. A lista de ordens fica em `/work-orders`.
-  O técnico consulta as ordens sem alterar o cadastro. O clique na linha abre a página
-  `/work-orders/[id]`; o lápis continua abrindo o cadastro em modal. Os filtros (status, prioridade, tipo, local, em atraso e vencimento de/até) ficam num modal ao
-  lado de "+ Ordem de serviço". Status, prioridade e tipo são listas de múltipla escolha:
-  nenhuma opção ou todas as opções não filtram a lista. O local busca o nome no servidor. A listagem e os dados do formulário vêm da
+  O técnico consulta as ordens sem alterar o cadastro: não vê a coluna de ações nem o botão de nova ordem. O clique na linha abre a página
+  `/work-orders/[id]`. Quem edita vê o lápis, que abre o cadastro em modal, e o botão de nova ordem. Os filtros (status, prioridade, tipo, local, em atraso e vencimento de/até) ficam num modal ao
+  lado desse botão. Status, prioridade e tipo são listas de múltipla escolha:
+  nenhuma opção ou todas as opções não filtram a lista. A localização usa o catálogo já carregado, mostra o código antes do nome e o cliente abaixo. A lista também mostra o cliente abaixo da localização. Os responsáveis aparecem pelo nome, em no máximo duas linhas. A listagem e os dados do formulário vêm da
   função `work_orders_screen`, chamada no servidor com a sessão do usuário,
   com no máximo 20 ordens por página e RLS do tenant. O intervalo de vencimento
   usa o dia civil em `America/Sao_Paulo`.
   Sem filtro na URL, a lista inclui abertas, em andamento, com status Pausado e concluídas.
-  O formulário da ordem pede o cliente antes da localização e o ativo só da localização escolhida.
+  O formulário da ordem não pede cliente nem localização. O ativo é um só e se escolhe na mesma busca com filtros da preventiva; cliente e localização gravados são os do ativo. Aberto a partir do ativo, o formulário mostra esse ativo direto, sem a busca.
   Também pede responsáveis e não edita mais o trabalhador principal
-  (`work_order.primary_user_id` permanece no banco). A página da ordem aceita foto
-  além de arquivo. O calendário pede a mesma função com todas as ordens, sem esses filtros. O clique na ordem abre
+  (`work_order.primary_user_id` permanece no banco). A página da ordem aceita até 3 fotos
+  (PNG, JPG ou WebP, no máximo 2 MB). Cada foto é gravada em JPEG com o maior lado em 512 px e qualidade 0,6. O calendário pede a mesma função com todas as ordens, sem esses filtros. O clique na ordem abre
   `/work-orders/[id]`, que chama `work_order_detail()` no servidor. Toda lista em tabela deve seguir esse padrão:
   filtros, busca e paginação na RPC, com a query devolvendo os dados completos da tela.
   Localizações, ativos, pessoas, equipes e listas de verificação ainda paginam 20 itens no navegador.
@@ -103,10 +103,10 @@ Describe the real structural organization of the repository and the architectura
   Por hora, o cadastro pede o valor da hora daquele serviço e a cobrança multiplica esse valor pelas horas registradas.
   Na página da ordem, o card de tarefas vem primeiro e o botão Iniciar OS fica junto das ações principais enquanto a ordem não está concluída. Ele liga o temporizador;
   o lançamento manual e o tempo do temporizador podem ser apagados. A página também mostra peças
-  e o relatório para impressão. Relatório PDF abre a folha de impressão, no tamanho fixo de uma página. Essa folha também abre sem login: o identificador da ordem é o acesso, e só mostra essa ordem. O envio por e-mail, visível com a ordem concluída, manda um botão para essa folha pelo template WORK_ORDER_REPORT. Os arquivos ficam na coluna lateral. O nome longo é cortado com reticências. As tarefas aparecem na ordem em que foram cumpridas, com a data da resposta; as pendentes ficam no fim. Cada tarefa guarda `executed_at` e `comment`; editar a ordem preserva essa execução.
+  e o relatório para impressão. Relatório PDF abre a folha de impressão, no tamanho fixo de uma página. Essa folha também abre sem login: o identificador da ordem é o acesso, e só mostra essa ordem. O envio por e-mail, visível com a ordem concluída, manda um botão para essa folha pelo template WORK_ORDER_REPORT. As fotos ficam na coluna lateral, no máximo 3. O nome longo é cortado com reticências. As tarefas aparecem na ordem em que foram cumpridas, com a data da resposta; as pendentes ficam no fim. Cada tarefa guarda `executed_at` e `comment`; editar a ordem preserva essa execução.
   A subtarefa é um item concluído ou pendente. A tabela `work_order_update` permanece, sem tela de escrita.   A peça da ordem é buscada no servidor pelo nome, descrição ou código de barras.
   Ao lançar, o estoque baixa quando `non_stock` é falso, e remover a linha devolve a quantidade.
-- `/preventive` lista os agendamentos. `preventive_screen` recebe busca, prioridade,
+- `/preventive` lista os agendamentos, sem localização nem ativos. Um agendamento não é editado: a alteração é excluir e criar outro. `preventive_screen` recebe busca, prioridade,
   limit e offset, no máximo 20, e devolve o payload da tela. O clique abre
   `/preventive/[id]`, que chama `preventive_detail`. Cada agendamento define a recorrência (dia, semana, mês
   ou ano, pela data marcada ou pela conclusão da ordem anterior) e os dados da
@@ -124,10 +124,10 @@ Describe the real structural organization of the repository and the architectura
 - `/customers` lista clientes e `/vendors` lista fornecedores. O cadastro de
   fornecedor não pede mais valor/hora (`vendor.rate` permanece no banco). As duas telas
   usam a permissão `parties`. `/parties` redireciona: a aba antiga de
-  contratantes vai para clientes, o restante para fornecedores. `/requests` lista solicitações.
-  Pendente é a que não foi recusada e ainda não tem ordem. Quem edita pode alterar ou excluir
-  essas, inclusive em lote. Aprovar chama `approve_request` e abre o formulário da ordem criada.
-  O cabeçalho mostra um sino com a quantidade pendente para quem vê solicitações.
+  contratantes vai para clientes, o restante para fornecedores. `/requests` lista solicitações, sem coluna de ações.
+  O clique abre `/requests/[id]`, no mesmo padrão visual da ordem. Pendente é a que não foi recusada, não está em tratamento e ainda não tem ordem. Em tratamento é a mesma solicitação aberta. O ativo da solicitação é um só e se escolhe na mesma busca com filtros da preventiva. Aberto a partir do ativo, o formulário mostra esse ativo direto, sem a busca. Por enquanto toda solicitação é de serviço. Com usuário logado, ela aceita uma foto: maior lado em 512 px, JPEG com qualidade 0,6 e no máximo 2 MB. Quem edita pode alterar ou excluir
+  essas, inclusive em lote, na página da solicitação. O administrador também exclui uma solicitação já aprovada; a ordem criada permanece e deixa de apontar para a solicitação. Aprovar chama `approve_request` e abre o formulário da ordem criada.
+  O cabeçalho mostra um sino com a quantidade pendente para quem vê solicitações. Ao lado, quem vê ativos tem um QR code: a câmera lê a etiqueta e abre `/assets/[id]`.
   `/settings` (só administrador) edita os quatro papéis, as listas de verificação e as
   categorias de ativo (`category.type = ASSET`, cor oculta na tela e preservada em `category.color`), cada um na sua aba. `/checklists`
   redireciona para a aba de listas. A categoria do ativo também se cria no formulário
@@ -146,15 +146,14 @@ Describe the real structural organization of the repository and the architectura
   `public_session_asset` e `public_asset_history` não são concedidas a `anon`.
 - CRUD autenticado em `/locations` e `/assets` (lista + modal de criar/editar).
   Endereço de localização em campos separados; `address` é o texto formatado.
-  A imagem do ativo fica em `attachments/{tenant}/assets/` e o caminho em
-  `asset.image_url`. `asset.category_id` aponta para uma categoria do tipo `ASSET`.
-  O campo `asset.area` aparece como local de instalação. O clique no ativo abre
-  `/assets/[id]`. A RPC `asset_detail` devolve confiabilidade, custos e o histórico
-  de ordens paginado, no máximo 10 por página.
+  O cadastro e a edição do ativo não enviam imagem. `asset.category_id` aponta para uma categoria do tipo `ASSET`.
+  O campo `asset.area` aparece como local de instalação. Os filtros da lista seguem a ADR-0009: status é lista suspensa de múltipla escolha. Categoria e localização vêm do catálogo carregado com a aplicação. Nada marcado, ou todos os status marcados, não restringe a lista. Na lista e no filtro de local, o nome do cliente aparece abaixo da localização. O clique no ativo abre
+  `/assets/[id]`. O administrador abre Nova OS e o técnico abre Nova solicitação num modal nesta página, já com o ativo escolhido. Depois de criar, a navegação vai para o detalhe da ordem ou da solicitação. O status aparece ao lado do nome. A RPC `asset_detail` devolve confiabilidade, custos e o histórico
+  de ordens paginado, no máximo 10 por página. MTTR e MTBF acima de 24 horas aparecem em dias, horas, minutos e segundos.
   A planilha de ativos é CSV, importada e exportada na própria lista.
   A localização e a categoria da planilha são opcionais: nome existente associa, nome novo cria o cadastro, e célula vazia deixa o ativo sem esse vínculo. A categoria nova recebe uma cor aleatória.
   A ordem tem tipo (preventiva, corretiva, preditiva), cliente opcional e sinal de atraso.
   A lista filtra por localização, tipo e atraso. Datas de início e vencimento mudam em lote;
   a exclusão em lote arquiva. O relatório da ordem também sai por e-mail.
-  A preventiva guarda vários ativos em `pm_asset` e gera uma ordem para cada um.
-  O formulário pede o cliente antes da localização e só então os ativos daquela localização.
+  A preventiva guarda vários ativos em `pm_asset` e gera uma ordem para cada um. Os responsáveis da preventiva ficam em `pm_assignee` e entram na ordem em `work_order_assignee`. A página do agendamento lista cada ativo com a localização e o cliente, e as ordens geradas, 10 por página. O card da ordem não repete esses dados.
+  O novo agendamento exige prioridade, vencimento, pelo menos um responsável, pelo menos um ativo e ao menos uma tarefa. O botão Salvar só fica ativo com os campos obrigatórios preenchidos. O formulário busca os ativos no servidor e lista todos os que batem com a busca e os filtros, sem limite de quantidade. Os filtros (status, categoria e localização) ficam num modal e, ao aplicar, a lista é gerada de novo na hora. Um botão marca todos os ativos da busca e dos filtros e, com todos marcados, passa a desmarcar.

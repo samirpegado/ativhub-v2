@@ -12,15 +12,33 @@ export type AssetListQuery = {
   offset: number;
 };
 
+const STATUS_VALUES = ASSET_STATUSES.map((item) => item.value);
+
 function isAssetStatus(value: string): value is AssetStatus {
   return ASSET_STATUSES.some((item) => item.value === value);
 }
 
-function parseList<T extends string>(value: string | undefined, accept: (item: string) => item is T): T[];
-function parseList(value: string | undefined, accept: (item: string) => boolean): string[];
-function parseList(value: string | undefined, accept: (item: string) => boolean) {
+function sameSelection(left: readonly string[], right: readonly string[]) {
+  if (left.length !== right.length) return false;
+  const known = new Set(right);
+  return left.every((item) => known.has(item));
+}
+
+function parseSelection<T extends string>(
+  value: string | undefined,
+  accept: (item: string) => item is T,
+  all: readonly string[],
+): T[];
+function parseSelection(value: string | undefined, accept: (item: string) => boolean, all: readonly string[]): string[];
+function parseSelection(value: string | undefined, accept: (item: string) => boolean, all: readonly string[]) {
   if (!value) return [];
-  return [...new Set(value.split(",").map((item) => item.trim()).filter(accept))];
+  const items = [...new Set(value.split(",").map((item) => item.trim()).filter(accept))];
+  if (all.length > 0 && sameSelection(items, all)) return [];
+  return items;
+}
+
+export function narrowsAssetList(selected: string[], all: readonly string[]) {
+  return selected.length > 0 && !sameSelection(selected, all);
 }
 
 export function parseAssetListQuery(input: {
@@ -34,9 +52,9 @@ export function parseAssetListQuery(input: {
   const page = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
   return {
     search: (input.q ?? "").trim(),
-    statuses: parseList(input.status, isAssetStatus),
-    categoryIds: parseList(input.category, (item) => UUID.test(item)),
-    locationIds: parseList(input.location, (item) => UUID.test(item)),
+    statuses: parseSelection(input.status, isAssetStatus, STATUS_VALUES),
+    categoryIds: parseSelection(input.category, (item) => UUID.test(item), []),
+    locationIds: parseSelection(input.location, (item) => UUID.test(item), []),
     page,
     offset: (page - 1) * LIST_PAGE_SIZE,
   };
@@ -44,7 +62,7 @@ export function parseAssetListQuery(input: {
 
 export function assetActiveFilterCount(query: Pick<AssetListQuery, "statuses" | "categoryIds" | "locationIds">) {
   let count = 0;
-  if (query.statuses.length > 0) count += 1;
+  if (narrowsAssetList(query.statuses, STATUS_VALUES)) count += 1;
   if (query.categoryIds.length > 0) count += 1;
   if (query.locationIds.length > 0) count += 1;
   return count;
@@ -60,7 +78,7 @@ export function assetListHref(query: {
   const params = new URLSearchParams();
   const search = query.search.trim();
   if (search) params.set("q", search);
-  if (query.statuses.length > 0) params.set("status", query.statuses.join(","));
+  if (narrowsAssetList(query.statuses, STATUS_VALUES)) params.set("status", query.statuses.join(","));
   if (query.categoryIds.length > 0) params.set("category", query.categoryIds.join(","));
   if (query.locationIds.length > 0) params.set("location", query.locationIds.join(","));
   if (query.page > 1) params.set("page", String(query.page));

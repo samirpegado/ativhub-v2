@@ -30,6 +30,7 @@ export type PreventiveRecord = {
   teamName: string | null;
   primaryUserId: string | null;
   primaryUserName: string | null;
+  assigneeNames: string | null;
   tasks: PreventiveTask[];
 };
 
@@ -69,9 +70,18 @@ export type PreventiveScreen = {
   customers: { id: string; name: string }[];
 };
 
+export type PreventiveLinkedAsset = {
+  id: string;
+  name: string;
+  customId: string | null;
+  locationName: string | null;
+  customerName: string | null;
+};
+
 export type PreventiveDetail = {
   schedule: PreventiveRecord;
   workOrders: PreventiveWorkOrder[];
+  assets: PreventiveLinkedAsset[];
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -148,6 +158,7 @@ function mapSchedule(value: unknown): PreventiveRecord | null {
     teamName: text(row.teamName),
     primaryUserId: text(row.primaryUserId),
     primaryUserName: text(row.primaryUserName),
+    assigneeNames: text(row.primaryUserName),
     tasks: tasksOf(row.tasks),
   };
 }
@@ -207,6 +218,7 @@ export function readPreventiveDetail(data: unknown): PreventiveDetail {
   if (!schedule) throw new Error("Não foi possível carregar o agendamento.");
   return {
     schedule,
+    assets: [],
     workOrders: asList(detail?.workOrders).flatMap((item) => {
       const row = asRecord(item);
       const id = text(row?.id);

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { createPreventive, updatePreventive } from "@/app/(app)/preventive/actions";
+import { useActionState, useEffect, useState, type FormEvent } from "react";
+import { createPreventive } from "@/app/(app)/preventive/actions";
+import { PreventiveAssetPicker } from "@/components/preventive/preventive-asset-picker";
 import { TaskEditor } from "@/components/work-orders/task-editor";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -10,14 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field } from "@/components/forms/field";
 import { FormActions } from "@/components/forms/form-actions";
 import type { ChecklistRecord } from "@/lib/checklists/queries";
-import type { LocationOption } from "@/lib/locations/queries";
 import type { MutationState } from "@/lib/forms/state";
-import type {
-  PreventiveAsset,
-  PreventivePerson,
-  PreventiveRecord,
-  PreventiveTeam,
-} from "@/lib/preventive/queries";
+import type { PreventivePerson, PreventiveRecord, PreventiveTeam } from "@/lib/preventive/queries";
 import {
   RECURRENCE_BASES,
   RECURRENCE_TYPES,
@@ -41,9 +36,6 @@ function personLabel(person: PreventivePerson) {
 
 export function PreventiveForm({
   schedule,
-  locations,
-  assets,
-  customers,
   people,
   teams,
   checklists,
@@ -51,64 +43,45 @@ export function PreventiveForm({
   onSuccess,
 }: {
   schedule?: PreventiveRecord;
-  locations: LocationOption[];
-  assets: PreventiveAsset[];
-  customers: { id: string; name: string }[];
   people: PreventivePerson[];
   teams: PreventiveTeam[];
   checklists: ChecklistRecord[];
   onCancel: () => void;
   onSuccess: () => void;
 }) {
-  const action = schedule ? updatePreventive : createPreventive;
+  const action = createPreventive;
   const [state, formAction, pending] = useActionState<MutationState, FormData>(action, undefined);
   const [basedOn, setBasedOn] = useState<RecurrenceBase>(
     schedule?.recurrenceBasedOn === "COMPLETED_DATE" ? "COMPLETED_DATE" : "SCHEDULED_DATE",
   );
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(
-    schedule?.recurrenceType === "WEEKLY" ||
+    schedule?.recurrenceType === "DAILY" ||
+      schedule?.recurrenceType === "WEEKLY" ||
       schedule?.recurrenceType === "MONTHLY" ||
       schedule?.recurrenceType === "YEARLY"
       ? schedule.recurrenceType
-      : "DAILY",
+      : "MONTHLY",
   );
   const [days, setDays] = useState<number[]>(schedule?.daysOfWeek ?? []);
-  const savedLocation = locations.find((item) => item.id === schedule?.locationId);
-  const savedCustomerId = savedLocation?.customer_id || "";
-  const savedLocationId = savedLocation && savedLocation.customer_id === savedCustomerId ? savedLocation.id : "";
-  const savedAssetIds = (schedule?.assetIds?.length ? schedule.assetIds : schedule?.assetId ? [schedule.assetId] : []).filter(
-    (id) => {
-      const asset = assets.find((item) => item.id === id);
-      return Boolean(asset && savedLocationId && asset.location_id === savedLocationId);
-    },
-  );
-  const [customerId, setCustomerId] = useState(savedCustomerId);
-  const [locationId, setLocationId] = useState(savedLocationId);
-  const [assetIds, setAssetIds] = useState<string[]>(savedAssetIds);
+  const savedAssetIds = schedule?.assetIds?.length ? schedule.assetIds : schedule?.assetId ? [schedule.assetId] : [];
   const [tasks, setTasks] = useState<WorkOrderTask[]>(schedule?.tasks ?? []);
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [name, setName] = useState(schedule?.name ?? "");
+  const [frequency, setFrequency] = useState(String(schedule?.frequency ?? 1));
+  const [startsOn, setStartsOn] = useState(dateInput(schedule?.startsOn ?? null));
+  const [title, setTitle] = useState(schedule?.title ?? "");
+  const [priority, setPriority] = useState(
+    schedule?.priority && schedule.priority !== "NONE" ? schedule.priority : "",
+  );
+  const [dueDelay, setDueDelay] = useState(schedule?.dueDateDelay == null ? "" : String(schedule.dueDateDelay));
+  const [assigneeIds, setAssigneeIds] = useState<string[]>(schedule?.primaryUserId ? [schedule.primaryUserId] : []);
+  const [assetCount, setAssetCount] = useState(savedAssetIds.length);
 
   useEffect(() => {
     if (state?.success) onSuccess();
   }, [state, onSuccess]);
 
   const showDays = recurrenceType === "WEEKLY" && basedOn === "SCHEDULED_DATE";
-  const visibleLocations = customerId
-    ? locations.filter((location) => location.customer_id === customerId)
-    : [];
-  const visibleAssets = customerId && locationId
-    ? assets.filter((asset) => asset.location_id === locationId)
-    : [];
-
-  function changeCustomer(next: string) {
-    setCustomerId(next);
-    setLocationId("");
-    setAssetIds([]);
-  }
-
-  function changeLocation(next: string) {
-    setLocationId(next);
-    setAssetIds([]);
-  }
 
   function toggleDay(day: number) {
     setDays((current) =>
@@ -116,14 +89,54 @@ export function PreventiveForm({
     );
   }
 
+  function validate(event: FormEvent<HTMLFormElement>) {
+    const data = new FormData(event.currentTarget);
+    const assets = data.getAll("asset_ids").filter((value) => String(value).trim());
+    const assignees = data.getAll("assignee_ids").filter((value) => String(value).trim());
+    if (assignees.length === 0) {
+      event.preventDefault();
+      setClientError("Selecione pelo menos um responsável.");
+      return;
+    }
+    if (assets.length === 0) {
+      event.preventDefault();
+      setClientError("Selecione pelo menos um ativo.");
+      return;
+    }
+    if (tasks.length === 0) {
+      event.preventDefault();
+      setClientError("Adicione pelo menos uma tarefa.");
+      return;
+    }
+    setClientError(null);
+  }
+
+  const frequencyNumber = Number(frequency);
+  const dueNumber = Number(dueDelay);
+  const missing = [
+    name.trim() ? null : "nome",
+    Number.isInteger(frequencyNumber) && frequencyNumber >= 1 ? null : "a cada",
+    startsOn.trim() ? null : "começa em",
+    !showDays || days.length > 0 ? null : "dias da semana",
+    title.trim() ? null : "título",
+    priority === "LOW" || priority === "MEDIUM" || priority === "HIGH" ? null : "prioridade",
+    dueDelay.trim() && Number.isInteger(dueNumber) && dueNumber >= 0 ? null : "vencimento",
+    assigneeIds.length > 0 ? null : "responsáveis",
+    assetCount > 0 ? null : "ativos",
+    tasks.length > 0 ? null : "tarefas",
+  ].filter((item): item is string => Boolean(item));
+  const ready = missing.length === 0;
+
+  const error = clientError ?? state?.error;
+
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-4" onSubmit={validate}>
       {schedule ? <input type="hidden" name="id" value={schedule.id} /> : null}
       <input type="hidden" name="days_of_week" value={showDays ? days.join(",") : ""} />
       <input type="hidden" name="tasks_json" value={JSON.stringify(tasks)} />
-      {state?.error ? (
+      {error ? (
         <Alert variant="destructive">
-          <AlertDescription>{state.error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -134,7 +147,8 @@ export function PreventiveForm({
             id="name"
             name="name"
             required
-            defaultValue={schedule?.name}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
             placeholder="Nome deste agendamento"
             className="h-9"
             autoFocus
@@ -163,7 +177,8 @@ export function PreventiveForm({
               type="number"
               min={1}
               required
-              defaultValue={schedule?.frequency ?? 1}
+              value={frequency}
+              onChange={(event) => setFrequency(event.target.value)}
               className="h-9 w-24"
             />
             <NativeSelect
@@ -187,7 +202,8 @@ export function PreventiveForm({
             name="starts_on"
             type="date"
             required
-            defaultValue={dateInput(schedule?.startsOn ?? null)}
+            value={startsOn}
+            onChange={(event) => setStartsOn(event.target.value)}
             className="h-9"
           />
         </Field>
@@ -201,7 +217,7 @@ export function PreventiveForm({
           />
         </Field>
         {showDays ? (
-          <Field label="Nos dias" className="sm:col-span-2">
+          <Field label="Nos dias" required className="sm:col-span-2">
             <div className="flex flex-wrap gap-3">
               {WEEKDAYS.map((label, index) => (
                 <label key={label} className="flex items-center gap-2 text-sm">
@@ -225,7 +241,8 @@ export function PreventiveForm({
             id="title"
             name="title"
             required
-            defaultValue={schedule?.title}
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
             placeholder="O que precisa ser feito"
             className="h-9"
           />
@@ -238,27 +255,32 @@ export function PreventiveForm({
             rows={3}
           />
         </Field>
-        <Field label="Prioridade" htmlFor="priority">
+        <Field label="Prioridade" htmlFor="priority" required>
           <NativeSelect
             id="priority"
             name="priority"
+            required
             className="h-9"
-            defaultValue={schedule?.priority ?? "NONE"}
+            value={priority}
+            onChange={(event) => setPriority(event.target.value)}
           >
-            {WORK_ORDER_PRIORITIES.map((item) => (
+            <option value="">Selecione</option>
+            {WORK_ORDER_PRIORITIES.filter((item) => item.value !== "NONE").map((item) => (
               <option key={item.value} value={item.value}>
                 {item.label}
               </option>
             ))}
           </NativeSelect>
         </Field>
-        <Field label="Vence depois de (dias)" htmlFor="due_date_delay">
+        <Field label="Vencimento (dias depois)" htmlFor="due_date_delay" required>
           <Input
             id="due_date_delay"
             name="due_date_delay"
             type="number"
             min={0}
-            defaultValue={schedule?.dueDateDelay ?? ""}
+            required
+            value={dueDelay}
+            onChange={(event) => setDueDelay(event.target.value)}
             className="h-9"
           />
         </Field>
@@ -288,116 +310,44 @@ export function PreventiveForm({
             ))}
           </NativeSelect>
         </Field>
-        <Field label="Trabalhador principal" htmlFor="primary_user_id">
-          <NativeSelect
-            id="primary_user_id"
-            name="primary_user_id"
-            className="h-9"
-            defaultValue={schedule?.primaryUserId ?? ""}
-          >
-            <option value="">Nenhum</option>
-            {people.map((person) => (
-              <option key={person.id} value={person.id}>
-                {personLabel(person)}
-              </option>
-            ))}
-          </NativeSelect>
+        <Field label="Responsáveis" required className="sm:col-span-2">
+          {people.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma pessoa cadastrada.</p>
+          ) : (
+            <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg border bg-white p-2">
+              {people.map((person) => (
+                <label key={person.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted">
+                  <input
+                    type="checkbox"
+                    name="assignee_ids"
+                    value={person.id}
+                    className="size-4 accent-primary"
+                    checked={assigneeIds.includes(person.id)}
+                    onChange={() => {
+                      setAssigneeIds((current) =>
+                        current.includes(person.id)
+                          ? current.filter((id) => id !== person.id)
+                          : [...current, person.id],
+                      );
+                    }}
+                  />
+                  {personLabel(person)}
+                </label>
+              ))}
+            </div>
+          )}
         </Field>
-        <div className="space-y-3 rounded-lg border bg-muted/30 p-3 sm:col-span-2">
-          <div>
-            <p className="text-sm font-medium">Onde será o serviço</p>
-            <p className="text-xs text-muted-foreground">Escolha o cliente, depois a localização e, por último, um ou mais ativos.</p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="1. Cliente" htmlFor="customer_id">
-              <NativeSelect
-                id="customer_id"
-                className="h-9"
-                value={customerId}
-                onChange={(event) => changeCustomer(event.target.value)}
-              >
-                <option value="">Selecione</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
-            <Field
-              label="2. Localização"
-              htmlFor="location_id"
-              hint={customerId ? (visibleLocations.length === 0 ? "Este cliente não tem localizações." : undefined) : "Disponível depois do cliente."}
-            >
-              <NativeSelect
-                id="location_id"
-                name="location_id"
-                className="h-9"
-                value={locationId}
-                disabled={!customerId}
-                onChange={(event) => changeLocation(event.target.value)}
-              >
-                <option value="">{customerId ? "Selecione" : "Selecione o cliente"}</option>
-                {visibleLocations.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.custom_id ? `${location.custom_id} · ` : ""}
-                    {location.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
-            <Field
-              label="3. Ativos"
-              htmlFor="asset_ids"
-              className="sm:col-span-2"
-              hint={
-                !customerId
-                  ? "Disponível depois do cliente."
-                  : !locationId
-                    ? "Disponível depois da localização."
-                    : visibleAssets.length === 0
-                      ? "Esta localização não tem ativos."
-                      : "Cada ativo gera a própria ordem quando o agendamento vence."
-              }
-            >
-              <div
-                id="asset_ids"
-                className={`max-h-40 space-y-1 overflow-y-auto rounded-md border bg-white p-2 ${customerId && locationId ? "" : "opacity-50"}`}
-              >
-                {!customerId || !locationId ? (
-                  <p className="text-sm text-muted-foreground">
-                    {customerId ? "Selecione a localização." : "Selecione o cliente."}
-                  </p>
-                ) : visibleAssets.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum ativo nesta localização.</p>
-                ) : (
-                  visibleAssets.map((asset) => (
-                    <label key={asset.id} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        name="asset_ids"
-                        value={asset.id}
-                        checked={assetIds.includes(asset.id)}
-                        onChange={(event) => {
-                          setAssetIds((current) =>
-                            event.target.checked
-                              ? [...current, asset.id]
-                              : current.filter((id) => id !== asset.id),
-                          );
-                        }}
-                      />
-                      {asset.custom_id ? `${asset.custom_id} · ` : ""}
-                      {asset.name}
-                    </label>
-                  ))
-                )}
-              </div>
-            </Field>
-          </div>
-        </div>
+        <Field label="Ativos" required className="sm:col-span-2">
+          <PreventiveAssetPicker assetIds={savedAssetIds} onCountChange={setAssetCount} />
+        </Field>
       </div>
-      <TaskEditor tasks={tasks} checklists={checklists} onChange={setTasks} />
-      <FormActions pending={pending} onCancel={onCancel} />
+      <Field label="Tarefas" required>
+        <TaskEditor tasks={tasks} checklists={checklists} onChange={setTasks} />
+      </Field>
+      <FormActions pending={pending} disabled={!ready} onCancel={onCancel} />
+      {missing.length > 0 ? (
+        <p className="text-xs text-muted-foreground">Falta preencher: {missing.join(", ")}.</p>
+      ) : null}
     </form>
   );
 }

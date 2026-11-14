@@ -19,6 +19,7 @@ import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-
 import { sendWorkOrderReport } from "@/app/(app)/work-orders/report-actions";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { ASSET_STATUSES } from "@/lib/assets/status";
+import { compressWorkOrderPhoto, isWorkOrderPhotoName, WORK_ORDER_PHOTO_LIMIT } from "@/lib/images/compress-work-order-photo";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -259,37 +260,35 @@ export function WorkOrderDrawer({
   }
 
   async function onFile(file: File | null) {
-    if (!file) return;
-    const allowed = ["pdf", "png", "jpg", "jpeg", "webp", "txt", "doc", "docx", "xls", "xlsx"];
-    const fromName = file.name.includes(".") ? (file.name.split(".").pop()?.toLowerCase() ?? "") : "";
-    const fromType =
-      file.type === "image/jpeg" ? "jpg" : file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "";
-    const extension = allowed.includes(fromName) ? fromName : fromType;
-    if (!extension) {
-      setError("Envie PDF, imagem, texto ou planilha.");
+    if (!file || busy) return;
+    const photos = activity.files.filter((item) => isWorkOrderPhotoName(item.name));
+    if (photos.length >= WORK_ORDER_PHOTO_LIMIT) {
+      setError("A ordem aceita no máximo 3 fotos.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setError("O arquivo deve ter no máximo 10 MB.");
-      return;
-    }
-    const path = `${tenantId}/work-orders/${record.id}/${crypto.randomUUID()}.${extension}`;
     setBusy(true);
+    setError(null);
+    let path = "";
     const supabase = createClient();
-    const { error: uploadError } = await supabase.storage
-      .from("attachments")
-      .upload(path, file, { contentType: file.type || undefined, upsert: false });
-    if (uploadError) {
+    try {
+      const photo = await compressWorkOrderPhoto(file);
+      path = `${tenantId}/work-orders/${record.id}/${crypto.randomUUID()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("attachments")
+        .upload(path, photo, { contentType: "image/jpeg", upsert: false });
+      if (uploadError) {
+        setError("Não foi possível enviar a foto.");
+        return;
+      }
+      const result = await registerWorkOrderFile(record.id, path, photo.name);
+      if ("error" in result) await supabase.storage.from("attachments").remove([path]);
+      apply(result);
+    } catch (error) {
+      if (path) await supabase.storage.from("attachments").remove([path]);
+      setError(error instanceof Error ? error.message : "Não foi possível processar a imagem.");
+    } finally {
       setBusy(false);
-      setError("Não foi possível enviar o arquivo.");
-      return;
     }
-    const result = await registerWorkOrderFile(record.id, path, file.name.trim() || `foto.${extension}`);
-    setBusy(false);
-    if ("error" in result) {
-      await supabase.storage.from("attachments").remove([path]);
-    }
-    apply(result);
   }
 
   return (
@@ -550,12 +549,12 @@ export function WorkOrderDrawer({
               </section>
 
               <section className="space-y-2">
-                <h3 className="font-semibold">Arquivos</h3>
-                {activity.files.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum arquivo.</p>
+                <h3 className="font-semibold">Fotos</h3>
+                {activity.files.filter((file) => isWorkOrderPhotoName(file.name)).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma foto.</p>
                 ) : (
                   <ul className="space-y-2 text-sm">
-                    {activity.files.map((file) => (
+                    {activity.files.filter((file) => isWorkOrderPhotoName(file.name)).map((file) => (
                       <li key={file.id} className="flex items-center justify-between gap-2">
                         <a
                           href={file.url}
@@ -577,13 +576,14 @@ export function WorkOrderDrawer({
                     ))}
                   </ul>
                 )}
-                <div className="flex flex-wrap gap-2">
+                {activity.files.filter((file) => isWorkOrderPhotoName(file.name)).length < WORK_ORDER_PHOTO_LIMIT ? (
                   <label className="inline-flex">
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/webp"
                       capture="environment"
                       className="sr-only"
+                      disabled={busy}
                       onChange={(event) => {
                         onFile(event.target.files?.[0] ?? null);
                         event.target.value = "";
@@ -593,20 +593,7 @@ export function WorkOrderDrawer({
                       Adicionar foto
                     </span>
                   </label>
-                  <label className="inline-flex">
-                    <input
-                      type="file"
-                      className="sr-only"
-                      onChange={(event) => {
-                        onFile(event.target.files?.[0] ?? null);
-                        event.target.value = "";
-                      }}
-                    />
-                    <span className="inline-flex h-9 cursor-pointer items-center rounded-lg border px-3 text-sm font-medium">
-                      Adicionar arquivo
-                    </span>
-                  </label>
-                </div>
+                ) : null}
               </section>
             </div>
           ) : (

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateFilterCatalog } from "@/lib/filters/catalog";
 import { assetsToCsv, readAssetCsv, type AssetCsvRow } from "@/lib/assets/csv";
 import { ASSET_CATEGORY_TYPE } from "@/lib/categories/queries";
 import { requireArea } from "@/lib/auth/permissions";
@@ -198,6 +199,7 @@ export async function importAssetsCsv(csv: string): Promise<AssetImportResult> {
   if (created || updated || categoriesCreated) revalidatePath("/assets");
   if (locationsCreated) revalidatePath("/locations");
   if (categoriesCreated) revalidatePath("/settings");
+  if (locationsCreated || categoriesCreated) revalidateFilterCatalog();
   errors.sort((a, b) => a.line - b.line);
   return { created, updated, locationsCreated, categoriesCreated, errors };
 }

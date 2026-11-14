@@ -3,28 +3,20 @@
 import { useActionState, useEffect, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CalendarClock, Flag, MapPin, Pencil, Trash2, Users, Wrench } from "lucide-react";
+import { ArrowLeft, CalendarClock, Flag, Package, Trash2, Users, Wrench } from "lucide-react";
 import { deletePreventive, setPreventivePaused } from "@/app/(app)/preventive/actions";
-import { FormDialog } from "@/components/forms/form-dialog";
-import { PreventiveForm } from "@/components/preventive/preventive-form";
+import { TablePagination } from "@/components/lists/table-pagination";
 import { Button } from "@/components/ui/button";
-import type { ChecklistRecord } from "@/lib/checklists/queries";
-import type { LocationOption } from "@/lib/locations/queries";
 import type { MutationState } from "@/lib/forms/state";
-import type {
-  PreventiveAsset,
-  PreventivePerson,
-  PreventiveRecord,
-  PreventiveTeam,
-  PreventiveWorkOrder,
-} from "@/lib/preventive/queries";
+import { PREVENTIVE_PAGE_SIZE, preventiveDetailHref } from "@/lib/preventive/asset-page";
+import type { PreventiveLinkedAsset, PreventiveRecord, PreventiveWorkOrder } from "@/lib/preventive/queries";
 import {
   formatScheduleDate,
   nextRunLabel,
   recurrenceBaseLabel,
   scheduleDescription,
 } from "@/lib/preventive/schedule";
-import { taskTypeLabel } from "@/lib/work-orders/tasks";
+import { INSPECTION_ANSWERS, taskTypeLabel } from "@/lib/work-orders/tasks";
 import {
   workOrderPriorityLabel,
   workOrderStatusColor,
@@ -35,29 +27,30 @@ const whiteButton = "h-11 rounded-[10px] border border-[#cbd5e1] bg-white text-[
 
 export function PreventiveDetailView({
   schedule: initialSchedule,
+  assets,
+  assetTotal,
+  assetPage,
   workOrders,
+  workOrderTotal,
+  workOrderPage,
   canEdit,
-  editor,
 }: {
   schedule: PreventiveRecord;
+  assets: PreventiveLinkedAsset[];
+  assetTotal: number;
+  assetPage: number;
   workOrders: PreventiveWorkOrder[];
+  workOrderTotal: number;
+  workOrderPage: number;
   canEdit: boolean;
-  editor: {
-    locations: LocationOption[];
-    assets: PreventiveAsset[];
-    people: PreventivePerson[];
-    teams: PreventiveTeam[];
-    checklists: ChecklistRecord[];
-    customers: { id: string; name: string }[];
-  } | null;
 }) {
   const router = useRouter();
   const [schedule, setSchedule] = useState(initialSchedule);
-  const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [removeState, remove, removing] = useActionState<MutationState, FormData>(deletePreventive, undefined);
   const [, startRefresh] = useTransition();
+  const [paging, startPaging] = useTransition();
 
   useEffect(() => {
     setSchedule(initialSchedule);
@@ -123,11 +116,6 @@ export function PreventiveDetailView({
               <Button type="button" variant="outline" className={`${whiteButton} text-[#b42323]`} disabled={removing} onClick={removeSchedule}>
                 <Trash2 /> Excluir
               </Button>
-              {editor ? (
-                <Button type="button" className="h-11 rounded-[10px]" onClick={() => setEditing(true)}>
-                  <Pencil /> Editar
-                </Button>
-              ) : null}
             </div>
           ) : null}
         </div>
@@ -149,28 +137,107 @@ export function PreventiveDetailView({
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[2] basis-[560px] flex-col gap-5">
           <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Tarefas">
-            <h2 className="text-lg font-semibold tracking-tight">Tarefas</h2>
-            <p className="mb-[18px] text-[13px] text-[#4a5a70]">Copiadas para cada ordem gerada</p>
+            <div className="mb-[18px] flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight">Tarefas</h2>
+                <p className="text-[13px] text-[#4a5a70]">Copiadas para cada ordem gerada</p>
+              </div>
+              <span className="rounded-full bg-[#f5f7fb] px-2.5 py-1 text-xs font-semibold text-[#4a5a70]">
+                {schedule.tasks.length}
+              </span>
+            </div>
             {schedule.tasks.length === 0 ? (
-              <p className="text-sm text-[#4a5a70]">Este agendamento não tem tarefas.</p>
+              <p className="rounded-xl border border-dashed border-[#cbd5e1] px-4 py-5 text-sm text-[#4a5a70]">Este agendamento não tem tarefas.</p>
             ) : (
-              <ul className="space-y-3">
-                {schedule.tasks.map((task) => (
-                  <li key={`${task.taskType}-${task.label}`} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex size-7 flex-none items-center justify-center rounded-full border border-[#cbd5e1]" />
-                    <div>
-                      <div className="text-base font-semibold">{task.label}</div>
-                      <div className="text-sm text-[#4a5a70]">{taskTypeLabel(task.taskType)}</div>
+              <ol>
+                {schedule.tasks.map((task, index) => {
+                  const choices = task.taskType === "INSPECTION"
+                    ? INSPECTION_ANSWERS.map((item) => item.label)
+                    : task.taskType === "MULTIPLE"
+                      ? task.options
+                      : [];
+                  return (
+                    <li key={`${task.taskType}-${task.label}`} className="flex gap-3.5">
+                      <div className="flex w-7 flex-none flex-col items-center">
+                        <span className="flex size-7 items-center justify-center rounded-full bg-[#eef3fb] text-xs font-bold text-[#0b1b33]">{index + 1}</span>
+                        {index < schedule.tasks.length - 1 ? <span className="w-0.5 flex-1 bg-[#cbd5e1]" /> : null}
+                      </div>
+                      <div className={`min-w-0 flex-1 ${index < schedule.tasks.length - 1 ? "pb-5" : ""}`}>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-base font-semibold">{task.label}</span>
+                          <span className="rounded-full bg-[#f5f7fb] px-2 py-0.5 text-xs font-semibold text-[#4a5a70]">{taskTypeLabel(task.taskType)}</span>
+                        </div>
+                        {choices.length > 0 ? (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {choices.map((choice) => (
+                              <span key={choice} className="rounded-md border border-[#e9edf3] bg-[#f5f7fb] px-2 py-1 text-xs text-[#14233a]">{choice}</span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-1 text-sm text-[#4a5a70]">{taskPrompt(task.taskType)}</p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
+
+          <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Ativos">
+            <div className="mb-[18px] flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight">Ativos</h2>
+                <p className="text-[13px] text-[#4a5a70]">Cada ativo gera a própria ordem</p>
+              </div>
+              <span className="rounded-full bg-[#f5f7fb] px-2.5 py-1 text-xs font-semibold text-[#4a5a70]">{assetTotal}</span>
+            </div>
+            {assets.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-[#cbd5e1] px-4 py-5 text-sm text-[#4a5a70]">Este agendamento não tem ativos.</p>
+            ) : (
+              <ul className="divide-y divide-[#e9edf3]">
+                {assets.map((asset) => (
+                  <li key={asset.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                    <span className="flex size-9 flex-none items-center justify-center rounded-[10px] bg-[#eef3fb] text-[#0b1b33]">
+                      <Package className="size-[18px]" />
+                    </span>
+                    <div className="min-w-0">
+                      <Link href={`/assets/${asset.id}`} className="text-[15px] font-semibold hover:underline">
+                        {asset.customId ? `${asset.customId} · ${asset.name}` : asset.name}
+                      </Link>
+                      {asset.locationName ? <p className="text-sm text-[#4a5a70]">{asset.locationName}</p> : null}
+                      {asset.customerName ? <p className="text-sm text-[#4a5a70]">{asset.customerName}</p> : null}
                     </div>
                   </li>
                 ))}
               </ul>
             )}
+            {assetTotal > PREVENTIVE_PAGE_SIZE ? (
+              <div className="-mx-4 mt-2">
+                <TablePagination
+                  page={assetPage}
+                  pageSize={PREVENTIVE_PAGE_SIZE}
+                  total={assetTotal}
+                  pending={paging}
+                  buttonClassName="border-[#cbd5e1] bg-white text-[#14233a] hover:bg-white"
+                  onPageChange={(page) => {
+                    startPaging(() => {
+                      router.push(preventiveDetailHref(schedule.id, { assets: page, orders: workOrderPage }), { scroll: false });
+                    });
+                  }}
+                />
+              </div>
+            ) : null}
           </section>
 
           <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Ordens geradas">
-            <h2 className="text-lg font-semibold tracking-tight">Ordens geradas</h2>
-            <p className="mb-[18px] text-[13px] text-[#4a5a70]">As mais recentes deste agendamento</p>
+            <div className="mb-[18px] flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight">Ordens geradas</h2>
+                <p className="text-[13px] text-[#4a5a70]">As mais recentes deste agendamento</p>
+              </div>
+              <span className="rounded-full bg-[#f5f7fb] px-2.5 py-1 text-xs font-semibold text-[#4a5a70]">{workOrderTotal}</span>
+            </div>
             {workOrders.length === 0 ? (
               <p className="text-sm text-[#4a5a70]">Nenhuma ordem gerada ainda.</p>
             ) : (
@@ -191,6 +258,22 @@ export function PreventiveDetailView({
                 ))}
               </ul>
             )}
+            {workOrderTotal > PREVENTIVE_PAGE_SIZE ? (
+              <div className="-mx-4 mt-2">
+                <TablePagination
+                  page={workOrderPage}
+                  pageSize={PREVENTIVE_PAGE_SIZE}
+                  total={workOrderTotal}
+                  pending={paging}
+                  buttonClassName="border-[#cbd5e1] bg-white text-[#14233a] hover:bg-white"
+                  onPageChange={(page) => {
+                    startPaging(() => {
+                      router.push(preventiveDetailHref(schedule.id, { assets: assetPage, orders: page }), { scroll: false });
+                    });
+                  }}
+                />
+              </div>
+            ) : null}
           </section>
         </div>
 
@@ -198,10 +281,8 @@ export function PreventiveDetailView({
           <h2 className="text-lg font-semibold">Ordem que será criada</h2>
           <Info icon={<Wrench className="size-[18px]" />} label="Título" value={schedule.title} />
           {schedule.description ? <p className="mt-2 text-sm text-[#4a5a70]">{schedule.description}</p> : null}
-          <Info icon={<MapPin className="size-[18px]" />} label="Localização" value={schedule.locationName ?? "—"} />
-          <Info icon={<Wrench className="size-[18px]" />} label="Ativos" value={schedule.assetName ?? "—"} />
           <Info icon={<Users className="size-[18px]" />} label="Equipe" value={schedule.teamName ?? "—"} />
-          <Info icon={<Users className="size-[18px]" />} label="Trabalhador" value={schedule.primaryUserName ?? "—"} />
+          <Info icon={<Users className="size-[18px]" />} label="Responsáveis" value={schedule.assigneeNames ?? "—"} />
           <Info
             icon={<CalendarClock className="size-[18px]" />}
             label="Duração estimada"
@@ -211,26 +292,15 @@ export function PreventiveDetailView({
         </section>
       </div>
 
-      {editor ? (
-        <FormDialog open={editing} onOpenChange={setEditing} title="Editar agendamento" description={schedule.customId ?? undefined}>
-          <PreventiveForm
-            schedule={schedule}
-            locations={editor.locations}
-            assets={editor.assets}
-            customers={editor.customers}
-            people={editor.people}
-            teams={editor.teams}
-            checklists={editor.checklists}
-            onCancel={() => setEditing(false)}
-            onSuccess={() => {
-              setEditing(false);
-              startRefresh(() => router.refresh());
-            }}
-          />
-        </FormDialog>
-      ) : null}
     </div>
   );
+}
+
+function taskPrompt(taskType: string) {
+  if (taskType === "NUMBER") return "O técnico informa um número na ordem.";
+  if (taskType === "TEXT") return "O técnico escreve a resposta na ordem.";
+  if (taskType === "SUBTASK") return "O técnico marca a tarefa como concluída.";
+  return "Respondida em cada ordem gerada.";
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
