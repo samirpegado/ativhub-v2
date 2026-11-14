@@ -15,6 +15,7 @@ import {
   statusTimestamps,
   type WorkOrderStatus,
 } from "@/lib/work-orders/status";
+import { workOrderCompletionBlock } from "@/lib/work-orders/completion";
 import { parseTaskList, type WorkOrderTask } from "@/lib/work-orders/tasks";
 
 function refreshOrders() {
@@ -23,6 +24,15 @@ function refreshOrders() {
   revalidatePath("/work-orders/[id]", "page");
   revalidatePath("/profile");
   revalidatePath("/assets");
+}
+
+function readServiceAmount(mode: string, value: FormDataEntryValue | null) {
+  if (mode === "NONE") return null;
+  const amount = parseMoney(value);
+  if (amount == null) {
+    throw new Error(mode === "HOURLY" ? "Informe o valor da hora." : "Informe o valor do serviço.");
+  }
+  return amount;
 }
 
 function parseDateTime(value: FormDataEntryValue | null, label: string) {
@@ -125,12 +135,11 @@ async function readFields(
       "Data de início",
     ),
     estimated_duration: parseDuration(formData.get("estimated_duration")),
-    required_signature: formData.get("required_signature") === "on",
     location_id: locationId,
     asset_id: assetId,
     team_id: teamId,
     billing_mode: billingMode,
-    service_amount: billingMode === "FIXED" ? (parseMoney(formData.get("service_amount")) ?? 0) : null,
+    service_amount: readServiceAmount(billingMode, formData.get("service_amount")),
     assigneeIds: readIds(formData, "assignee_ids"),
     tasks: readTasks(formData),
     assetStatus: String(formData.get("asset_status") ?? ""),
@@ -233,6 +242,9 @@ export async function createWorkOrder(
   try {
     const fields = await readFields(formData, supabase, tenantId);
     const { assigneeIds, tasks, assetStatus, assetStatusAt, status, ...columns } = fields;
+    if (status === "COMPLETE") {
+      throw new Error("Registre um tempo de mão de obra e execute todas as tarefas antes de concluir a ordem.");
+    }
     const stamps = statusTimestamps({
       next: status,
       previousStatus: "OPEN",
@@ -323,6 +335,10 @@ export async function updateWorkOrder(
     const previousStatus = isWorkOrderStatus(current.status)
       ? current.status
       : null;
+    if (status === "COMPLETE" && previousStatus !== "COMPLETE") {
+      const block = await workOrderCompletionBlock(supabase, id);
+      if (block) throw new Error(block);
+    }
     const stamps = statusTimestamps({
       next: status as WorkOrderStatus,
       previousStatus,

@@ -5,7 +5,7 @@ import { requireArea } from "@/lib/auth/permissions";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function sendWorkOrderReport(workOrderId: string, to: string, recipientName: string) {
-  const { supabase } = await requireArea("work_orders", "edit");
+  const { supabase } = await requireArea("work_orders", "view");
   const email = to.trim().toLowerCase();
   const name = recipientName.trim();
   if (!EMAIL.test(email)) return { error: "Informe um e-mail válido." };

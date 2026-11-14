@@ -71,11 +71,17 @@ function printHtml(html: string) {
 export function printPublicWorkOrderReport(report: PublicReport) {
   const { order } = report;
   const partsCost = report.parts.reduce((sum, part) => sum + part.cost * part.quantity, 0);
+  const hours = report.labors.reduce((sum, labor) => sum + labor.durationSeconds / 3600, 0);
   const laborCost = report.labors.reduce(
     (sum, labor) => sum + (labor.durationSeconds / 3600) * (labor.hourlyRate ?? 0),
     0,
   );
-  const service = order.billingMode === "FIXED" ? order.serviceAmount ?? 0 : laborCost;
+  const service =
+    order.billingMode === "FIXED"
+      ? order.serviceAmount ?? 0
+      : order.billingMode === "HOURLY" && order.serviceAmount != null
+        ? Math.round(hours * order.serviceAmount * 100) / 100
+        : laborCost;
   const rows = [
     ["Empresa", report.companyName || "—"],
     ...(order.customerName

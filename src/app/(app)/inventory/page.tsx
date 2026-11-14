@@ -21,7 +21,7 @@ export default async function InventoryPage({
 }) {
   const params = await searchParams;
   const query = parseInventoryQuery(params);
-  const { tenantId, appUser } = await requireArea("inventory", "view", { redirect: true });
+  const { appUser } = await requireArea("inventory", "view", { redirect: true });
   const canEdit = can(appUser, "inventory", "edit");
 
   if (query.sets) {
@@ -33,7 +33,6 @@ export default async function InventoryPage({
     return (
       <InventoryView
         query={query}
-        tenantId={tenantId}
         canEdit={canEdit}
         sets={screen.sets}
         setTotal={screen.total}
@@ -52,7 +51,6 @@ export default async function InventoryPage({
   return (
     <InventoryView
       query={query}
-      tenantId={tenantId}
       canEdit={canEdit}
       parts={screen.parts}
       total={screen.total}

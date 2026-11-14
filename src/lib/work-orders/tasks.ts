@@ -38,7 +38,7 @@ export function taskAnswerLabel(task: Pick<WorkOrderTask, "taskType" | "value">)
     if (subtaskDone(task.value)) return "Concluída";
     if (task.value === "OPEN") return "Aberto";
     if (task.value === "IN_PROGRESS") return "Em andamento";
-    if (task.value === "ON_HOLD") return "Em espera";
+    if (task.value === "ON_HOLD") return "Pausado";
     return task.value;
   }
   if (task.taskType === "INSPECTION") {

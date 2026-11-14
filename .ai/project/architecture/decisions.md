@@ -11,6 +11,13 @@ Use this file as a lightweight ADR log.
 - **Decision**: `TODO`
 - **Consequences**: `TODO`
 
+### ADR-0009 - Filtros de lista
+
+- **Status**: accepted
+- **Context**: Filtros em checkbox ocupam o modal e não escalam quando a opção não é um conjunto fixo, como localizações.
+- **Decision**: O padrão do sistema é a lista suspensa de múltipla escolha. Nada selecionado mostra todos os registros. Todas as opções selecionadas também mostram todos: a URL omite o parâmetro e a RPC recebe nulo. Conjuntos fixos (status, prioridade, tipo) usam as opções locais. Conjuntos variáveis (local e equivalentes) buscam no servidor conforme o texto digitado e permitem marcar vários resultados, sem carregar o catálogo inteiro no modal.
+- **Consequences**: Novos filtros de lista seguem essa regra. Uma seleção parcial é o único caso que restringe a consulta.
+
 ### ADR-0008 - Seleção em massa no cliente
 
 - **Status**: accepted

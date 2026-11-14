@@ -36,7 +36,6 @@ function formatWhen(value: string) {
 
 export function InventoryView({
   query,
-  tenantId,
   canEdit = true,
   parts = [],
   total = 0,
@@ -47,7 +46,6 @@ export function InventoryView({
   partOptions = [],
 }: {
   query: InventoryListQuery;
-  tenantId: string;
   canEdit?: boolean;
   parts?: PartRecord[];
   total?: number;
@@ -259,7 +257,7 @@ export function InventoryView({
             <table className="w-full min-w-[1080px] text-left text-sm">
               <thead className="bg-muted">
                 <tr className="text-muted-foreground">
-                    {["Nome", "Custo", "Quantidade", "Código de barras", "Área", "Descrição"].map(
+                    {["Nome", "Valor", "Quantidade", "Código de barras", "Descrição"].map(
                       (header) => (
                         <th key={header} className={listThClass}>
                           {header}
@@ -283,7 +281,6 @@ export function InventoryView({
                       {isLowStock(part) ? " · baixo" : ""}
                     </td>
                     <td className={listTdClass}>{part.barcode ?? "—"}</td>
-                    <td className={listTdClass}>{part.area ?? "—"}</td>
                     <td className={`${listTdClass} max-w-xs truncate`}>{part.description ?? "—"}</td>
                     <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
                       {canEdit ? (
@@ -323,7 +320,6 @@ export function InventoryView({
           <PartForm
             key={editingPart === "new" ? "new" : editingPart.id}
             part={editingPart === "new" ? undefined : editingPart}
-            tenantId={tenantId}
             onCancel={() => setEditingPart(null)}
             onSuccess={() => setEditingPart(null)}
           />

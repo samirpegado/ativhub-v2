@@ -315,13 +315,26 @@ export function WorkOrderForm({
             ))}
           </NativeSelect>
         </Field>
+        {billingMode === "HOURLY" ? (
+          <Field label="Valor da hora" htmlFor="hourly_amount" required>
+            <CurrencyInput
+              key="hourly-amount"
+              id="hourly_amount"
+              name="service_amount"
+              required
+              defaultValue={order?.billingMode === "HOURLY" ? order.serviceAmount : null}
+              className="h-9"
+            />
+          </Field>
+        ) : null}
         {billingMode === "FIXED" ? (
           <Field label="Valor do serviço" htmlFor="service_amount" required>
             <CurrencyInput
+              key="fixed-amount"
               id="service_amount"
               name="service_amount"
               required
-              defaultValue={order?.serviceAmount}
+              defaultValue={order?.billingMode === "FIXED" ? order.serviceAmount : null}
               className="h-9"
             />
           </Field>
@@ -375,15 +388,6 @@ export function WorkOrderForm({
             </div>
           )}
         </Field>
-        <label className="flex items-center gap-2 text-sm sm:col-span-2">
-          <input
-            type="checkbox"
-            name="required_signature"
-            defaultChecked={order?.requiredSignature}
-            className="size-4 accent-primary"
-          />
-          Exige assinatura na conclusão
-        </label>
       </div>
       <FormActions pending={pending} onCancel={onCancel} />
     </form>

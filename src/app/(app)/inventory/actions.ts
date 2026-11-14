@@ -51,11 +51,9 @@ function readPartFields(formData: FormData) {
     description: emptyToNull(formData.get("description")),
     cost: parseMoney(formData.get("cost")) ?? 0,
     quantity: parseQuantity(formData.get("quantity"), "Quantidade"),
-    min_quantity: parseQuantity(formData.get("min_quantity"), "Quantidade mínima"),
     non_stock: formData.get("non_stock") === "on",
     unit: emptyToNull(formData.get("unit")),
     bar_code: emptyToNull(formData.get("bar_code")),
-    area: emptyToNull(formData.get("area")),
   };
 }
 

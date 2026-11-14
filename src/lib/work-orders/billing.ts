@@ -22,9 +22,13 @@ export function serviceCharge(
 ) {
   if (order.billingMode === "FIXED") return order.serviceAmount ?? 0;
   if (order.billingMode !== "HOURLY") return 0;
-  const labor = activity.labors.reduce(
-    (sum, item) => sum + (item.durationSeconds / 3600) * (item.hourlyRate ?? 0),
-    0,
-  );
-  return Math.round(labor * 100) / 100;
+  const hours = activity.labors.reduce((sum, item) => sum + item.durationSeconds / 3600, 0);
+  if (order.serviceAmount == null) {
+    const labor = activity.labors.reduce(
+      (sum, item) => sum + (item.durationSeconds / 3600) * (item.hourlyRate ?? 0),
+      0,
+    );
+    return Math.round(labor * 100) / 100;
+  }
+  return Math.round(hours * order.serviceAmount * 100) / 100;
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardCheck, FileText, Loader2, Timer, Trash2 } from "lucide-react";
+import { ClipboardCheck, Loader2, Timer, Trash2 } from "lucide-react";
+import { OpenWorkOrderReportButton } from "@/components/work-orders/open-work-order-report-button";
 import {
   deleteWorkOrderFile,
   deleteWorkOrderLabor,
@@ -15,7 +16,6 @@ import {
 } from "@/app/(app)/work-orders/activity-actions";
 import { WorkOrderLaborDialog } from "@/components/work-orders/work-order-labor-dialog";
 import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-dialog";
-import { printWorkOrderReport } from "@/components/work-orders/work-order-report";
 import { sendWorkOrderReport } from "@/app/(app)/work-orders/report-actions";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { ASSET_STATUSES } from "@/lib/assets/status";
@@ -127,7 +127,6 @@ export function WorkOrderDrawer({
   const [now, setNow] = useState(() => Date.now());
   const [partsOpen, setPartsOpen] = useState(false);
   const [laborOpen, setLaborOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [assetCloseOpen, setAssetCloseOpen] = useState(false);
   const [assetStatusValue, setAssetStatusValue] = useState("OPERATIONAL");
   const [assetStatusAt, setAssetStatusAt] = useState("");
@@ -154,7 +153,6 @@ export function WorkOrderDrawer({
         return;
       }
       setActivity(result.activity);
-      setLogoUrl(result.logoUrl ?? null);
       if (result.order) {
         setLoaded(result.order);
         setStatus(result.order.status);
@@ -353,15 +351,7 @@ export function WorkOrderDrawer({
               {busy ? <Loader2 className="animate-spin" /> : <Timer />}
               {running ? "Temporizador em execução" : "Executar temporizador"} · {timerLabel}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9"
-              onClick={() => printWorkOrderReport(record, activity, logoUrl)}
-            >
-              <FileText />
-              Relatório PDF
-            </Button>
+            <OpenWorkOrderReportButton workOrderId={record.id} className="h-9" />
             <Button
               type="button"
               variant="outline"
@@ -628,8 +618,8 @@ export function WorkOrderDrawer({
     <FormDialog
       open={mailOpen}
       onOpenChange={setMailOpen}
-      title="Enviar relatório"
-      description="O e-mail leva o resumo da ordem em HTML. O PDF continua na impressão."
+      title="Enviar por e-mail"
+      description="O destinatário recebe um botão para abrir esta ordem, sem precisar entrar no sistema."
     >
       <form
         className="space-y-3"
@@ -649,14 +639,13 @@ export function WorkOrderDrawer({
         <Input placeholder="Nome" value={mailName} onChange={(event) => setMailName(event.target.value)} className="h-9" />
         <Input type="email" required placeholder="E-mail" value={mailTo} onChange={(event) => setMailTo(event.target.value)} className="h-9" />
         <div className="flex justify-end">
-          <Button type="submit" disabled={mailPending}>Enviar</Button>
+          <Button type="submit" disabled={mailPending}>{mailPending ? <Loader2 className="animate-spin" /> : null}Enviar</Button>
         </div>
       </form>
     </FormDialog>
     <WorkOrderPartsDialog
       open={partsOpen}
       workOrderId={record.id}
-      options={activity.partOptions}
       onOpenChange={setPartsOpen}
       onAdded={(next) => apply({ activity: next })}
     />

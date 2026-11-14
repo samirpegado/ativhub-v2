@@ -64,6 +64,14 @@ export function formatDuration(totalSeconds: number) {
   return `${hours}h ${String(minutes).padStart(2, "0")}m`;
 }
 
+export function formatDurationClock(totalSeconds: number) {
+  const total = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  return `${hours}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+}
+
 export function liveDuration(timer: WorkOrderTimer | null, now: number) {
   if (!timer) return 0;
   if (!timer.startedAt) return timer.durationSeconds;

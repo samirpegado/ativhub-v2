@@ -75,13 +75,13 @@ Describe the real structural organization of the repository and the architectura
   a fila desse período e o cumprimento no prazo.
   `/dashboard` redireciona para `/`. A lista de ordens fica em `/work-orders`.
   O técnico consulta as ordens sem alterar o cadastro. O clique na linha abre a página
-  `/work-orders/[id]`; o lápis continua abrindo o cadastro em modal. Os filtros (status,
-  prioridade, tipo, local, em atraso e vencimento de/até) ficam num modal ao
-  lado de "+ Ordem de serviço". A listagem e os dados do formulário vêm da
+  `/work-orders/[id]`; o lápis continua abrindo o cadastro em modal. Os filtros (status, prioridade, tipo, local, em atraso e vencimento de/até) ficam num modal ao
+  lado de "+ Ordem de serviço". Status, prioridade e tipo são listas de múltipla escolha:
+  nenhuma opção ou todas as opções não filtram a lista. O local busca o nome no servidor. A listagem e os dados do formulário vêm da
   função `work_orders_screen`, chamada no servidor com a sessão do usuário,
   com no máximo 20 ordens por página e RLS do tenant. O intervalo de vencimento
   usa o dia civil em `America/Sao_Paulo`.
-  Sem filtro na URL, a lista inclui abertas, em andamento, em espera e concluídas.
+  Sem filtro na URL, a lista inclui abertas, em andamento, com status Pausado e concluídas.
   O formulário da ordem pede o cliente antes da localização e o ativo só da localização escolhida.
   Também pede responsáveis e não edita mais o trabalhador principal
   (`work_order.primary_user_id` permanece no banco). A página da ordem aceita foto
@@ -90,20 +90,22 @@ Describe the real structural organization of the repository and the architectura
   filtros, busca e paginação na RPC, com a query devolvendo os dados completos da tela.
   Localizações, ativos, pessoas, equipes e listas de verificação ainda paginam 20 itens no navegador.
   Ativos, ordens e preventivas marcam os registros da página e excluem o lote por server action.
-  A aba Calendário mostra o mês em grade simples. A ordem entra no dia do início estimado,
-  ou do vencimento quando não há início, com a sigla do tipo. O clique na ordem abre o detalhe;
-  um dia vazio abre uma ordem nova com esse vencimento. Concluir grava `completed_by`/`completed_on`; a primeira
+  A aba Calendário mostra dia, semana e mês. A ordem entra no dia do início estimado,
+  ou do vencimento quando não há início, com a sigla do tipo. No dia e na semana, o início estimado vira horário e a duração estimada define o tamanho. O clique no dia lista as ordens dele abaixo do calendário; o clique na ordem abre o detalhe. Concluir grava `completed_by`/`completed_on`; a primeira
   saída de `OPEN` (exceto para `ON_HOLD`) grava `first_time_to_react`.
+  Iniciar o temporizador passa a ordem para em andamento e pausar passa para pausada.
+  O técnico conclui por um botão próprio. A ordem só pode ser concluída com tempo de mão de obra registrado e todas as tarefas executadas.
+  Concluída, a ordem não aceita tempo, tarefas nem peças até um gestor alterar o status. O gestor troca o status num modal.
   As tarefas pertencem à ordem. Uma lista nomeada (`checklist`) guarda uma
   cópia reutilizável: ao escolhê-la, as tarefas entram na ordem sem vínculo
   permanente com o modelo. Os modelos ficam em Configurações; `/checklists`
   redireciona para lá. A ordem pode ser sem cobrança, por hora ou valor fixo.
-  O clique
-  na ordem abre um painel com status, temporizador, mão de obra (lançamento manual
-  e o tempo do temporizador, que pode ser apagado), peças usadas, arquivos, relatório para impressão e a aba
-  Timeline. Cada tarefa guarda `executed_at` e `comment`; editar a ordem preserva essa execução.
-  A subtarefa é um item concluído ou pendente. A tabela `work_order_update` permanece, sem tela de escrita. A peça lançada vem do inventário: o estoque baixa, exceto quando
-  a peça não controla estoque, e remover a linha devolve a quantidade.
+  Por hora, o cadastro pede o valor da hora daquele serviço e a cobrança multiplica esse valor pelas horas registradas.
+  Na página da ordem, o card de tarefas vem primeiro e o botão Iniciar OS fica junto das ações principais enquanto a ordem não está concluída. Ele liga o temporizador;
+  o lançamento manual e o tempo do temporizador podem ser apagados. A página também mostra peças
+  e o relatório para impressão. Relatório PDF abre a folha de impressão, no tamanho fixo de uma página. Essa folha também abre sem login: o identificador da ordem é o acesso, e só mostra essa ordem. O envio por e-mail, visível com a ordem concluída, manda um botão para essa folha pelo template WORK_ORDER_REPORT. Os arquivos ficam na coluna lateral. O nome longo é cortado com reticências. As tarefas aparecem na ordem em que foram cumpridas, com a data da resposta; as pendentes ficam no fim. Cada tarefa guarda `executed_at` e `comment`; editar a ordem preserva essa execução.
+  A subtarefa é um item concluído ou pendente. A tabela `work_order_update` permanece, sem tela de escrita.   A peça da ordem é buscada no servidor pelo nome, descrição ou código de barras.
+  Ao lançar, o estoque baixa quando `non_stock` é falso, e remover a linha devolve a quantidade.
 - `/preventive` lista os agendamentos. `preventive_screen` recebe busca, prioridade,
   limit e offset, no máximo 20, e devolve o payload da tela. O clique abre
   `/preventive/[id]`, que chama `preventive_detail`. Cada agendamento define a recorrência (dia, semana, mês

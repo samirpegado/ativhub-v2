@@ -37,7 +37,7 @@ import { FormDialog } from "@/components/forms/form-dialog";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { WorkOrderLaborDialog } from "@/components/work-orders/work-order-labor-dialog";
 import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-dialog";
-import { printWorkOrderReport } from "@/components/work-orders/work-order-report";
+import { OpenWorkOrderReportButton } from "@/components/work-orders/open-work-order-report-button";
 import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
 import { ASSET_STATUSES } from "@/lib/assets/status";
 import { Button } from "@/components/ui/button";
@@ -54,9 +54,11 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { formatQuantity } from "@/lib/inventory/format";
 import { formatBrl } from "@/lib/money/brl";
 import { partsTotal, serviceCharge } from "@/lib/work-orders/billing";
+import { workOrderCompleteBlock } from "@/lib/work-orders/completion";
 import { createClient } from "@/lib/supabase/client";
 import {
   formatDuration,
+  formatDurationClock,
   liveDuration,
   type WorkOrderActivity,
   type WorkOrderLabor,
@@ -83,14 +85,12 @@ const STEPS = [
 export function WorkOrderDetail({
   order: initialOrder,
   activity: initialActivity,
-  logoUrl,
   tenantId,
   canEdit,
   editor,
 }: {
   order: WorkOrderRecord;
   activity: WorkOrderActivity;
-  logoUrl: string | null;
   tenantId: string;
   canEdit: boolean;
   editor: WorkOrderEditorData | null;
@@ -111,6 +111,8 @@ export function WorkOrderDetail({
   const [mailName, setMailName] = useState("");
   const [mailError, setMailError] = useState<string | null>(null);
   const [mailPending, startMail] = useTransition();
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [draftStatus, setDraftStatus] = useState(initialOrder.status);
   const [assetCloseOpen, setAssetCloseOpen] = useState(false);
   const [assetStatusValue, setAssetStatusValue] = useState("OPERATIONAL");
   const [assetStatusAt, setAssetStatusAt] = useState("");
@@ -129,11 +131,17 @@ export function WorkOrderDetail({
   }, [activity.timer?.startedAt, activity.labors]);
 
   const running = Boolean(activity.timer?.startedAt);
-  const timerLabel = formatDuration(liveDuration(activity.timer, now));
+  const timerLabel = formatDurationClock(liveDuration(activity.timer, now));
   const laborTotal = activity.labors.reduce((sum, labor) => sum + laborDuration(labor, now), 0);
   const answered = order.tasks.filter((task) => task.value).length;
+  const displayTasks = [...order.tasks].sort((left, right) => {
+    const leftAt = left.executedAt ? Date.parse(left.executedAt) : Number.POSITIVE_INFINITY;
+    const rightAt = right.executedAt ? Date.parse(right.executedAt) : Number.POSITIVE_INFINITY;
+    return leftAt - rightAt;
+  });
   const due = splitWhen(order.dueDate);
-  const step = status === "COMPLETE" ? 2 : status === "OPEN" ? 0 : 1;
+  const closed = status === "COMPLETE";
+  const step = closed ? 2 : status === "OPEN" ? 0 : 1;
   const charge = order.billingMode === "NONE" ? null : serviceCharge(order, activity);
   const partsValue = partsTotal(activity.parts);
 
@@ -166,7 +174,21 @@ export function WorkOrderDetail({
     router.refresh();
   }
 
+  const completeBlock = workOrderCompleteBlock({
+    labors: activity.labors,
+    tasks: order.tasks,
+  });
+
+  function openStatus() {
+    setDraftStatus(status);
+    setStatusOpen(true);
+  }
+
   async function changeStatus(next: string) {
+    if (next === "COMPLETE" && completeBlock) {
+      setError(completeBlock);
+      return;
+    }
     if (next === "COMPLETE" && order.assetId && next !== order.status) {
       setAssetStatusValue("OPERATIONAL");
       setAssetStatusAt(toDatetimeLocal(new Date().toISOString()));
@@ -229,22 +251,35 @@ export function WorkOrderDetail({
             {order.description ? <p className="mt-1.5 text-base text-[#4a5a70]">{order.description}</p> : null}
           </div>
           <div className="flex flex-wrap gap-2.5">
-            <Button type="button" variant="outline" className={whiteButton} onClick={() => printWorkOrderReport(order, activity, logoUrl)}>
-              <FileText /> Relatório PDF
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className={whiteButton}
-              onClick={() => {
-                setMailTo(order.customerEmail ?? "");
-                setMailName(order.customerName ?? "");
-                setMailError(null);
-                setMailOpen(true);
-              }}
-            >
-              <Mail /> Enviar por e-mail
-            </Button>
+            {closed ? null : (
+              <Button type="button" className="h-11 rounded-[10px] bg-[#008300] text-white hover:bg-[#006b00]" disabled={busy} onClick={() => { setBusy(true); void toggleWorkOrderTimer(order.id).then((result) => { setBusy(false); apply(result); }); }}>
+                {busy ? <Loader2 className="animate-spin" /> : running ? (
+                  <span className="relative flex size-2.5" aria-hidden>
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-white opacity-75" />
+                    <span className="relative inline-flex size-2.5 rounded-full bg-white" />
+                  </span>
+                ) : <Play />}
+                {running ? `Pausar · ${timerLabel}` : "Iniciar OS"}
+              </Button>
+            )}
+            {closed ? (
+              <>
+                <OpenWorkOrderReportButton workOrderId={order.id} className={whiteButton} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={whiteButton}
+                  onClick={() => {
+                    setMailTo(order.customerEmail ?? "");
+                    setMailName(order.customerName ?? "");
+                    setMailError(null);
+                    setMailOpen(true);
+                  }}
+                >
+                  <Mail /> Enviar por e-mail
+                </Button>
+              </>
+            ) : null}
             {canEdit && editor ? (
               <Button type="button" className="h-11 rounded-[10px]" onClick={() => setEditing(true)}>
                 <Pencil /> Editar
@@ -260,64 +295,70 @@ export function WorkOrderDetail({
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Andamento</h2>
-            <p className="text-[13px] text-[#4a5a70]">Em que etapa a ordem está</p>
           </div>
-          {canEdit ? (
-            <NativeSelect className="h-11 min-w-[200px] [&_select]:h-11 [&_select]:rounded-[10px] [&_select]:border-[#cbd5e1] [&_select]:bg-white" value={status} disabled={busy} aria-label={`Alterar status. Status atual: ${workOrderStatusLabel(status)}`} onChange={(event) => changeStatus(event.target.value)}>
-              {WORK_ORDER_STATUSES.map((item) => (
-                <option key={item.value} value={item.value}>{item.label}</option>
-              ))}
-            </NativeSelect>
-          ) : (
-            <span className="inline-flex h-11 items-center gap-2.5 rounded-[10px] border border-[#cbd5e1] bg-white px-4 text-sm font-semibold">
-              <span className="size-2.5 rounded-full" style={{ background: workOrderStatusColor(status) }} />
-              {workOrderStatusLabel(status)}
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {canEdit ? (
+              <Button type="button" variant="outline" className={`${whiteButton} w-fit`} disabled={busy} onClick={openStatus}>
+                <span className="size-2.5 rounded-full" style={{ background: workOrderStatusColor(status) }} />
+                {workOrderStatusLabel(status)}
+              </Button>
+            ) : (
+              <span className="inline-flex h-11 items-center gap-2.5 rounded-[10px] border border-[#cbd5e1] bg-white px-4 text-sm font-semibold">
+                <span className="size-2.5 rounded-full" style={{ background: workOrderStatusColor(status) }} />
+                {workOrderStatusLabel(status)}
+              </span>
+            )}
+            {!canEdit && !closed ? (
+              <Button type="button" className="h-11 rounded-[10px]" disabled={busy || Boolean(completeBlock)} onClick={() => { setBusy(true); void completeWorkOrder(order.id).then((result) => { setBusy(false); apply(result); }); }}>
+                Concluir OS
+              </Button>
+            ) : null}
+          </div>
         </div>
+        {!canEdit && !closed && completeBlock ? <p className="-mt-3 mb-4 text-sm text-[#4a5a70]">{completeBlock}</p> : null}
         <div className="mx-auto mb-7 flex max-w-[760px] items-start" role="group" aria-label="Etapas da OS">
           {STEPS.map((item, index) => (
             <div key={item.status} className="contents">
-              {index > 0 ? <div className="mt-[15px] h-[3px] min-w-4 flex-1 rounded-sm" style={{ background: index <= step ? "#008300" : "#e9edf3" }} /> : null}
-              <div className="flex w-[130px] flex-none flex-col items-center gap-2 text-center">
-                <span className={`flex size-8 items-center justify-center rounded-full ${index <= step ? "bg-[#008300] text-white" : "border border-[#cbd5e1] text-[#5b6b80]"} ${index === step ? "shadow-[0_0_0_5px_rgba(0,131,0,0.18)]" : ""}`}>
-                  {index < step || status === "COMPLETE" ? <Check className="size-[18px]" strokeWidth={3} /> : <span className="size-2 rounded-full bg-current" />}
+              {index > 0 ? <div className="mt-3.5 h-[3px] w-3 shrink-0 rounded-sm sm:w-auto sm:min-w-4 sm:flex-1" style={{ background: index <= step ? "#008300" : "#e9edf3" }} /> : null}
+              <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center sm:gap-2">
+                <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${index <= step ? "bg-[#008300] text-white" : "border border-[#cbd5e1] text-[#5b6b80]"} ${index === step ? "shadow-[0_0_0_5px_rgba(0,131,0,0.18)]" : ""}`}>
+                  {index < step || closed ? <Check className="size-[18px]" strokeWidth={3} /> : <span className="size-2 rounded-full bg-current" />}
                 </span>
-                <span className={`text-sm ${index === step ? "font-bold" : "font-semibold"}`}>{item.label}</span>
-                {index === step ? <span className="-mt-1 text-xs font-semibold text-[#006300]">{status === "ON_HOLD" ? "Em espera" : "Etapa atual"}</span> : null}
+                <span className={`text-xs leading-tight sm:text-sm ${index === step ? "font-bold" : "font-semibold"}`}>{item.label}</span>
+                {index === step ? <span className="-mt-0.5 text-[11px] font-semibold leading-tight text-[#006300] sm:text-xs">{status === "ON_HOLD" ? "Pausado" : "Etapa atual"}</span> : null}
               </div>
             </div>
           ))}
         </div>
-        <div className="flex flex-wrap gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <Stat label="Vencimento" value={due.day} note={due.time} />
-          <Stat label="Tempo registrado" value={formatDuration(laborTotal)} note={activity.labors.length === 1 ? "1 lançamento" : `${activity.labors.length} lançamentos`} />
+          <Stat label="Tempo registrado" value={running ? formatDurationClock(laborTotal) : formatDuration(laborTotal)} note={activity.labors.length === 1 ? "1 lançamento" : `${activity.labors.length} lançamentos`} />
           <Stat label="Tarefas" value={`${answered} de ${order.tasks.length}`} note={answered === order.tasks.length && order.tasks.length > 0 ? "respondidas" : "em aberto"} />
           <Stat label="Peças" value={String(activity.parts.length)} note={activity.parts.length === 0 ? "nenhuma utilizada" : "utilizadas"} />
         </div>
-        {!canEdit && status !== "COMPLETE" ? (
-          <Button type="button" variant="outline" className={`mt-4 ${whiteButton}`} disabled={busy} onClick={() => { setBusy(true); void completeWorkOrder(order.id).then((result) => { setBusy(false); apply(result); }); }}>
-            Concluir
-          </Button>
-        ) : null}
       </section>
 
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[2] basis-[560px] flex-col gap-5">
           <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Tarefas">
             <SectionHead title="Tarefas" subtitle={`${answered} de ${order.tasks.length} respondida${answered === 1 ? "" : "s"}`}>
-              <Button type="button" variant="outline" className={whiteButton} onClick={() => setTasksOpen(true)}>
-                <ClipboardCheck /> Executar tarefas
-              </Button>
+              {closed ? null : (
+                <Button type="button" variant="outline" className={whiteButton} onClick={() => setTasksOpen(true)}>
+                  <ClipboardCheck /> Executar tarefas
+                </Button>
+              )}
             </SectionHead>
-            {order.tasks.length === 0 ? <EmptyBox icon={<ClipboardCheck className="size-5" />} text="Esta ordem não tem tarefas." /> : (
-              <ul className="space-y-4">
-                {order.tasks.map((task) => (
-                  <li key={task.id ?? task.label} className="flex items-start gap-3.5">
-                    <span className={`mt-px flex size-7 flex-none items-center justify-center rounded-full ${task.value ? "bg-[#008300] text-white" : "border border-[#cbd5e1]"}`}>
-                      {task.value ? <Check className="size-4" strokeWidth={3} /> : null}
-                    </span>
-                    <div className="min-w-0 flex-1">
+            {displayTasks.length === 0 ? <EmptyBox icon={<ClipboardCheck className="size-5" />} text="Esta ordem não tem tarefas." /> : (
+              <ul>
+                {displayTasks.map((task, index) => (
+                  <li key={task.id ?? task.label} className="flex gap-3.5">
+                    <div className="flex w-7 flex-none flex-col items-center">
+                      <span className={`flex size-7 items-center justify-center rounded-full ${task.value ? "bg-[#008300] text-white" : "border border-[#cbd5e1] bg-white"}`}>
+                        {task.value ? <Check className="size-4" strokeWidth={3} /> : null}
+                      </span>
+                      {index < displayTasks.length - 1 ? <span className="w-0.5 flex-1 bg-[#cbd5e1]" /> : null}
+                    </div>
+                    <div className={`min-w-0 flex-1 ${index < displayTasks.length - 1 ? "pb-5" : ""}`}>
                       <div className="text-base font-semibold">{task.label}</div>
                       {task.value ? (
                         <div className="mt-3 rounded-[10px] bg-[#f5f7fb] px-4 py-3.5">
@@ -333,41 +374,18 @@ export function WorkOrderDetail({
             )}
           </section>
 
-          <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Peças">
-            <SectionHead title="Peças" subtitle="Itens do inventário usados nesta ordem">
-              <Button type="button" variant="outline" className={whiteButton} onClick={() => setPartsOpen(true)}><Plus /> Adicionar peças</Button>
-            </SectionHead>
-            {activity.parts.length === 0 ? <EmptyBox icon={<Package className="size-5" />} text="Nenhuma peça nesta ordem." /> : (
-              <ul className="space-y-2">
-                {activity.parts.map((part) => (
-                  <li key={part.id} className="flex items-center justify-between gap-3 border-t border-[#e9edf3] py-2.5 text-[15px]">
-                    <span>{part.name}<span className="text-[#4a5a70]"> · {formatQuantity(part.quantity, part.unit)} · {formatBrl(part.cost * part.quantity)}</span></span>
-                    <button type="button" className="flex size-11 items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover ${part.name}`} onClick={() => removeWorkOrderPart(order.id, part.id).then(apply)}>
-                      <Trash2 className="size-[18px]" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {charge != null ? <p className="mt-3 text-right text-[15px] text-[#4a5a70]">Serviço {formatBrl(charge)} · Peças {formatBrl(partsValue)} · <span className="font-semibold text-[#14233a]">Total {formatBrl(charge + partsValue)}</span></p> : null}
-          </section>
-
           <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Mão de obra">
             <SectionHead title="Mão de obra" subtitle="Tempo trabalhado por técnico">
-              <div className="flex flex-wrap gap-2.5">
-                <Button type="button" variant="outline" className={whiteButton} disabled={busy} onClick={() => { setBusy(true); void toggleWorkOrderTimer(order.id).then((result) => { setBusy(false); apply(result); }); }}>
-                  {busy ? <Loader2 className="animate-spin" /> : <Play />}
-                  {running ? `Temporizador · ${timerLabel}` : "Executar temporizador"}
-                </Button>
+              {closed ? null : (
                 <Button type="button" variant="outline" className={whiteButton} onClick={() => setLaborOpen(true)}><Plus /> Adicionar tempo</Button>
-              </div>
+              )}
             </SectionHead>
             {activity.labors.length === 0 ? <EmptyBox icon={<Timer className="size-5" />} text="Nenhum tempo lançado." /> : (
               <>
                 <div className="hidden gap-5 pb-2 text-xs font-semibold tracking-wide text-[#5b6b80] uppercase sm:flex">
                   <div className="min-w-[110px] flex-1">Data</div>
                   <div className="min-w-[170px] flex-[1.4]">Técnico</div>
-                  <div className="w-20">Tempo</div>
+                  <div className="w-28">Tempo</div>
                   <div className="w-[130px]">Origem</div>
                   <div className="w-11" />
                 </div>
@@ -378,56 +396,76 @@ export function WorkOrderDetail({
                       <span className="flex size-8 items-center justify-center rounded-full bg-[#dbe7fa] text-xs font-bold text-[#0b1b33]">{initials(labor.author)}</span>
                       {labor.author}
                     </div>
-                    <div className="w-20 font-mono text-sm">{formatDuration(laborDuration(labor, now))}</div>
+                    <div className="w-28 font-mono text-sm">{labor.startedAt ? formatDurationClock(laborDuration(labor, now)) : formatDuration(labor.durationSeconds)}</div>
                     <div className="w-[130px]">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f5f7fb] px-2.5 py-0.5 text-xs font-semibold text-[#4a5a70]">
                         <Timer className="size-3.5" />{labor.fromTimer ? "Temporizador" : "Manual"}
                       </span>
                     </div>
-                    <button type="button" className="flex size-11 items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover lançamento de ${formatDay(labor.workedOn)}`} onClick={() => deleteWorkOrderLabor(order.id, labor.id).then(apply)}>
-                      <Trash2 className="size-[18px]" />
-                    </button>
+                    {closed ? null : (
+                      <button type="button" className="flex size-11 items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover lançamento de ${formatDay(labor.workedOn)}`} onClick={() => deleteWorkOrderLabor(order.id, labor.id).then(apply)}>
+                        <Trash2 className="size-[18px]" />
+                      </button>
+                    )}
                   </div>
                 ))}
                 <div className="flex justify-end gap-3 border-t border-[#e9edf3] pt-3 text-[15px]">
                   <span className="text-[#4a5a70]">Total registrado</span>
-                  <span className="font-mono font-medium">{formatDuration(laborTotal)}</span>
+                  <span className="font-mono font-medium">{running ? formatDurationClock(laborTotal) : formatDuration(laborTotal)}</span>
                 </div>
               </>
             )}
+            {charge != null ? (
+              <p className="mt-3 text-right text-[15px] text-[#4a5a70]">
+                Serviço <span className="font-semibold text-[#14233a]">{formatBrl(charge)}</span>
+              </p>
+            ) : null}
           </section>
 
-          <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Arquivos">
-            <SectionHead title="Arquivos" subtitle="Fotos e documentos da ordem">
-              <div className="flex flex-wrap gap-2.5">
-                <FileButton label="Adicionar foto" icon={<Camera className="size-[18px]" />} accept="image/*" capture onFile={onFile} />
-                <FileButton label="Adicionar arquivo" icon={<Paperclip className="size-[18px]" />} onFile={onFile} />
-              </div>
+          <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Peças">
+            <SectionHead title="Peças" subtitle="Itens do inventário usados nesta ordem">
+              {closed ? null : (
+                <Button type="button" variant="outline" className={whiteButton} onClick={() => setPartsOpen(true)}><Plus /> Adicionar peças</Button>
+              )}
             </SectionHead>
-            {activity.files.length === 0 ? <EmptyBox icon={<Paperclip className="size-5" />} text="Nenhum arquivo nesta ordem." /> : (
-              <ul className="space-y-2.5">
-                {activity.files.map((file) => {
-                  const image = /\.(png|jpe?g|webp|gif)$/i.test(file.name);
-                  return (
-                    <li key={file.id} className="flex items-center gap-3.5 rounded-xl border border-[#14233a]/12 p-3">
-                      {image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={file.url} alt="" className="size-14 flex-none rounded-[10px] object-cover" />
-                      ) : (
-                        <span className="flex size-14 flex-none items-center justify-center rounded-[10px] bg-[#dbe7fa] text-[#0b1b33]"><FileText className="size-6" /></span>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <a href={file.url} target="_blank" rel="noreferrer" className="text-[15px] font-semibold text-[#2a78d6]">{file.name}</a>
-                        <div className="text-[13px] text-[#4a5a70]">{image ? "Imagem" : "Arquivo"}</div>
-                      </div>
-                      <button type="button" className="flex size-11 items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover arquivo ${file.name}`} onClick={() => deleteWorkOrderFile(order.id, file.id).then(apply)}>
+            {activity.parts.length === 0 ? <EmptyBox icon={<Package className="size-5" />} text="Nenhuma peça nesta ordem." /> : (
+              <ul className="space-y-2">
+                {activity.parts.map((part) => (
+                  <li key={part.id} className="flex items-center justify-between gap-3 border-t border-[#e9edf3] py-2.5 text-[15px]">
+                    <span>{part.name}<span className="text-[#4a5a70]"> · {formatQuantity(part.quantity, part.unit)} · {formatBrl(part.cost * part.quantity)}</span></span>
+                    {closed ? null : (
+                      <button type="button" className="flex size-11 items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover ${part.name}`} onClick={() => removeWorkOrderPart(order.id, part.id).then(apply)}>
                         <Trash2 className="size-[18px]" />
                       </button>
-                    </li>
-                  );
-                })}
+                    )}
+                  </li>
+                ))}
               </ul>
             )}
+            {activity.parts.length > 0 ? (
+              <p className="mt-3 text-right text-[15px] text-[#4a5a70]">
+                Peças <span className="font-semibold text-[#14233a]">{formatBrl(partsValue)}</span>
+              </p>
+            ) : null}
+          </section>
+
+          <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Valor total">
+            <h2 className="text-lg font-semibold tracking-tight">Valor total</h2>
+            <p className="text-[13px] text-[#4a5a70]">Serviço e peças desta ordem</p>
+            <div className="mt-4 space-y-2.5 text-[15px]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[#4a5a70]">Serviço</span>
+                <span>{charge == null ? "Sem cobrança" : formatBrl(charge)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[#4a5a70]">Peças</span>
+                <span>{formatBrl(partsValue)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3 border-t border-[#e9edf3] pt-3 text-lg font-semibold">
+                <span>Total</span>
+                <span>{formatBrl((charge ?? 0) + partsValue)}</span>
+              </div>
+            </div>
           </section>
         </div>
 
@@ -448,12 +486,43 @@ export function WorkOrderDetail({
               </div>
             ))}
           </section>
-          <Timeline order={order} activity={activity} />
+          <section className="min-w-0 rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Arquivos">
+            <SectionHead title="Arquivos" subtitle="Fotos e documentos da ordem">
+              <div className="flex flex-wrap gap-2.5">
+                <FileButton label="Adicionar foto" icon={<Camera className="size-[18px]" />} accept="image/*" capture onFile={onFile} />
+                <FileButton label="Adicionar arquivo" icon={<Paperclip className="size-[18px]" />} onFile={onFile} />
+              </div>
+            </SectionHead>
+            {activity.files.length === 0 ? <EmptyBox icon={<Paperclip className="size-5" />} text="Nenhum arquivo nesta ordem." /> : (
+              <ul className="space-y-2.5">
+                {activity.files.map((file) => {
+                  const image = /\.(png|jpe?g|webp|gif)$/i.test(file.name);
+                  return (
+                    <li key={file.id} className="flex min-w-0 items-center gap-3.5 overflow-hidden rounded-xl border border-[#14233a]/12 p-3">
+                      {image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={file.url} alt="" className="size-14 flex-none rounded-[10px] object-cover" />
+                      ) : (
+                        <span className="flex size-14 flex-none items-center justify-center rounded-[10px] bg-[#dbe7fa] text-[#0b1b33]"><FileText className="size-6" /></span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <a href={file.url} target="_blank" rel="noreferrer" title={file.name} className="block truncate text-[15px] font-semibold text-[#2a78d6]">{file.name}</a>
+                        <div className="text-[13px] text-[#4a5a70]">{image ? "Imagem" : "Arquivo"}</div>
+                      </div>
+                      <button type="button" className="flex size-11 flex-none items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover arquivo ${file.name}`} onClick={() => deleteWorkOrderFile(order.id, file.id).then(apply)}>
+                        <Trash2 className="size-[18px]" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
         </div>
       </div>
 
       <WorkOrderTasksDialog order={tasksOpen ? order : null} onOpenChange={setTasksOpen} onExecuted={(next) => { setOrder(next); setTasksOpen(false); router.refresh(); }} />
-      <WorkOrderPartsDialog open={partsOpen} workOrderId={order.id} options={activity.partOptions} onOpenChange={setPartsOpen} onAdded={(next) => apply({ activity: next })} />
+      <WorkOrderPartsDialog open={partsOpen} workOrderId={order.id} onOpenChange={setPartsOpen} onAdded={(next) => apply({ activity: next })} />
       <WorkOrderLaborDialog open={laborOpen} workOrderId={order.id} onOpenChange={setLaborOpen} onAdded={(next) => apply({ activity: next })} />
       {editor ? (
         <FormDialog open={editing} onOpenChange={setEditing} title="Editar ordem" description={order.customId ?? undefined}>
@@ -470,14 +539,56 @@ export function WorkOrderDetail({
           />
         </FormDialog>
       ) : null}
-      <FormDialog open={mailOpen} onOpenChange={setMailOpen} title="Enviar relatório" description="O e-mail leva o resumo da ordem em HTML. O PDF continua na impressão.">
+      <FormDialog open={mailOpen} onOpenChange={setMailOpen} title="Enviar por e-mail" description="O destinatário recebe um botão para abrir esta ordem, sem precisar entrar no sistema.">
         <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); startMail(async () => { const result = await sendWorkOrderReport(order.id, mailTo, mailName); if (result.error) { setMailError(result.error); return; } setMailOpen(false); }); }}>
           {mailError ? <p className="text-sm text-destructive">{mailError}</p> : null}
           <Input placeholder="Nome" value={mailName} onChange={(event) => setMailName(event.target.value)} className="h-9" />
           <Input type="email" required placeholder="E-mail" value={mailTo} onChange={(event) => setMailTo(event.target.value)} className="h-9" />
-          <div className="flex justify-end"><Button type="submit" disabled={mailPending}>Enviar</Button></div>
+          <div className="flex justify-end"><Button type="submit" disabled={mailPending}>{mailPending ? <Loader2 className="animate-spin" /> : null}Enviar</Button></div>
         </form>
       </FormDialog>
+      <Dialog open={statusOpen} onOpenChange={setStatusOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar status</DialogTitle>
+            <DialogDescription>Escolha a etapa desta ordem de serviço.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {WORK_ORDER_STATUSES.map((item) => {
+              const blocked = item.value === "COMPLETE" && completeBlock;
+              const selected = draftStatus === item.value;
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  disabled={Boolean(blocked)}
+                  onClick={() => setDraftStatus(item.value)}
+                  className={`flex w-full items-start gap-3 rounded-[10px] border px-3 py-3 text-left ${selected ? "border-[#5569ff] bg-[#eef1ff]" : "border-[#cbd5e1] bg-white"} disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ background: workOrderStatusColor(item.value) }} />
+                  <span>
+                    <span className="block font-semibold">{item.label}</span>
+                    {blocked ? <span className="mt-0.5 block text-sm text-[#4a5a70]">{completeBlock}</span> : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setStatusOpen(false)}>Cancelar</Button>
+            <Button
+              type="button"
+              disabled={busy || (draftStatus === "COMPLETE" && Boolean(completeBlock))}
+              onClick={() => {
+                setStatusOpen(false);
+                if (draftStatus !== status) void changeStatus(draftStatus);
+              }}
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={assetCloseOpen} onOpenChange={setAssetCloseOpen}>
         <DialogContent>
           <DialogHeader>
@@ -518,9 +629,9 @@ function SectionHead({ title, subtitle, children }: { title: string; subtitle: s
 
 function Stat({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <div className="min-w-[200px] flex-1 rounded-xl bg-[#f5f7fb] px-[18px] py-4">
+    <div className="min-w-0 rounded-xl bg-[#f5f7fb] px-3 py-3 sm:px-[18px] sm:py-4">
       <div className="text-[13px] font-medium text-[#5b6b80]">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight">{value}</div>
+      <div className="mt-1 text-xl font-semibold tracking-tight break-words sm:text-2xl">{value}</div>
       {note ? <div className="text-[13px] text-[#4a5a70]">{note}</div> : null}
     </div>
   );
@@ -555,32 +666,6 @@ function FileButton({ label, icon, accept, capture, onFile }: { label: string; i
       {label}
       <input type="file" accept={accept} capture={capture ? "environment" : undefined} className="sr-only" onChange={(event) => { onFile(event.target.files?.[0] ?? null); event.target.value = ""; }} />
     </label>
-  );
-}
-
-function Timeline({ order, activity }: { order: WorkOrderRecord; activity: WorkOrderActivity }) {
-  const events = [
-    ...activity.updates.map((item) => ({ id: item.id, at: item.createdAt, title: item.body, detail: item.author, tone: "blue" as const })),
-    ...activity.labors.filter((item) => item.workedOn).map((item) => ({ id: item.id, at: item.workedOn ?? "", title: `Tempo registrado: ${formatDuration(item.durationSeconds)}`, detail: item.author, tone: "blue" as const })),
-    ...order.tasks.filter((task) => task.executedAt).map((task) => ({ id: `task-${task.id ?? task.label}`, at: task.executedAt ?? "", title: "Tarefa respondida", detail: task.label, tone: "blue" as const })),
-  ].sort((left, right) => new Date(right.at).getTime() - new Date(left.at).getTime());
-
-  return (
-    <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Timeline">
-      <h2 className="mb-[18px] text-lg font-semibold">Timeline</h2>
-      {events.length === 0 ? <p className="text-sm text-[#4a5a70]">Nenhum evento registrado.</p> : events.map((event, index) => (
-        <div key={event.id} className="flex gap-3.5">
-          <div className="flex w-3 flex-col items-center">
-            <span className={`mt-1 size-3 flex-none rounded-full ${index === events.length - 1 && events.length > 1 ? "bg-[#cbd5e1]" : "bg-[#2a78d6]"}`} />
-            {index < events.length - 1 ? <span className="my-1 w-0.5 flex-1 bg-[#e9edf3]" /> : null}
-          </div>
-          <div className={index < events.length - 1 ? "pb-[18px]" : ""}>
-            <div className="text-sm font-semibold">{event.title}</div>
-            <div className="text-[13px] text-[#4a5a70]">{[event.detail, formatWhen(event.at)].filter(Boolean).join(" · ")}</div>
-          </div>
-        </div>
-      ))}
-    </section>
   );
 }
 

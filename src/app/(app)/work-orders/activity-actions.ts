@@ -8,6 +8,7 @@ import { parseUuid } from "@/lib/forms/parse";
 import type { WorkOrderActivity } from "@/lib/work-orders/activity";
 import { loadWorkOrderDetail, type WorkOrderRecord } from "@/lib/work-orders/queries";
 import { canExecuteWorkOrder } from "@/lib/work-orders/access";
+import { workOrderCompletionBlock } from "@/lib/work-orders/completion";
 import { isWorkOrderStatus, statusTimestamps, type WorkOrderStatus } from "@/lib/work-orders/status";
 import {
   INSPECTION_ANSWERS,
@@ -71,6 +72,23 @@ async function ownedOrder(workOrderId: string, mode: "view" | "edit" | "execute"
   return { ...context, workOrderId: id, membershipId: context.appUser.membershipId };
 }
 
+async function assertWorkOrderOpen(
+  supabase: Awaited<ReturnType<typeof requireArea>>["supabase"],
+  tenantId: string,
+  workOrderId: string,
+) {
+  const { data, error } = await supabase
+    .from("work_order")
+    .select("status")
+    .eq("id", workOrderId)
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if (error || !data) throw new Error("Ordem não encontrada.");
+  if (data.status === "COMPLETE") {
+    throw new Error("A ordem concluída está fechada. Um gestor precisa alterar o status para liberar novas alterações.");
+  }
+}
+
 async function moveWorkOrderStatus(
   supabase: Awaited<ReturnType<typeof requireArea>>["supabase"],
   tenantId: string,
@@ -128,6 +146,10 @@ export async function setWorkOrderStatus(
       .maybeSingle();
     if (readError || !current) throw new Error("Ordem não encontrada.");
     if (!isWorkOrderStatus(current.status)) throw new Error("Status inválido.");
+    if (status === "COMPLETE" && current.status !== "COMPLETE") {
+      const block = await workOrderCompletionBlock(supabase, id);
+      if (block) throw new Error(block);
+    }
 
     const { error } = await supabase
       .from("work_order")
@@ -179,31 +201,12 @@ export async function setWorkOrderStatus(
 
 export async function completeWorkOrder(workOrderId: string): Promise<ActivityResult> {
   try {
-    const { supabase, tenantId, membershipId, appUser, workOrderId: id } = await ownedOrder(
+    const { supabase, tenantId, membershipId, workOrderId: id } = await ownedOrder(
       workOrderId,
       "execute",
     );
-    const manages = appUser.isAdmin || appUser.areas.work_orders.edit;
-    if (!manages) {
-      const { data: labors, error: laborError } = await supabase
-        .from("labor")
-        .select("duration_seconds, started_at")
-        .eq("work_order_id", id);
-      if (laborError) throw new Error("Não foi possível concluir a ordem.");
-      const hasTime = (labors ?? []).some(
-        (labor) => labor.duration_seconds > 0 || Boolean(labor.started_at),
-      );
-      if (!hasTime) throw new Error("Registre um tempo antes de concluir a ordem.");
-
-      const { data: tasks, error: taskError } = await supabase
-        .from("task")
-        .select("executed_at")
-        .eq("work_order_id", id);
-      if (taskError) throw new Error("Não foi possível concluir a ordem.");
-      if ((tasks ?? []).some((task) => !task.executed_at)) {
-        throw new Error("Conclua todas as tarefas antes de encerrar a ordem.");
-      }
-    }
+    const block = await workOrderCompletionBlock(supabase, id);
+    if (block) throw new Error(block);
 
     const { data: current, error: readError } = await supabase
       .from("work_order")
@@ -240,6 +243,7 @@ export async function completeWorkOrder(workOrderId: string): Promise<ActivityRe
 export async function toggleWorkOrderTimer(workOrderId: string): Promise<ActivityResult> {
   try {
     const { supabase, tenantId, membershipId, workOrderId: id } = await ownedOrder(workOrderId, "execute");
+    await assertWorkOrderOpen(supabase, tenantId, id);
     const { data: current, error: readError } = await supabase
       .from("labor")
       .select("id, duration_seconds, started_at, tracked_at, hourly_rate")
@@ -306,6 +310,7 @@ export async function addWorkOrderLabor(
 ): Promise<ActivityResult> {
   try {
     const { supabase, tenantId, membershipId, workOrderId: id } = await ownedOrder(workOrderId, "execute");
+    await assertWorkOrderOpen(supabase, tenantId, id);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(workedOn)) throw new Error("Informe a data.");
     if (!Number.isInteger(hours) || hours < 0 || hours > 999) {
       throw new Error("Horas inválidas.");
@@ -326,7 +331,6 @@ export async function addWorkOrderLabor(
       hourly_rate: await membershipRate(supabase, membershipId),
     });
     if (error) throw new Error("Não foi possível adicionar o tempo.");
-    await moveWorkOrderStatus(supabase, tenantId, membershipId, id, "IN_PROGRESS");
     refresh();
     const detail = await loadWorkOrderDetail(id);
     return { activity: detail.activity, order: detail.order, logoUrl: detail.logoUrl };
@@ -342,7 +346,8 @@ export async function deleteWorkOrderLabor(
   laborId: string,
 ): Promise<ActivityResult> {
   try {
-    const { supabase, workOrderId: id } = await ownedOrder(workOrderId, "execute");
+    const { supabase, tenantId, workOrderId: id } = await ownedOrder(workOrderId, "execute");
+    await assertWorkOrderOpen(supabase, tenantId, id);
     const labor = parseUuid(laborId);
     if (!labor) throw new Error("Tempo inválido.");
     const { error } = await supabase
@@ -426,7 +431,8 @@ export async function executeWorkOrderTask(
   input: { value: string; comment: string },
 ): Promise<ActivityResult> {
   try {
-    const { supabase, membershipId, workOrderId: id } = await ownedOrder(workOrderId, "execute");
+    const { supabase, tenantId, membershipId, workOrderId: id } = await ownedOrder(workOrderId, "execute");
+    await assertWorkOrderOpen(supabase, tenantId, id);
     const taskKey = parseUuid(taskId);
     if (!taskKey) throw new Error("Tarefa inválida.");
 
@@ -519,7 +525,8 @@ export async function addWorkOrderPart(
   quantity: string,
 ): Promise<ActivityResult> {
   try {
-    const { supabase, workOrderId: id } = await ownedOrder(workOrderId, "execute");
+    const { supabase, tenantId, workOrderId: id } = await ownedOrder(workOrderId, "execute");
+    await assertWorkOrderOpen(supabase, tenantId, id);
     const part = parseUuid(partId);
     if (!part) throw new Error("Selecione a peça.");
     const { error } = await supabase.rpc("consume_work_order_part", {
@@ -542,7 +549,8 @@ export async function removeWorkOrderPart(
   lineId: string,
 ): Promise<ActivityResult> {
   try {
-    const { supabase, workOrderId: id } = await ownedOrder(workOrderId, "execute");
+    const { supabase, tenantId, workOrderId: id } = await ownedOrder(workOrderId, "execute");
+    await assertWorkOrderOpen(supabase, tenantId, id);
     const line = parseUuid(lineId);
     if (!line) throw new Error("Peça inválida.");
     const { error } = await supabase.rpc("return_work_order_part", {

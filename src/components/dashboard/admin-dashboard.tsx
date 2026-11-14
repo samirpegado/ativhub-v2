@@ -54,7 +54,7 @@ export function AdminDashboard({
         <PeriodSelect range={range} />
       </header>
 
-      <section aria-label="Indicadores de OS" className="flex flex-wrap gap-4">
+      <section aria-label="Indicadores de OS" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <Kpi
           label="OS a fechar"
           value={String(data.openCount)}
@@ -137,7 +137,7 @@ export function AdminDashboard({
             <Attention
               tone={data.staleCount > 0 ? "warn" : "ok"}
               title={data.staleCount > 0 ? `${data.staleCount} OS paradas há mais de 48 h` : "Nenhuma OS parada há mais de 48 h"}
-              detail="Abertas ou em espera, sem alguém executando agora."
+              detail="Abertas ou com status Pausado, sem alguém executando agora."
               href="/work-orders?status=OPEN,ON_HOLD"
             />
           </DashCard>
@@ -251,10 +251,10 @@ export function AdminDashboard({
             <p className="mt-1 text-xs text-[#4a5a70]">{data.onTime30} de {data.due30} fechadas até o vencimento.</p>
           </div>
           <div className="border-t border-[#e9edf3] pt-3">
-            <div className="text-[13px] text-[#4a5a70]">OS em espera</div>
+            <div className="text-[13px] text-[#4a5a70]">Status Pausado</div>
             <div className="mt-1 flex flex-wrap items-center gap-2.5">
               <span className="text-[28px] font-semibold tracking-tight">{data.onHoldCount} OS</span>
-              <Pill tone={data.onHoldCount > 0 ? "warn" : "ok"}>{data.onHoldCount > 0 ? "Aguardando retomada" : "Nenhuma em espera"}</Pill>
+              <Pill tone={data.onHoldCount > 0 ? "warn" : "ok"}>{data.onHoldCount > 0 ? "Aguardando retomada" : "Nenhum Pausado"}</Pill>
             </div>
           </div>
           </div>

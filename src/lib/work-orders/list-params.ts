@@ -33,10 +33,16 @@ function sameSelection(left: string[], right: readonly string[]) {
 function parseSelection(
   value: string | undefined,
   accept: (item: string) => boolean,
-  fallback: readonly string[],
+  all: readonly string[],
 ) {
-  if (value === undefined) return [...fallback];
-  return [...new Set(value.split(",").map((item) => item.trim()).filter(accept))];
+  if (value === undefined) return [];
+  const items = [...new Set(value.split(",").map((item) => item.trim()).filter(accept))];
+  if (all.length > 0 && sameSelection(items, all)) return [];
+  return items;
+}
+
+export function narrowsList(selected: string[], all: readonly string[]) {
+  return selected.length > 0 && !sameSelection(selected, all);
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -81,11 +87,7 @@ export function parseWorkOrderListQuery(input: {
   return {
     search: (input.q ?? "").trim(),
     statuses: parseSelection(input.status, isWorkOrderStatus, DEFAULT_WORK_ORDER_STATUSES),
-    priorities: parseSelection(
-      input.priority,
-      isWorkOrderPriority,
-      DEFAULT_WORK_ORDER_PRIORITIES,
-    ),
+    priorities: parseSelection(input.priority, isWorkOrderPriority, DEFAULT_WORK_ORDER_PRIORITIES),
     locationIds: parseSelection(input.location, (item) => UUID.test(item), []),
     types: parseSelection(input.type, isWorkOrderType, WORK_ORDER_TYPES.map((item) => item.value)),
     overdue: input.overdue === "1",
@@ -107,9 +109,9 @@ export function workOrderActiveFilterCount(query: {
   dueTo: string | null;
 }) {
   let count = 0;
-  if (!sameSelection(query.statuses, DEFAULT_WORK_ORDER_STATUSES)) count += 1;
-  if (!sameSelection(query.priorities, DEFAULT_WORK_ORDER_PRIORITIES)) count += 1;
-  if (!sameSelection(query.types, WORK_ORDER_TYPES.map((item) => item.value))) count += 1;
+  if (narrowsList(query.statuses, DEFAULT_WORK_ORDER_STATUSES)) count += 1;
+  if (narrowsList(query.priorities, DEFAULT_WORK_ORDER_PRIORITIES)) count += 1;
+  if (narrowsList(query.types, WORK_ORDER_TYPES.map((item) => item.value))) count += 1;
   if (query.locationIds.length > 0) count += 1;
   if (query.overdue) count += 1;
   if (query.dueFrom || query.dueTo) count += 1;
@@ -131,14 +133,14 @@ export function workOrderListHref(query: {
   const params = new URLSearchParams();
   const search = query.search.trim();
   if (search) params.set("q", search);
-  if (!sameSelection(query.statuses, DEFAULT_WORK_ORDER_STATUSES)) {
+  if (narrowsList(query.statuses, DEFAULT_WORK_ORDER_STATUSES)) {
     params.set("status", query.statuses.join(","));
   }
-  if (!sameSelection(query.priorities, DEFAULT_WORK_ORDER_PRIORITIES)) {
+  if (narrowsList(query.priorities, DEFAULT_WORK_ORDER_PRIORITIES)) {
     params.set("priority", query.priorities.join(","));
   }
   if (query.locationIds.length > 0) params.set("location", query.locationIds.join(","));
-  if (!sameSelection(query.types, WORK_ORDER_TYPES.map((item) => item.value))) {
+  if (narrowsList(query.types, WORK_ORDER_TYPES.map((item) => item.value))) {
     params.set("type", query.types.join(","));
   }
   if (query.overdue) params.set("overdue", "1");

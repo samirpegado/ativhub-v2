@@ -7,8 +7,8 @@ import type { Database } from "./database.types";
  * Atualiza/renova a sessão do Supabase a cada request e aplica o guard
  * básico de autenticação. Chamado pelo proxy raiz (src/proxy.ts, Next 16).
  *
- * Rotas públicas: /login, /register, /invite/*, /auth/*, /s e assets do Next.
- * /s permanece acessível com sessão: é a página aberta pelo QR do ativo.
+ * Rotas públicas: /login, /register, /invite/*, /auth/*, /s e a folha
+ * /work-orders/<id>/print. /s e a folha permanecem acessíveis com sessão.
  * Conta sem e-mail confirmado só permanece em login, cadastro, confirmação e /s.
  */
 export async function updateSession(request: NextRequest) {
@@ -48,7 +48,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/invite") ||
     pathname.startsWith("/auth") ||
     pathname === "/s" ||
-    pathname.startsWith("/s/");
+    pathname.startsWith("/s/") ||
+    isWorkOrderPrintPath(pathname);
   const isVerificationRoute =
     pathname.startsWith("/auth/verify") ||
     pathname.startsWith("/auth/activate") ||
@@ -59,7 +60,7 @@ export async function updateSession(request: NextRequest) {
   const isAssetQrRoute = pathname === "/s" || pathname.startsWith("/s/");
 
   if (user && !emailVerified) {
-    if (isVerificationRoute || isAssetQrRoute) return supabaseResponse;
+    if (isVerificationRoute || isAssetQrRoute || isWorkOrderPrintPath(pathname)) return supabaseResponse;
     const url = request.nextUrl.clone();
     url.pathname = "/auth/verify";
     url.search = user.email ? `?email=${encodeURIComponent(user.email)}` : "";
@@ -70,7 +71,8 @@ export async function updateSession(request: NextRequest) {
     if (
       pathname.startsWith("/auth/reset") ||
       pathname.startsWith("/auth/activate") ||
-      isAssetQrRoute
+      isAssetQrRoute ||
+      isWorkOrderPrintPath(pathname)
     ) {
       return supabaseResponse;
     }
@@ -104,4 +106,8 @@ export async function updateSession(request: NextRequest) {
   }
 
   return supabaseResponse;
+}
+
+function isWorkOrderPrintPath(pathname: string) {
+  return /^\/work-orders\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/print$/i.test(pathname);
 }

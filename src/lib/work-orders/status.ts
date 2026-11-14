@@ -1,7 +1,7 @@
 export const WORK_ORDER_STATUSES = [
   { value: "OPEN", label: "Aberto" },
   { value: "IN_PROGRESS", label: "Em andamento" },
-  { value: "ON_HOLD", label: "Em espera" },
+  { value: "ON_HOLD", label: "Pausado" },
   { value: "COMPLETE", label: "Concluído" },
 ] as const;
 

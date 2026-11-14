@@ -26,7 +26,6 @@ export default async function WorkOrderDetailPage({
     <WorkOrderDetail
       order={detail.order}
       activity={detail.activity}
-      logoUrl={detail.logoUrl}
       tenantId={tenantId}
       canEdit={canEdit}
       editor={editor}

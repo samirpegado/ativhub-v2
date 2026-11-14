@@ -312,13 +312,7 @@ export function WorkOrdersView({
         {view === "calendar" ? (
           <WorkOrderCalendar
             orders={calendar}
-            canEdit={canEdit}
             onOpen={(id) => router.push(`/work-orders/${id}`)}
-            onCreate={(date, allDay) => {
-              const next = new Date(date);
-              if (allDay) next.setHours(9, 0, 0, 0);
-              openNew(next.toISOString());
-            }}
           />
         ) : orders.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
@@ -480,7 +474,6 @@ export function WorkOrdersView({
       <WorkOrderFiltersDialog
         open={filtersOpen}
         query={query}
-        locations={locations}
         onOpenChange={setFiltersOpen}
         onApply={applyFilters}
       />

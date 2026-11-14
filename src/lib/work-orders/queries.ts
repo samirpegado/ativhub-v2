@@ -33,8 +33,8 @@ export async function listWorkOrdersScreen(query: WorkOrderListQuery) {
   await generateDuePreventiveWorkOrders();
   const { data, error } = await supabase.rpc("work_orders_screen", {
     p_search: query.search || undefined,
-    p_statuses: query.statuses,
-    p_priorities: query.priorities,
+    p_statuses: query.statuses.length > 0 ? query.statuses : undefined,
+    p_priorities: query.priorities.length > 0 ? query.priorities : undefined,
     p_limit: LIST_PAGE_SIZE,
     p_offset: query.offset,
     p_include_calendar: query.calendar,
