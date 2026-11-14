@@ -27,18 +27,26 @@ export function workOrderStatusLabel(status: string) {
   return WORK_ORDER_STATUSES.find((item) => item.value === status)?.label ?? status;
 }
 
+const WORK_ORDER_STATUS_STYLE = {
+  OPEN: { chip: "bg-[#e7f0fc] text-[#1c5cab]", dot: "bg-[#2a78d6]", color: "#2a78d6", ink: "#1c5cab" },
+  IN_PROGRESS: { chip: "bg-[#eef3fb] text-[#0b1b33]", dot: "bg-[#0b1b33]", color: "#0b1b33", ink: "#0b1b33" },
+  ON_HOLD: { chip: "bg-[rgba(250,178,25,0.22)] text-[#8a5600]", dot: "bg-[#eda100]", color: "#eda100", ink: "#8a5600" },
+  COMPLETE: { chip: "bg-[rgba(12,163,12,0.11)] text-[#006300]", dot: "bg-[#008300]", color: "#008300", ink: "#006300" },
+} as const;
+
+export function workOrderStatusStyle(status: string) {
+  if (status in WORK_ORDER_STATUS_STYLE) {
+    return WORK_ORDER_STATUS_STYLE[status as keyof typeof WORK_ORDER_STATUS_STYLE];
+  }
+  return WORK_ORDER_STATUS_STYLE.OPEN;
+}
+
 export function workOrderStatusDot(status: string) {
-  if (status === "IN_PROGRESS") return "bg-emerald-500";
-  if (status === "ON_HOLD") return "bg-amber-500";
-  if (status === "COMPLETE") return "bg-sky-500";
-  return "bg-muted-foreground/50";
+  return workOrderStatusStyle(status).dot;
 }
 
 export function workOrderStatusColor(status: string) {
-  if (status === "IN_PROGRESS") return "#10b981";
-  if (status === "ON_HOLD") return "#f59e0b";
-  if (status === "COMPLETE") return "#0ea5e9";
-  return "#B7BACF";
+  return workOrderStatusStyle(status).color;
 }
 
 export function workOrderTypeLabel(type: string) {

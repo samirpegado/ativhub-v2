@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { RequestDetailView } from "@/components/requests/request-detail";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
-import { loadRequestDetail } from "@/lib/requests/queries";
+import { loadRequestDetail, markRequestRead } from "@/lib/requests/queries";
 
 export const metadata: Metadata = {
   title: "Solicitação",
@@ -19,6 +19,7 @@ export default async function RequestDetailPage({
   const { tenantId, appUser } = await requireArea("requests", "view", { redirect: true });
   const request = await loadRequestDetail(id);
   if (!request) notFound();
+  if (appUser.isAdmin) await markRequestRead(id);
 
   return (
     <RequestDetailView

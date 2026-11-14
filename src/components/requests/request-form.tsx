@@ -1,11 +1,12 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { Camera, Loader2, X } from "lucide-react";
+import { Camera, Image as ImageIcon, Loader2, X } from "lucide-react";
 import { createRequest, updateRequest } from "@/app/(app)/requests/actions";
 import { LockedAsset } from "@/components/assets/locked-asset";
 import { PreventiveAssetPicker } from "@/components/preventive/preventive-asset-picker";
 import { Field } from "@/components/forms/field";
+import { PhotoSourcePicker } from "@/components/images/photo-source-picker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +49,6 @@ export function RequestForm({
   const [imageError, setImageError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const fileRef = useRef<HTMLInputElement>(null);
   const onSuccessRef = useRef(onSuccess);
   onSuccessRef.current = onSuccess;
 
@@ -122,54 +122,57 @@ export function RequestForm({
           />
         )}
       </Field>
-      <Field label="Foto" htmlFor="request-photo" hint="Uma imagem PNG, JPG ou WebP, de até 2 MB.">
-          <div className="flex items-center gap-3">
-            <button
-              id="request-photo"
-              type="button"
-              className="flex size-20 items-center justify-center overflow-hidden rounded-xl border border-dashed bg-muted/40 text-muted-foreground"
-              onClick={() => fileRef.current?.click()}
-            >
-              {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt="" className="size-full object-cover" />
-              ) : uploading ? (
-                <Loader2 className="size-5 animate-spin" />
-              ) : (
-                <Camera className="size-5" />
-              )}
-            </button>
-            <div className="space-y-1">
-              <Button type="button" variant="outline" className="h-9" onClick={() => fileRef.current?.click()}>
-                {preview ? "Trocar foto" : "Anexar foto"}
-              </Button>
-              {preview ? (
+      <Field label="Foto" hint="Uma imagem PNG, JPG ou WebP, de até 2 MB.">
+          <PhotoSourcePicker disabled={uploading} onFile={onFile}>
+            {({ phone, openGallery, openCamera }) => (
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  className="flex items-center gap-1 text-sm text-muted-foreground"
-                  onClick={() => {
-                    setFile(null);
-                    setPreview(null);
-                    setRemoved(true);
-                  }}
+                  className="flex size-20 items-center justify-center overflow-hidden rounded-xl border border-dashed bg-muted/40 text-muted-foreground"
+                  onClick={openGallery}
                 >
-                  <X className="size-3.5" />
-                  Remover
+                  {preview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={preview} alt="" className="size-full object-cover" />
+                  ) : uploading ? (
+                    <Loader2 className="size-5 animate-spin" />
+                  ) : (
+                    <Camera className="size-5" />
+                  )}
                 </button>
-              ) : null}
-            </div>
-          </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="sr-only"
-            onChange={(event) => {
-              const next = event.target.files?.[0] ?? null;
-              event.target.value = "";
-              onFile(next);
-            }}
-          />
+                <div className="space-y-1">
+                  {phone ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" className="h-9" disabled={uploading} onClick={openGallery}>
+                        <ImageIcon /> Galeria
+                      </Button>
+                      <Button type="button" variant="outline" className="h-9" disabled={uploading} onClick={openCamera}>
+                        <Camera /> Câmera
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button type="button" variant="outline" className="h-9" disabled={uploading} onClick={openGallery}>
+                      {preview ? "Trocar foto" : "Anexar foto"}
+                    </Button>
+                  )}
+                  {preview ? (
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-sm text-muted-foreground"
+                      onClick={() => {
+                        setFile(null);
+                        setPreview(null);
+                        setRemoved(true);
+                      }}
+                    >
+                      <X className="size-3.5" />
+                      Remover
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </PhotoSourcePicker>
           {imageError ? <p className="text-xs text-destructive">{imageError}</p> : null}
         </Field>
       <Field label="Título" htmlFor="request-title">

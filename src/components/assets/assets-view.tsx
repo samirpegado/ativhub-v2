@@ -40,6 +40,7 @@ export function AssetsView({
   categories,
   canManageCategories,
   canEdit,
+  canExport,
 }: {
   query: AssetListQuery;
   assets: AssetRecord[];
@@ -49,6 +50,7 @@ export function AssetsView({
   categories: AssetCategory[];
   canManageCategories: boolean;
   canEdit: boolean;
+  canExport: boolean;
 }) {
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
@@ -132,9 +134,11 @@ export function AssetsView({
     <>
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <Button type="button" variant="outline" className="h-9" disabled={exporting} onClick={downloadExport}>
-            Exportar
-          </Button>
+          {canExport ? (
+            <Button type="button" variant="outline" className="h-9" disabled={exporting} onClick={downloadExport}>
+              Exportar
+            </Button>
+          ) : null}
           {canEdit ? (
             <Button type="button" variant="outline" className="h-9" onClick={() => setImporting(true)}>
               Importar

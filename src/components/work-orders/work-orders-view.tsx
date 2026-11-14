@@ -49,7 +49,7 @@ import type { WorkOrderCalendarItem, WorkOrderRecord } from "@/lib/work-orders/q
 import {
   workOrderIsOverdue,
   workOrderPriorityLabel,
-  workOrderStatusDot,
+  workOrderStatusStyle,
   workOrderStatusLabel,
   workOrderTypeLabel,
 } from "@/lib/work-orders/status";
@@ -349,7 +349,9 @@ export function WorkOrdersView({
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
+                {orders.map((order) => {
+                  const style = workOrderStatusStyle(order.status);
+                  return (
                   <tr
                     key={order.id}
                     className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
@@ -366,8 +368,8 @@ export function WorkOrdersView({
                     ) : null}
                     <td className={listTdIdClass}>{order.customId ?? "—"}</td>
                     <td className={`${listTdClass} whitespace-nowrap`}>
-                      <span className="inline-flex items-center gap-2">
-                        <span className={cn("size-2.5 shrink-0 rounded-full", workOrderStatusDot(order.status))} />
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${style.chip}`}>
+                        <span className={`size-2 rounded-full ${style.dot}`} />
                         {workOrderStatusLabel(order.status)}
                       </span>
                     </td>
@@ -458,7 +460,8 @@ export function WorkOrdersView({
                       </td>
                     ) : null}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

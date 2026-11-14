@@ -37,6 +37,7 @@ export default async function AssetsPage({
       categories={categories}
       canManageCategories={appUser.isAdmin}
       canEdit={can(appUser, "assets", "edit")}
+      canExport={appUser.roleCode !== "TECHNICIAN" || appUser.isAdmin}
     />
   );
 }

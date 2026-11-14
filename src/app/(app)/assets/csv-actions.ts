@@ -37,7 +37,10 @@ function randomCategoryColor() {
 }
 
 export async function exportAssetsCsv(): Promise<{ csv: string } | { error: string }> {
-  const { supabase } = await requireArea("assets", "view");
+  const { supabase, appUser } = await requireArea("assets", "view");
+  if (appUser.roleCode === "TECHNICIAN" && !appUser.isAdmin) {
+    return { error: "Você não tem permissão para exportar os ativos." };
+  }
   const { data, error } = await supabase
     .from("asset")
     .select(

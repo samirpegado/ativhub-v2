@@ -19,8 +19,8 @@ import {
 import { INSPECTION_ANSWERS, taskTypeLabel } from "@/lib/work-orders/tasks";
 import {
   workOrderPriorityLabel,
-  workOrderStatusColor,
   workOrderStatusLabel,
+  workOrderStatusStyle,
 } from "@/lib/work-orders/status";
 
 const whiteButton = "h-11 rounded-[10px] border border-[#cbd5e1] bg-white text-[#14233a] hover:bg-white";
@@ -242,20 +242,23 @@ export function PreventiveDetailView({
               <p className="text-sm text-[#4a5a70]">Nenhuma ordem gerada ainda.</p>
             ) : (
               <ul className="divide-y divide-[#e9edf3]">
-                {workOrders.map((order) => (
+                {workOrders.map((order) => {
+                  const style = workOrderStatusStyle(order.status);
+                  return (
                   <li key={order.id}>
                     <Link href={`/work-orders/${order.id}`} className="flex items-center justify-between gap-3 py-3">
                       <span>
                         <span className="font-mono text-sm text-[#4a5a70]">{order.customId ?? "Ordem"}</span>
                         <span className="mt-0.5 block font-semibold">{order.title}</span>
                       </span>
-                      <span className="inline-flex shrink-0 items-center gap-2 text-sm">
-                        <span className="size-2.5 rounded-full" style={{ background: workOrderStatusColor(order.status) }} />
+                      <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${style.chip}`}>
+                        <span className={`size-2 rounded-full ${style.dot}`} />
                         {workOrderStatusLabel(order.status)}
                       </span>
                     </Link>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
             {workOrderTotal > PREVENTIVE_PAGE_SIZE ? (

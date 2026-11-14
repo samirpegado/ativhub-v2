@@ -37,17 +37,11 @@ import type { AssetCategory } from "@/lib/categories/queries";
 import type { LocationOption } from "@/lib/locations/queries";
 import { formatBrl } from "@/lib/money/brl";
 import { formatDuration } from "@/lib/work-orders/activity";
-import { WORK_ORDER_STATUSES, workOrderStatusLabel, workOrderTypeLabel } from "@/lib/work-orders/status";
+import { WORK_ORDER_STATUSES, workOrderStatusLabel, workOrderStatusStyle, workOrderTypeLabel } from "@/lib/work-orders/status";
 
 const whiteButton = "h-11 rounded-[10px] border border-[#cbd5e1] bg-white text-[#14233a] hover:bg-white";
 const card = "rounded-[14px] border border-[#14233a]/12 bg-white p-6";
 
-const ORDER_STATUS_STYLE: Record<string, { chip: string; dot: string; bar: string }> = {
-  OPEN: { chip: "bg-[#e7f0fc] text-[#1c5cab]", dot: "bg-[#2a78d6]", bar: "#2a78d6" },
-  IN_PROGRESS: { chip: "bg-[#eef3fb] text-[#0b1b33]", dot: "bg-[#0b1b33]", bar: "#0b1b33" },
-  ON_HOLD: { chip: "bg-[rgba(250,178,25,0.22)] text-[#8a5600]", dot: "bg-[#eda100]", bar: "#eda100" },
-  COMPLETE: { chip: "bg-[rgba(12,163,12,0.11)] text-[#006300]", dot: "bg-[#008300]", bar: "#008300" },
-};
 
 export function AssetDetailView({
   detail,
@@ -112,8 +106,8 @@ export function AssetDetailView({
   const statusSegments = WORK_ORDER_STATUSES.flatMap((item) => {
     const count = detail.statusCounts[item.value] ?? 0;
     if (count <= 0) return [];
-    const style = ORDER_STATUS_STYLE[item.value] ?? ORDER_STATUS_STYLE.OPEN;
-    return [{ ...item, count, bar: style.bar }];
+    const style = workOrderStatusStyle(item.value);
+    return [{ ...item, count, bar: style.color }];
   });
   const filters: { type: AssetHistoryType | null; label: string; count: number }[] = [
     { type: null, label: "Todas", count: detail.workOrderCount },
@@ -288,7 +282,7 @@ export function AssetDetailView({
                 </div>
                 {detail.history.items.map((item) => {
                   const when = splitWhen(item.at);
-                  const style = ORDER_STATUS_STYLE[item.status] ?? ORDER_STATUS_STYLE.OPEN;
+                  const style = workOrderStatusStyle(item.status);
                   return (
                     <div key={item.id} className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#e9edf3] py-4 last:pb-0">
                       <div className="w-[118px] flex-none">

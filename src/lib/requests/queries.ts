@@ -15,7 +15,8 @@ export async function countPendingRequests() {
       .select("id", { count: "exact", head: true })
       .eq("cancelled", false)
       .eq("in_treatment", false)
-      .is("work_order_id", null);
+      .is("work_order_id", null)
+      .is("read_at", null);
     if (error) return 0;
     return count ?? 0;
   } catch {
@@ -52,6 +53,12 @@ function relatedName(value: { name: string | null } | { name: string | null }[] 
 function relatedCustomId(value: { custom_id: string | null } | { custom_id: string | null }[] | null) {
   const row = Array.isArray(value) ? value[0] : value;
   return row?.custom_id ?? null;
+}
+
+export async function markRequestRead(id: string) {
+  const { supabase, appUser } = await requireArea("requests", "view");
+  if (!appUser.isAdmin) return;
+  await supabase.from("request").update({ read_at: new Date().toISOString() }).eq("id", id).is("read_at", null);
 }
 
 export async function loadRequestDetail(id: string): Promise<RequestDetail | null> {

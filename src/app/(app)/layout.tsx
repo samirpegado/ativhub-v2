@@ -12,7 +12,9 @@ export default async function AppLayout({
 }) {
   const user = await requireUser();
   const [pendingRequestCount, catalog] = await Promise.all([
-    can(user, "requests", "view") ? countPendingRequests() : Promise.resolve(null),
+    can(user, "requests", "view") && (user.roleCode !== "TECHNICIAN" || user.isAdmin)
+      ? countPendingRequests()
+      : Promise.resolve(null),
     loadFilterCatalog(),
   ]);
 

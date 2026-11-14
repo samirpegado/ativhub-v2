@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardCheck, Loader2, Timer, Trash2 } from "lucide-react";
+import { Camera, ClipboardCheck, Image as ImageIcon, Loader2, Timer, Trash2 } from "lucide-react";
 import { OpenWorkOrderReportButton } from "@/components/work-orders/open-work-order-report-button";
 import {
   deleteWorkOrderFile,
@@ -18,6 +18,7 @@ import { WorkOrderLaborDialog } from "@/components/work-orders/work-order-labor-
 import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-dialog";
 import { sendWorkOrderReport } from "@/app/(app)/work-orders/report-actions";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { PhotoSourcePicker } from "@/components/images/photo-source-picker";
 import { ASSET_STATUSES } from "@/lib/assets/status";
 import { compressWorkOrderPhoto, isWorkOrderPhotoName, WORK_ORDER_PHOTO_LIMIT } from "@/lib/images/compress-work-order-photo";
 import { Button } from "@/components/ui/button";
@@ -577,22 +578,24 @@ export function WorkOrderDrawer({
                   </ul>
                 )}
                 {activity.files.filter((file) => isWorkOrderPhotoName(file.name)).length < WORK_ORDER_PHOTO_LIMIT ? (
-                  <label className="inline-flex">
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      capture="environment"
-                      className="sr-only"
-                      disabled={busy}
-                      onChange={(event) => {
-                        onFile(event.target.files?.[0] ?? null);
-                        event.target.value = "";
-                      }}
-                    />
-                    <span className="inline-flex h-9 cursor-pointer items-center rounded-lg border px-3 text-sm font-medium">
-                      Adicionar foto
-                    </span>
-                  </label>
+                  <PhotoSourcePicker disabled={busy} onFile={onFile}>
+                    {({ phone, openGallery, openCamera }) =>
+                      phone ? (
+                        <span className="inline-flex flex-wrap gap-2">
+                          <Button type="button" variant="outline" className="h-9" disabled={busy} onClick={openGallery}>
+                            <ImageIcon /> Galeria
+                          </Button>
+                          <Button type="button" variant="outline" className="h-9" disabled={busy} onClick={openCamera}>
+                            <Camera /> Câmera
+                          </Button>
+                        </span>
+                      ) : (
+                        <Button type="button" variant="outline" className="h-9" disabled={busy} onClick={openGallery}>
+                          Adicionar foto
+                        </Button>
+                      )
+                    }
+                  </PhotoSourcePicker>
                 ) : null}
               </section>
             </div>

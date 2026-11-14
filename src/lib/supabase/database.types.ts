@@ -1028,6 +1028,7 @@ export type Database = {
           location_id: string | null
           primary_user_id: string | null
           priority: string
+          read_at: string | null
           requester_name: string | null
           requester_phone: string | null
           tenant_id: string
@@ -1049,6 +1050,7 @@ export type Database = {
           location_id?: string | null
           primary_user_id?: string | null
           priority?: string
+          read_at?: string | null
           requester_name?: string | null
           requester_phone?: string | null
           tenant_id: string
@@ -1070,6 +1072,7 @@ export type Database = {
           location_id?: string | null
           primary_user_id?: string | null
           priority?: string
+          read_at?: string | null
           requester_name?: string | null
           requester_phone?: string | null
           tenant_id?: string

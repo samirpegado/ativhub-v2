@@ -204,8 +204,8 @@ export function AppShell({
                 href="/requests?status=pending"
                 aria-label={
                   pendingRequestCount > 0
-                    ? `${pendingRequestCount} solicitações pendentes`
-                    : "Solicitações pendentes"
+                    ? `${pendingRequestCount} solicitações não lidas`
+                    : "Solicitações não lidas"
                 }
               >
                 <Bell />

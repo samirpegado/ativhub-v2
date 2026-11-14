@@ -135,7 +135,7 @@ export function RequestsView({
             onChange={(event) => {
               const value = event.target.value;
               visit({
-                status: value === "pending" || value === "treating" || value === "approved" || value === "rejected" ? value : null,
+                status: value === "pending" || value === "approved" || value === "rejected" ? value : null,
                 page: 1,
               });
             }}
@@ -242,7 +242,10 @@ export function RequestsView({
                   return (
                     <tr
                       key={item.id}
-                      className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
+                      className={cn(
+                        "cursor-pointer border-b last:border-0 hover:bg-muted/40",
+                        item.readAt ? "font-normal" : "font-bold",
+                      )}
                       onClick={() => router.push(`/requests/${item.id}`)}
                     >
                       {canEdit ? (

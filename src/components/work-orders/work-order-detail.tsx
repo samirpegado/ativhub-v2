@@ -8,6 +8,7 @@ import {
   Building2,
   Camera,
   Check,
+  Image as ImageIcon,
   ClipboardCheck,
   Flag,
   Loader2,
@@ -32,6 +33,7 @@ import {
 } from "@/app/(app)/work-orders/activity-actions";
 import { sendWorkOrderReport } from "@/app/(app)/work-orders/report-actions";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { PhotoSourcePicker } from "@/components/images/photo-source-picker";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { WorkOrderLaborDialog } from "@/components/work-orders/work-order-labor-dialog";
 import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-dialog";
@@ -68,6 +70,7 @@ import {
   workOrderPriorityLabel,
   workOrderStatusColor,
   workOrderStatusLabel,
+  workOrderStatusStyle,
   workOrderTypeLabel,
 } from "@/lib/work-orders/status";
 import { taskAnswerLabel } from "@/lib/work-orders/tasks";
@@ -142,6 +145,7 @@ export function WorkOrderDetail({
   const due = splitWhen(order.dueDate);
   const closed = status === "COMPLETE";
   const step = closed ? 2 : status === "OPEN" ? 0 : 1;
+  const statusStyle = workOrderStatusStyle(status);
   const charge = order.billingMode === "NONE" ? null : serviceCharge(order, activity);
   const partsValue = partsTotal(activity.parts);
 
@@ -300,13 +304,18 @@ export function WorkOrderDetail({
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             {canEdit ? (
-              <Button type="button" variant="outline" className={`${whiteButton} w-fit`} disabled={busy} onClick={openStatus}>
-                <span className="size-2.5 rounded-full" style={{ background: workOrderStatusColor(status) }} />
+              <button
+                type="button"
+                disabled={busy}
+                onClick={openStatus}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold disabled:opacity-50 ${statusStyle.chip}`}
+              >
+                <span className={`size-2 rounded-full ${statusStyle.dot}`} />
                 {workOrderStatusLabel(status)}
-              </Button>
+              </button>
             ) : (
-              <span className="inline-flex h-11 items-center gap-2.5 rounded-[10px] border border-[#cbd5e1] bg-white px-4 text-sm font-semibold">
-                <span className="size-2.5 rounded-full" style={{ background: workOrderStatusColor(status) }} />
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle.chip}`}>
+                <span className={`size-2 rounded-full ${statusStyle.dot}`} />
                 {workOrderStatusLabel(status)}
               </span>
             )}
@@ -319,18 +328,26 @@ export function WorkOrderDetail({
         </div>
         {!canEdit && !closed && completeBlock ? <p className="-mt-3 mb-4 text-sm text-[#4a5a70]">{completeBlock}</p> : null}
         <div className="mx-auto mb-7 flex max-w-[760px] items-start" role="group" aria-label="Etapas da OS">
-          {STEPS.map((item, index) => (
+          {STEPS.map((item, index) => {
+            const current = index === step;
+            const reached = index <= step;
+            const tone = workOrderStatusStyle(current ? status : item.status);
+            return (
             <div key={item.status} className="contents">
-              {index > 0 ? <div className="mt-3.5 h-[3px] w-3 shrink-0 rounded-sm sm:w-auto sm:min-w-4 sm:flex-1" style={{ background: index <= step ? "#008300" : "#e9edf3" }} /> : null}
+              {index > 0 ? <div className="mt-3.5 h-[3px] w-3 shrink-0 rounded-sm sm:w-auto sm:min-w-4 sm:flex-1" style={{ background: reached ? tone.color : "#e9edf3" }} /> : null}
               <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center sm:gap-2">
-                <span className={`flex size-8 shrink-0 items-center justify-center rounded-full ${index <= step ? "bg-[#008300] text-white" : "border border-[#cbd5e1] text-[#5b6b80]"} ${index === step ? "shadow-[0_0_0_5px_rgba(0,131,0,0.18)]" : ""}`}>
+                <span
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-full ${reached ? "text-white" : "border border-[#cbd5e1] text-[#5b6b80]"}`}
+                  style={reached ? { background: tone.color, boxShadow: current ? `0 0 0 5px color-mix(in srgb, ${tone.color} 18%, transparent)` : undefined } : undefined}
+                >
                   {index < step || closed ? <Check className="size-[18px]" strokeWidth={3} /> : <span className="size-2 rounded-full bg-current" />}
                 </span>
-                <span className={`text-xs leading-tight sm:text-sm ${index === step ? "font-bold" : "font-semibold"}`}>{item.label}</span>
-                {index === step ? <span className="-mt-0.5 text-[11px] font-semibold leading-tight text-[#006300] sm:text-xs">{status === "ON_HOLD" ? "Pausado" : "Etapa atual"}</span> : null}
+                <span className={`text-xs leading-tight sm:text-sm ${current ? "font-bold" : "font-semibold"}`}>{item.label}</span>
+                {current ? <span className="-mt-0.5 text-[11px] font-semibold leading-tight sm:text-xs" style={{ color: tone.ink }}>{status === "ON_HOLD" ? "Pausado" : "Etapa atual"}</span> : null}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <Stat label="Vencimento" value={due.day} note={due.time} />
@@ -491,7 +508,25 @@ export function WorkOrderDetail({
           <section className="min-w-0 rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Fotos">
             <SectionHead title="Fotos" subtitle="Até 3 fotos, com no máximo 2 MB cada">
               {photos.length < WORK_ORDER_PHOTO_LIMIT ? (
-                <FileButton label={uploading ? "Enviando" : "Adicionar foto"} icon={uploading ? <Loader2 className="size-[18px] animate-spin" /> : <Camera className="size-[18px]" />} accept="image/png,image/jpeg,image/webp" capture disabled={uploading} onFile={onFile} />
+                <PhotoSourcePicker disabled={uploading} onFile={onFile}>
+                  {({ phone, openGallery, openCamera }) =>
+                    phone ? (
+                      <span className="inline-flex flex-wrap gap-2">
+                        <button type="button" className={photoButton} disabled={uploading} onClick={openGallery}>
+                          <ImageIcon className="size-[18px]" /> Galeria
+                        </button>
+                        <button type="button" className={photoButton} disabled={uploading} onClick={openCamera}>
+                          {uploading ? <Loader2 className="size-[18px] animate-spin" /> : <Camera className="size-[18px]" />} Câmera
+                        </button>
+                      </span>
+                    ) : (
+                      <button type="button" className={photoButton} disabled={uploading} onClick={openGallery}>
+                        {uploading ? <Loader2 className="size-[18px] animate-spin" /> : <Camera className="size-[18px]" />}
+                        {uploading ? "Enviando" : "Adicionar foto"}
+                      </button>
+                    )
+                  }
+                </PhotoSourcePicker>
               ) : null}
             </SectionHead>
             {photos.length === 0 ? <EmptyBox icon={<Camera className="size-5" />} text="Nenhuma foto nesta ordem." /> : (
@@ -653,15 +688,7 @@ function EmptyBox({ icon, text }: { icon: ReactNode; text: string }) {
   );
 }
 
-function FileButton({ label, icon, accept, capture, disabled, onFile }: { label: string; icon: ReactNode; accept?: string; capture?: boolean; disabled?: boolean; onFile: (file: File | null) => void }) {
-  return (
-    <label className={`inline-flex items-center gap-2 px-4 text-sm font-semibold ${whiteButton} ${disabled ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
-      {icon}
-      {label}
-      <input type="file" accept={accept} capture={capture ? "environment" : undefined} disabled={disabled} className="sr-only" onChange={(event) => { onFile(event.target.files?.[0] ?? null); event.target.value = ""; }} />
-    </label>
-  );
-}
+const photoButton = `inline-flex items-center gap-2 px-4 text-sm font-semibold disabled:pointer-events-none disabled:opacity-60 ${whiteButton}`;
 
 function laborDuration(labor: WorkOrderLabor, now: number) {
   if (!labor.startedAt) return labor.durationSeconds;

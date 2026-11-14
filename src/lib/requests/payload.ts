@@ -15,6 +15,7 @@ export type RequestRecord = {
   locationId: string | null;
   locationName: string | null;
   inTreatment: boolean;
+  readAt: string | null;
 };
 
 export type RequestsScreen = {
@@ -74,6 +75,7 @@ export function readRequestsScreen(data: unknown): RequestsScreen {
           locationId: text(row.locationId),
           locationName: text(row.locationName),
           inTreatment: row.inTreatment === true,
+          readAt: text(row.readAt),
         },
       ];
     }),
