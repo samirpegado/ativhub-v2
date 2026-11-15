@@ -103,18 +103,18 @@ export function RequestDetailView({
           <ArrowLeft className="size-[18px]" />
           Voltar para as solicitações
         </Link>
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="min-w-0 flex-1">
+        <div className="flex flex-col gap-4">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-mono text-sm text-[#4a5a70]">{request.customId ?? "Solicitação"}</span>
               <span className="inline-flex items-center rounded-full bg-[#f5f7fb] px-2.5 py-1 text-xs font-semibold text-[#4a5a70]">
                 {STATE_LABEL[state]}
               </span>
             </div>
-            <h1 className="mt-2.5 text-[32px] leading-tight font-semibold tracking-tight">{request.title}</h1>
+            <h1 className="mt-2.5 text-xl leading-tight font-semibold tracking-tight sm:text-2xl lg:text-[32px]">{request.title}</h1>
             {request.description ? <p className="mt-1.5 max-w-3xl text-base whitespace-pre-wrap text-[#4a5a70]">{request.description}</p> : null}
           </div>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap justify-end gap-2.5">
             {request.workOrderId ? (
               <Button asChild variant="outline" className={whiteButton}>
                 <Link href={`/work-orders/${request.workOrderId}`}>Abrir ordem</Link>

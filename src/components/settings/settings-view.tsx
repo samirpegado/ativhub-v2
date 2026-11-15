@@ -35,7 +35,7 @@ export function SettingsView({
 
   return (
     <div className="space-y-4">
-      <div className="flex w-fit gap-1 rounded-lg bg-muted p-1">
+      <div className="flex w-full max-w-full flex-wrap gap-1 rounded-lg bg-muted p-1">
         <TabButton active={tab === "roles"} onClick={() => select("roles")}>
           Funções
         </TabButton>
@@ -89,7 +89,7 @@ function TabButton({
       type="button"
       variant="ghost"
       className={cn(
-        "h-8 px-3",
+        "h-8 shrink-0 px-3 whitespace-nowrap",
         active && "bg-background text-foreground shadow-sm hover:bg-background",
       )}
       onClick={onClick}

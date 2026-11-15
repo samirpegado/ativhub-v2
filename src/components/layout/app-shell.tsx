@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -157,9 +157,14 @@ export function AppShell({
   const pathname = usePathname();
   const title = pageTitle(pathname);
   const [open, setOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [pathname]);
 
   return (
-    <div className="min-h-full bg-background">
+    <div className="h-dvh overflow-hidden bg-background lg:pl-[290px]">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[290px] bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
         <SidebarChrome user={user} priorityLogo />
       </aside>
@@ -181,7 +186,8 @@ export function AppShell({
         </SheetContent>
       </Sheet>
 
-      <header className="fixed top-0 right-0 left-0 z-20 flex h-20 min-w-0 items-center justify-between gap-2 bg-card/95 px-4 shadow-[0px_2px_8px_-3px_rgba(34,51,84,0.2),0px_5px_22px_-4px_rgba(34,51,84,0.1)] backdrop-blur-[3px] lg:left-[290px]">
+      <div className="flex h-full min-h-0 flex-col">
+      <header className="z-20 flex h-20 shrink-0 items-center justify-between gap-2 bg-card/95 px-4 shadow-[0px_2px_8px_-3px_rgba(34,51,84,0.2),0px_5px_22px_-4px_rgba(34,51,84,0.1)] backdrop-blur-[3px]">
         <div className="flex min-w-0 items-center gap-1">
           <Button
             variant="ghost"
@@ -221,9 +227,10 @@ export function AppShell({
         </div>
       </header>
 
-      <main className="min-h-full pt-20 lg:pl-[290px]">
+      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-4 py-4 sm:px-8">{children}</div>
       </main>
+      </div>
     </div>
   );
 }
