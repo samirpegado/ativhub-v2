@@ -24,7 +24,8 @@ function parseDay(value: FormDataEntryValue | null, label: string, required: boo
     return null;
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new Error(`${label} inválida.`);
-  return `${text}T12:00:00.000Z`;
+  // 05:00 UTC é 02:00 em America/Sao_Paulo, o horário em que a ordem deve existir.
+  return `${text}T05:00:00.000Z`;
 }
 
 function parseDelay(value: FormDataEntryValue | null) {

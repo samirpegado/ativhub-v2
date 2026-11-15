@@ -93,8 +93,8 @@ export function PreventiveDetailView({
           <ArrowLeft className="size-[18px]" />
           Voltar para a preventiva
         </Link>
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="min-w-0 flex-1">
+        <div className="flex flex-col gap-4">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-mono text-sm text-[#4a5a70]">{schedule.customId ?? "Agendamento"}</span>
               <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${priorityClass(schedule.priority)}`}>
@@ -105,11 +105,11 @@ export function PreventiveDetailView({
                 <span className="rounded-full bg-[#f5f7fb] px-2.5 py-1 text-xs font-semibold text-[#4a5a70]">Pausado</span>
               ) : null}
             </div>
-            <h1 className="mt-2.5 text-[32px] leading-tight font-semibold tracking-tight">{schedule.name}</h1>
+            <h1 className="mt-2.5 text-xl leading-tight font-semibold tracking-tight sm:text-2xl lg:text-[32px]">{schedule.name}</h1>
             <p className="mt-1.5 text-base text-[#4a5a70]">{scheduleDescription(schedule)}</p>
           </div>
           {canEdit ? (
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap justify-end gap-2.5">
               <Button type="button" variant="outline" className={whiteButton} disabled={busy} onClick={togglePause}>
                 {schedule.disabled ? "Retomar" : "Pausar"}
               </Button>
@@ -123,10 +123,10 @@ export function PreventiveDetailView({
 
       {error ? <p className="text-sm text-[#b42323]">{error}</p> : null}
 
-      <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Recorrência">
+      <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-4 sm:p-6" aria-label="Recorrência">
         <h2 className="text-lg font-semibold tracking-tight">Recorrência</h2>
         <p className="text-[13px] text-[#4a5a70]">{recurrenceBaseLabel(schedule.recurrenceBasedOn)}</p>
-        <div className="mt-4 flex flex-wrap gap-4">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           <Stat label="Começa em" value={formatScheduleDate(schedule.startsOn)} />
           <Stat label="Termina em" value={formatScheduleDate(schedule.endsOn)} />
           <Stat label="Próxima ordem" value={nextRunLabel(schedule)} />
@@ -308,9 +308,9 @@ function taskPrompt(taskType: string) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-[180px] flex-1 rounded-xl bg-[#f5f7fb] px-[18px] py-4">
+    <div className="min-w-0 rounded-xl bg-[#f5f7fb] px-3 py-3 sm:px-[18px] sm:py-4">
       <div className="text-[13px] font-medium text-[#5b6b80]">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight">{value}</div>
+      <div className="mt-1 text-base font-semibold tracking-tight whitespace-nowrap sm:text-xl lg:text-2xl">{value}</div>
     </div>
   );
 }

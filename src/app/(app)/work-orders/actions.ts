@@ -16,6 +16,7 @@ import {
   type WorkOrderStatus,
 } from "@/lib/work-orders/status";
 import { workOrderCompletionBlock } from "@/lib/work-orders/completion";
+import { stopRunningWorkOrderTimers } from "@/lib/work-orders/timer";
 import { parseTaskList, type WorkOrderTask } from "@/lib/work-orders/tasks";
 
 function refreshOrders() {
@@ -340,6 +341,7 @@ export async function updateWorkOrder(
     if (status === "COMPLETE" && previousStatus !== "COMPLETE") {
       const block = await workOrderCompletionBlock(supabase, id);
       if (block) throw new Error(block);
+      await stopRunningWorkOrderTimers(supabase, id);
     }
     const stamps = statusTimestamps({
       next: status as WorkOrderStatus,

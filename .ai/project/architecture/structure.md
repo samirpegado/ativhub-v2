@@ -94,7 +94,7 @@ Describe the real structural organization of the repository and the architectura
   ou do vencimento quando não há início, com a sigla do tipo. No dia e na semana, o início estimado vira horário e a duração estimada define o tamanho. O clique no dia lista as ordens dele abaixo do calendário; o clique na ordem abre o detalhe. Concluir grava `completed_by`/`completed_on`; a primeira
   saída de `OPEN` (exceto para `ON_HOLD`) grava `first_time_to_react`.
   Iniciar o temporizador passa a ordem para em andamento e pausar passa para pausada.
-  O técnico conclui por um botão próprio. A ordem só pode ser concluída com tempo de mão de obra registrado e todas as tarefas executadas.
+  O técnico conclui por um botão próprio. A ordem só pode ser concluída com tempo de mão de obra registrado e todas as tarefas executadas. Concluir para o temporizador e grava o tempo que estava correndo.
   Concluída, a ordem não aceita tempo, tarefas nem peças até um gestor alterar o status. O gestor troca o status num modal.
   As tarefas pertencem à ordem. Uma lista nomeada (`checklist`) guarda uma
   cópia reutilizável: ao escolhê-la, as tarefas entram na ordem sem vínculo
@@ -103,7 +103,7 @@ Describe the real structural organization of the repository and the architectura
   Por hora, o cadastro pede o valor da hora daquele serviço e a cobrança multiplica esse valor pelas horas registradas.
   Na página da ordem, o card de tarefas vem primeiro e o botão Iniciar OS fica junto das ações principais enquanto a ordem não está concluída. Ele liga o temporizador;
   o lançamento manual e o tempo do temporizador podem ser apagados. A página também mostra peças
-  e o relatório para impressão. Relatório PDF abre a folha de impressão, no tamanho fixo de uma página. Essa folha também abre sem login: o identificador da ordem é o acesso, e só mostra essa ordem. O envio por e-mail, visível com a ordem concluída, manda um botão para essa folha pelo template WORK_ORDER_REPORT. As fotos ficam na coluna lateral, no máximo 3. O nome longo é cortado com reticências. As tarefas aparecem na ordem em que foram cumpridas, com a data da resposta; as pendentes ficam no fim. Cada tarefa guarda `executed_at` e `comment`; editar a ordem preserva essa execução.
+  e o relatório para impressão. Relatório PDF abre a folha de impressão, no tamanho fixo de uma página. Essa folha também abre sem login: o identificador da ordem é o acesso, e só mostra essa ordem. O envio por e-mail, visível com a ordem concluída, manda um botão para essa folha pelo template WORK_ORDER_REPORT. As fotos ficam na coluna lateral, no máximo 3. O nome longo é cortado com reticências. As tarefas aparecem na ordem em que foram cumpridas, com a data da resposta; as pendentes ficam no fim. Cada uma abre o próprio registro e pode ser cumprida fora da ordem da lista. Cada tarefa guarda `executed_at` e `comment`; editar a ordem preserva essa execução.
   A subtarefa é um item concluído ou pendente. A tabela `work_order_update` permanece, sem tela de escrita.   A peça da ordem é buscada no servidor pelo nome, descrição ou código de barras.
   Ao lançar, o estoque baixa quando `non_stock` é falso, e remover a linha devolve a quantidade.
 - `/preventive` lista os agendamentos, sem localização nem ativos. Um agendamento não é editado: a alteração é excluir e criar outro. `preventive_screen` recebe busca, prioridade,
@@ -111,8 +111,9 @@ Describe the real structural organization of the repository and the architectura
   `/preventive/[id]`, que chama `preventive_detail`. Cada agendamento define a recorrência (dia, semana, mês
   ou ano, pela data marcada ou pela conclusão da ordem anterior) e os dados da
   ordem que será criada. `generate_due_preventive_work_orders` cria a ordem
-  quando a data chega. Ela roda de hora em hora e também ao abrir as ordens ou
-  a preventiva. Cinco ordens seguidas sem reação pausam o agendamento.
+  às 2h da manhã em Brasília no dia marcado, para ela já estar pronta quando o
+  trabalho começa. O cron roda no início de cada hora e também ao abrir as ordens
+  ou a preventiva. Cinco ordens seguidas sem reação pausam o agendamento.
 - `/inventory` lista peças e conjuntos. `parts_screen` e `part_sets_screen`
   recebem busca, filtro de estoque (peças), limit e offset, no máximo 20, e
   devolvem o payload da tela. O clique chama `part_detail` ou `part_set_detail`.

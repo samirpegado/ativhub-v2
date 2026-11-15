@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, ClipboardCheck, Image as ImageIcon, Loader2, Timer, Trash2 } from "lucide-react";
+import { Camera, Image as ImageIcon, Loader2, Timer, Trash2 } from "lucide-react";
 import { OpenWorkOrderReportButton } from "@/components/work-orders/open-work-order-report-button";
 import {
   deleteWorkOrderFile,
@@ -15,6 +15,7 @@ import {
   toggleWorkOrderTimer,
 } from "@/app/(app)/work-orders/activity-actions";
 import { WorkOrderLaborDialog } from "@/components/work-orders/work-order-labor-dialog";
+import { WorkOrderTaskDialog } from "@/components/work-orders/work-order-tasks-dialog";
 import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-dialog";
 import { sendWorkOrderReport } from "@/app/(app)/work-orders/report-actions";
 import { FormDialog } from "@/components/forms/form-dialog";
@@ -56,7 +57,7 @@ import {
   workOrderStatusLabel,
   workOrderTypeLabel,
 } from "@/lib/work-orders/status";
-import { taskAnswerLabel } from "@/lib/work-orders/tasks";
+import { taskAnswerLabel, type WorkOrderTask } from "@/lib/work-orders/tasks";
 import { cn } from "@/lib/utils";
 
 const EMPTY_ACTIVITY: WorkOrderActivity = {
@@ -99,7 +100,6 @@ export function WorkOrderDrawer({
   open,
   onOpenChange,
   onEdit,
-  onAnswer,
   reloadToken = 0,
   canEdit = true,
 }: {
@@ -109,7 +109,6 @@ export function WorkOrderDrawer({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: (order: WorkOrderRecord) => void;
-  onAnswer: (order: WorkOrderRecord) => void;
   reloadToken?: number;
   canEdit?: boolean;
 }) {
@@ -126,6 +125,7 @@ export function WorkOrderDrawer({
   const [status, setStatus] = useState(order?.status ?? "OPEN");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [executingTask, setExecutingTask] = useState<WorkOrderTask | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [partsOpen, setPartsOpen] = useState(false);
   const [laborOpen, setLaborOpen] = useState(false);
@@ -240,6 +240,27 @@ export function WorkOrderDrawer({
     }
     setError(null);
     setAssetCloseOpen(false);
+    if (next === "COMPLETE") {
+      const now = Date.now();
+      setActivity((current) => ({
+        ...current,
+        timer: current.timer
+          ? { ...current.timer, durationSeconds: liveDuration(current.timer, now), startedAt: null }
+          : null,
+        labors: current.labors.map((labor) =>
+          labor.startedAt
+            ? {
+                ...labor,
+                durationSeconds: liveDuration(
+                  { durationSeconds: labor.durationSeconds, startedAt: labor.startedAt, hourlyRate: labor.hourlyRate },
+                  now,
+                ),
+                startedAt: null,
+              }
+            : labor,
+        ),
+      }));
+    }
     router.refresh();
   }
 
@@ -405,40 +426,39 @@ export function WorkOrderDrawer({
               </dl>
 
               <section className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-semibold">Tarefas</h3>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-9"
-                    onClick={() => onAnswer(record)}
-                  >
-                    <ClipboardCheck />
-                    Executar tarefas
-                  </Button>
-                </div>
+                <h3 className="font-semibold">Tarefas</h3>
                 {record.tasks.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Esta ordem não tem tarefas.</p>
                 ) : (
                   <ul className="space-y-2 text-sm">
-                    {record.tasks.map((task) => (
+                    {orderedTasks(record.tasks).map((task) => {
+                      const canExecute = status !== "COMPLETE" && Boolean(task.id);
+                      return (
                       <li key={task.id ?? task.label}>
-                        <div className="flex justify-between gap-3">
-                          <span>{task.label}</span>
-                          <span className="font-medium">
-                            {task.value ? taskAnswerLabel(task) : "Pendente"}
-                          </span>
-                        </div>
-                        {task.executedAt ? (
-                          <p className="text-xs text-muted-foreground">
-                            {formatWhen(task.executedAt)}
-                            {task.comment ? ` — ${task.comment}` : ""}
-                          </p>
-                        ) : task.value ? (
-                          <p className="text-xs text-muted-foreground">Resposta anterior, sem data de execução</p>
-                        ) : null}
+                        <button
+                          type="button"
+                          disabled={!canExecute}
+                          onClick={() => setExecutingTask(task)}
+                          className={`w-full text-left ${canExecute ? "rounded-lg hover:bg-muted" : ""}`}
+                        >
+                          <div className="flex justify-between gap-3">
+                            <span>{task.label}</span>
+                            <span className="font-medium">
+                              {task.value ? taskAnswerLabel(task) : "Pendente"}
+                            </span>
+                          </div>
+                          {task.executedAt ? (
+                            <p className="text-xs text-muted-foreground">
+                              {formatWhen(task.executedAt)}
+                              {task.comment ? ` — ${task.comment}` : ""}
+                            </p>
+                          ) : task.value ? (
+                            <p className="text-xs text-muted-foreground">Resposta anterior, sem data de execução</p>
+                          ) : null}
+                        </button>
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 )}
               </section>
@@ -693,6 +713,17 @@ export function WorkOrderDrawer({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <WorkOrderTaskDialog
+      order={executingTask ? record : null}
+      task={executingTask?.id ? { ...executingTask, id: executingTask.id } : null}
+      onOpenChange={(open) => {
+        if (!open) setExecutingTask(null);
+      }}
+      onExecuted={(next) => {
+        setLoaded(next);
+        setExecutingTask(null);
+      }}
+    />
     </>
   );
 }
@@ -704,6 +735,18 @@ function Detail({ label, value }: { label: string; value: string }) {
       <dd className="font-medium">{value}</dd>
     </div>
   );
+}
+
+function orderedTasks(tasks: WorkOrderTask[]) {
+  return tasks
+    .map((task, index) => ({ task, index }))
+    .sort((left, right) => {
+      const leftAt = left.task.executedAt ? Date.parse(left.task.executedAt) : Number.POSITIVE_INFINITY;
+      const rightAt = right.task.executedAt ? Date.parse(right.task.executedAt) : Number.POSITIVE_INFINITY;
+      if (leftAt !== rightAt) return leftAt - rightAt;
+      return left.index - right.index;
+    })
+    .map((item) => item.task);
 }
 
 function Timeline({ order }: { order: WorkOrderRecord }) {

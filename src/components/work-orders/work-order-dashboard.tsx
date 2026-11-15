@@ -3,8 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { WorkOrderDrawer } from "@/components/work-orders/work-order-drawer";
-import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
-import type { WorkOrderRecord } from "@/lib/work-orders/queries";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,8 +33,6 @@ export function WorkOrderDashboardView({
 }) {
   const router = useRouter();
   const [openId, setOpenId] = useState<string | null>(null);
-  const [answering, setAnswering] = useState<WorkOrderRecord | null>(null);
-  const [taskRevision, setTaskRevision] = useState(0);
 
   function visit(next: Partial<DashboardFilters>) {
     const merged = { ...filters, ...next };
@@ -189,22 +185,10 @@ export function WorkOrderDashboardView({
         tenantId={tenantId}
         open={openId !== null}
         canEdit={canManage}
-        reloadToken={taskRevision}
         onOpenChange={(next) => {
           if (!next) setOpenId(null);
         }}
         onEdit={() => setOpenId(null)}
-        onAnswer={setAnswering}
-      />
-      <WorkOrderTasksDialog
-        order={answering}
-        onOpenChange={(next) => {
-          if (!next) setAnswering(null);
-        }}
-        onExecuted={(next) => {
-          setAnswering(next);
-          setTaskRevision((current) => current + 1);
-        }}
       />
     </section>
   );

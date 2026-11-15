@@ -138,6 +138,76 @@ export function WorkOrderTasksDialog({
   );
 }
 
+export function WorkOrderTaskDialog({
+  order,
+  task,
+  onOpenChange,
+  onExecuted,
+}: {
+  order: WorkOrderRecord | null;
+  task: (WorkOrderTask & { id: string }) | null;
+  onOpenChange: (open: boolean) => void;
+  onExecuted: (order: WorkOrderRecord) => void;
+}) {
+  const router = useRouter();
+  const [value, setValue] = useState("");
+  const [comment, setComment] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (!task) return;
+    setError(null);
+    setPending(false);
+    setValue(task.taskType === "SUBTASK" ? (subtaskDone(task.value) ? SUBTASK_DONE : "") : (task.value ?? ""));
+    setComment(task.comment ?? "");
+  }, [task]);
+
+  async function register() {
+    if (!order || !task) return;
+    setPending(true);
+    const result = await executeWorkOrderTask(order.id, task.id, { value, comment });
+    setPending(false);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    if (result.order) onExecuted(result.order);
+    onOpenChange(false);
+    router.refresh();
+  }
+
+  return (
+    <FormDialog
+      open={order !== null && task !== null}
+      onOpenChange={onOpenChange}
+      title={task?.label ?? "Executar tarefa"}
+      description="Registre a execução desta tarefa. A data e a hora ficam gravadas."
+    >
+      {task ? (
+        <div className="space-y-3">
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <TaskAnswer task={task} value={value} onChange={setValue} />
+          <Textarea
+            rows={3}
+            value={comment}
+            placeholder="Comentário da execução"
+            onChange={(event) => setComment(event.target.value)}
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" className="h-9" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" className="h-9" disabled={pending} onClick={() => void register()}>
+              {pending ? "Registrando..." : "Registrar"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </FormDialog>
+  );
+}
+
 function TaskAnswer({
   task,
   value,

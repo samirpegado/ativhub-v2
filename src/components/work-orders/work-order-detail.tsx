@@ -38,7 +38,7 @@ import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { WorkOrderLaborDialog } from "@/components/work-orders/work-order-labor-dialog";
 import { WorkOrderPartsDialog } from "@/components/work-orders/work-order-parts-dialog";
 import { OpenWorkOrderReportButton } from "@/components/work-orders/open-work-order-report-button";
-import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
+import { WorkOrderTaskDialog } from "@/components/work-orders/work-order-tasks-dialog";
 import { ASSET_STATUSES } from "@/lib/assets/status";
 import { compressWorkOrderPhoto, isWorkOrderPhotoName, WORK_ORDER_PHOTO_LIMIT } from "@/lib/images/compress-work-order-photo";
 import { Button } from "@/components/ui/button";
@@ -107,7 +107,7 @@ export function WorkOrderDetail({
   const [now, setNow] = useState(() => Date.now());
   const [partsOpen, setPartsOpen] = useState(false);
   const [laborOpen, setLaborOpen] = useState(false);
-  const [tasksOpen, setTasksOpen] = useState(false);
+  const [executingTask, setExecutingTask] = useState<(typeof initialOrder.tasks)[number] | null>(null);
   const [editing, setEditing] = useState(false);
   const [mailOpen, setMailOpen] = useState(false);
   const [mailTo, setMailTo] = useState("");
@@ -137,11 +137,15 @@ export function WorkOrderDetail({
   const timerLabel = formatDurationClock(liveDuration(activity.timer, now));
   const laborTotal = activity.labors.reduce((sum, labor) => sum + laborDuration(labor, now), 0);
   const answered = order.tasks.filter((task) => task.value).length;
-  const displayTasks = [...order.tasks].sort((left, right) => {
-    const leftAt = left.executedAt ? Date.parse(left.executedAt) : Number.POSITIVE_INFINITY;
-    const rightAt = right.executedAt ? Date.parse(right.executedAt) : Number.POSITIVE_INFINITY;
-    return leftAt - rightAt;
-  });
+  const displayTasks = order.tasks
+    .map((task, index) => ({ task, index }))
+    .sort((left, right) => {
+      const leftAt = left.task.executedAt ? Date.parse(left.task.executedAt) : Number.POSITIVE_INFINITY;
+      const rightAt = right.task.executedAt ? Date.parse(right.task.executedAt) : Number.POSITIVE_INFINITY;
+      if (leftAt !== rightAt) return leftAt - rightAt;
+      return left.index - right.index;
+    })
+    .map((item) => item.task);
   const due = splitWhen(order.dueDate);
   const closed = status === "COMPLETE";
   const step = closed ? 2 : status === "OPEN" ? 0 : 1;
@@ -175,6 +179,18 @@ export function WorkOrderDetail({
     setError(null);
     setAssetCloseOpen(false);
     setOrder((current) => ({ ...current, status: next }));
+    if (next === "COMPLETE") {
+      const now = Date.now();
+      setActivity((current) => ({
+        ...current,
+        timer: current.timer
+          ? { ...current.timer, durationSeconds: liveDuration(current.timer, now), startedAt: null }
+          : null,
+        labors: current.labors.map((labor) =>
+          labor.startedAt ? { ...labor, durationSeconds: laborDuration(labor, now), startedAt: null } : labor,
+        ),
+      }));
+    }
     router.refresh();
   }
 
@@ -240,8 +256,8 @@ export function WorkOrderDetail({
           <ArrowLeft className="size-[18px]" />
           Voltar para as ordens de serviço
         </Link>
-        <div className="flex flex-wrap items-start justify-between gap-5">
-          <div className="min-w-0 flex-1">
+        <div className="flex flex-col gap-4">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-mono text-sm text-[#4a5a70]">{order.customId ?? "Ordem de serviço"}</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eef3fb] px-2.5 py-1 text-xs font-semibold text-[#0b1b33]">
@@ -256,7 +272,7 @@ export function WorkOrderDetail({
             <h1 className="mt-2.5 text-xl leading-tight font-semibold tracking-tight sm:text-2xl lg:text-[32px]">{order.title}</h1>
             {order.description ? <p className="mt-1.5 text-base text-[#4a5a70]">{order.description}</p> : null}
           </div>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap justify-end gap-2.5">
             {closed ? null : (
               <Button type="button" className="h-11 rounded-[10px] bg-[#008300] text-white hover:bg-[#006b00]" disabled={busy} onClick={() => { setBusy(true); void toggleWorkOrderTimer(order.id).then((result) => { setBusy(false); apply(result); }); }}>
                 {busy ? <Loader2 className="animate-spin" /> : running ? (
@@ -297,7 +313,7 @@ export function WorkOrderDetail({
 
       {error ? <p className="text-sm text-[#b42323]">{error}</p> : null}
 
-      <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Andamento da OS">
+      <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-4 sm:p-6" aria-label="Andamento da OS">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Andamento</h2>
@@ -360,16 +376,12 @@ export function WorkOrderDetail({
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[2] basis-[560px] flex-col gap-5">
           <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Tarefas">
-            <SectionHead title="Tarefas" subtitle={`${answered} de ${order.tasks.length} respondida${answered === 1 ? "" : "s"}`}>
-              {closed ? null : (
-                <Button type="button" variant="outline" className={whiteButton} onClick={() => setTasksOpen(true)}>
-                  <ClipboardCheck /> Executar tarefas
-                </Button>
-              )}
-            </SectionHead>
+            <SectionHead title="Tarefas" subtitle={`${answered} de ${order.tasks.length} respondida${answered === 1 ? "" : "s"}`} />
             {displayTasks.length === 0 ? <EmptyBox icon={<ClipboardCheck className="size-5" />} text="Esta ordem não tem tarefas." /> : (
               <ul>
-                {displayTasks.map((task, index) => (
+                {displayTasks.map((task, index) => {
+                  const canExecute = !closed && Boolean(task.id);
+                  return (
                   <li key={task.id ?? task.label} className="flex gap-3.5">
                     <div className="flex w-7 flex-none flex-col items-center">
                       <span className={`flex size-7 items-center justify-center rounded-full ${task.value ? "bg-[#008300] text-white" : "border border-[#cbd5e1] bg-white"}`}>
@@ -377,7 +389,14 @@ export function WorkOrderDetail({
                       </span>
                       {index < displayTasks.length - 1 ? <span className="w-0.5 flex-1 bg-[#cbd5e1]" /> : null}
                     </div>
-                    <div className={`min-w-0 flex-1 ${index < displayTasks.length - 1 ? "pb-5" : ""}`}>
+                    <button
+                      type="button"
+                      disabled={!canExecute}
+                      onClick={() => {
+                        if (task.id) setExecutingTask(task);
+                      }}
+                      className={`min-w-0 flex-1 text-left ${index < displayTasks.length - 1 ? "pb-5" : ""} ${canExecute ? "cursor-pointer rounded-lg hover:bg-[#f5f7fb]" : ""}`}
+                    >
                       <div className="text-base font-semibold">{task.label}</div>
                       {task.value ? (
                         <div className="mt-3 rounded-[10px] bg-[#f5f7fb] px-4 py-3.5">
@@ -386,9 +405,10 @@ export function WorkOrderDetail({
                         </div>
                       ) : <p className="mt-1 text-sm text-[#4a5a70]">Pendente</p>}
                       {task.executedAt ? <div className="mt-2 text-[13px] text-[#4a5a70]">Respondida em {formatWhen(task.executedAt)}</div> : null}
-                    </div>
+                    </button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </section>
@@ -550,7 +570,17 @@ export function WorkOrderDetail({
         </div>
       </div>
 
-      <WorkOrderTasksDialog order={tasksOpen ? order : null} onOpenChange={setTasksOpen} onExecuted={(next) => { setOrder(next); setTasksOpen(false); router.refresh(); }} />
+      <WorkOrderTaskDialog
+        order={executingTask ? order : null}
+        task={executingTask?.id ? { ...executingTask, id: executingTask.id } : null}
+        onOpenChange={(open) => {
+          if (!open) setExecutingTask(null);
+        }}
+        onExecuted={(next) => {
+          setOrder(next);
+          setExecutingTask(null);
+        }}
+      />
       <WorkOrderPartsDialog open={partsOpen} workOrderId={order.id} onOpenChange={setPartsOpen} onAdded={(next) => apply({ activity: next })} />
       <WorkOrderLaborDialog open={laborOpen} workOrderId={order.id} onOpenChange={setLaborOpen} onAdded={(next) => apply({ activity: next })} />
       {editor ? (
@@ -660,7 +690,7 @@ function Stat({ label, value, note }: { label: string; value: string; note: stri
   return (
     <div className="min-w-0 rounded-xl bg-[#f5f7fb] px-3 py-3 sm:px-[18px] sm:py-4">
       <div className="text-[13px] font-medium text-[#5b6b80]">{label}</div>
-      <div className="mt-1 text-xl font-semibold tracking-tight break-words sm:text-2xl">{value}</div>
+      <div className="mt-1 text-base font-semibold tracking-tight whitespace-nowrap sm:text-xl lg:text-2xl">{value}</div>
       {note ? <div className="text-[13px] text-[#4a5a70]">{note}</div> : null}
     </div>
   );

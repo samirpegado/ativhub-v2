@@ -9,6 +9,7 @@ import type { WorkOrderActivity } from "@/lib/work-orders/activity";
 import { loadWorkOrderDetail, type WorkOrderRecord } from "@/lib/work-orders/queries";
 import { canExecuteWorkOrder } from "@/lib/work-orders/access";
 import { workOrderCompletionBlock } from "@/lib/work-orders/completion";
+import { stopRunningWorkOrderTimers } from "@/lib/work-orders/timer";
 import { isWorkOrderPhotoName, WORK_ORDER_PHOTO_LIMIT } from "@/lib/images/compress-work-order-photo";
 import { isWorkOrderStatus, statusTimestamps, type WorkOrderStatus } from "@/lib/work-orders/status";
 import {
@@ -150,6 +151,7 @@ export async function setWorkOrderStatus(
     if (status === "COMPLETE" && current.status !== "COMPLETE") {
       const block = await workOrderCompletionBlock(supabase, id);
       if (block) throw new Error(block);
+      await stopRunningWorkOrderTimers(supabase, id);
     }
 
     const { error } = await supabase
@@ -208,6 +210,7 @@ export async function completeWorkOrder(workOrderId: string): Promise<ActivityRe
     );
     const block = await workOrderCompletionBlock(supabase, id);
     if (block) throw new Error(block);
+    await stopRunningWorkOrderTimers(supabase, id);
 
     const { data: current, error: readError } = await supabase
       .from("work_order")
