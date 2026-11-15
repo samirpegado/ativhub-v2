@@ -1,6 +1,6 @@
-const EDGE = 512;
-const JPEG_QUALITY = 0.6;
-const MAX_BYTES = 2 * 1024 * 1024;
+const EDGE = 1600;
+const JPEG_QUALITY = 0.8;
+const MAX_BYTES = 5 * 1024 * 1024;
 
 const ACCEPTED = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -15,7 +15,7 @@ export async function compressWorkOrderPhoto(file: File): Promise<File> {
     throw new Error("Envie uma imagem PNG, JPG ou WebP.");
   }
   if (file.size > MAX_BYTES) {
-    throw new Error("A imagem deve ter no máximo 2 MB.");
+    throw new Error("A imagem deve ter no máximo 5 MB.");
   }
 
   const bitmap = await createImageBitmap(file);

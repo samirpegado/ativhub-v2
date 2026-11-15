@@ -531,7 +531,7 @@ export function WorkOrderDetail({
             ))}
           </section>
           <section className="min-w-0 rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Fotos">
-            <SectionHead title="Fotos" subtitle="Até 3 fotos, com no máximo 2 MB cada">
+            <SectionHead title="Fotos" subtitle="Até 3 fotos, com no máximo 5 MB cada">
               {canOperate && photos.length < WORK_ORDER_PHOTO_LIMIT ? (
                 <PhotoSourcePicker disabled={uploading} onFile={onFile}>
                   {({ phone, openGallery, openCamera }) =>

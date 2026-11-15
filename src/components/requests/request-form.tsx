@@ -122,7 +122,7 @@ export function RequestForm({
           />
         )}
       </Field>
-      <Field label="Foto" hint="Uma imagem PNG, JPG ou WebP, de até 2 MB.">
+      <Field label="Foto" hint="Uma imagem PNG, JPG ou WebP, de até 5 MB.">
           <PhotoSourcePicker disabled={uploading} onFile={onFile}>
             {({ phone, openGallery, openCamera }) => (
               <div className="flex items-center gap-3">
