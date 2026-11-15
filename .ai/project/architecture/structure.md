@@ -107,7 +107,7 @@ Describe the real structural organization of the repository and the architectura
   e o relatório para impressão. Relatório PDF abre a folha de impressão, no tamanho fixo de uma página. Essa folha também abre sem login: o identificador da ordem é o acesso, e só mostra essa ordem. O envio por e-mail, visível com a ordem concluída, manda um botão para essa folha pelo template WORK_ORDER_REPORT. As fotos ficam na coluna lateral, no máximo 3. O nome longo é cortado com reticências. As tarefas aparecem na ordem em que foram cumpridas, com a data da resposta; as pendentes ficam no fim. Cada uma abre o próprio registro e pode ser cumprida fora da ordem da lista. Cada tarefa guarda `executed_at` e `comment`; editar a ordem preserva essa execução.
   A subtarefa é um item concluído ou pendente. A tabela `work_order_update` permanece, sem tela de escrita.   A peça da ordem é buscada no servidor pelo nome, descrição ou código de barras.
   Ao lançar, o estoque baixa quando `non_stock` é falso, e remover a linha devolve a quantidade.
-- `/preventive` lista os agendamentos, sem localização nem ativos. Um agendamento não é editado: a alteração é excluir e criar outro. `preventive_screen` recebe busca, prioridade,
+- `/preventive` lista os agendamentos, sem localização nem ativos. O código usa o prefixo PV-. Um agendamento não é editado: a alteração é excluir e criar outro. `preventive_screen` recebe busca, prioridade,
   limit e offset, no máximo 20, e devolve o payload da tela. O clique abre
   `/preventive/[id]`, que chama `preventive_detail`. Cada agendamento define a recorrência (dia, semana, mês
   ou ano, pela data marcada ou pela conclusão da ordem anterior) e os dados da
@@ -126,7 +126,7 @@ Describe the real structural organization of the repository and the architectura
 - `/customers` lista clientes e `/vendors` lista fornecedores. O cadastro de
   fornecedor não pede mais valor/hora (`vendor.rate` permanece no banco). As duas telas
   usam a permissão `parties`. `/parties` redireciona: a aba antiga de
-  contratantes vai para clientes, o restante para fornecedores. `/requests` lista solicitações, sem coluna de ações.
+  contratantes vai para clientes, o restante para fornecedores. `/requests` lista solicitações, sem coluna de ações. O código usa o prefixo S-.
   O clique abre `/requests/[id]`, no mesmo padrão visual da ordem. Pendente é a que não foi recusada, não está em tratamento e ainda não tem ordem. Em tratamento é a mesma solicitação aberta. O ativo da solicitação é um só e se escolhe na mesma busca com filtros da preventiva. Aberto a partir do ativo, o formulário mostra esse ativo direto, sem a busca. Por enquanto toda solicitação é de serviço. Com usuário logado, ela aceita uma foto: maior lado em 512 px, JPEG com qualidade 0,6 e no máximo 2 MB. No celular, a foto oferece galeria ou câmera. Quem edita pode alterar ou excluir
   essas, inclusive em lote, na página da solicitação. O administrador também exclui uma solicitação já aprovada; a ordem criada permanece e deixa de apontar para a solicitação. Aprovar chama `approve_request` e abre o formulário da ordem criada.
   O cabeçalho mostra um sino com a quantidade de solicitações pendentes ainda não lidas, exceto o técnico. `request.read_at` guarda a primeira abertura pelo administrador; a abertura pelo técnico não preenche o campo. Na lista, a solicitação não lida aparece em negrito. Ao lado, quem vê ativos tem um QR code: a câmera lê a etiqueta e abre `/assets/[id]`.

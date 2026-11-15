@@ -79,8 +79,8 @@ agendador Quartz, analytics avançada).
   uma Edge Function/rotina SQL diária que gera as OTs pendentes. Ver seção 6.3.
 - **Arquivos:** Supabase Storage, bucket por ambiente, caminho
   `{tenant_id}/{entidade}/{id}/{arquivo}`. Metadados na tabela `file`.
-- **IDs amigáveis:** `custom_id` por entidade (`WO-000123`, `PM-000045`,
-  `A-000012`, `L-000003`, `R-000078`) gerado por sequência por tenant.
+- **IDs amigáveis:** `custom_id` por entidade (`OS-000123`, `PV-000045`,
+  `A-000012`, `L-000003`, `S-000078`) gerado por sequência por tenant.
 
 ---
 
