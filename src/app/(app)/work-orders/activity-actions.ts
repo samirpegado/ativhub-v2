@@ -53,7 +53,8 @@ async function ownedOrder(workOrderId: string, mode: "view" | "edit" | "execute"
   }
   const id = parseUuid(workOrderId);
   if (!id) throw new Error("Ordem inválida.");
-  if (mode === "execute") {
+  const technician = context.appUser.roleCode === "TECHNICIAN" && !context.appUser.isAdmin;
+  if (mode === "execute" || technician) {
     const { data: order, error } = await context.supabase
       .from("work_order")
       .select("primary_user_id")

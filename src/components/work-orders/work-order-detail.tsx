@@ -89,12 +89,14 @@ export function WorkOrderDetail({
   activity: initialActivity,
   tenantId,
   canEdit,
+  canOperate,
   editor,
 }: {
   order: WorkOrderRecord;
   activity: WorkOrderActivity;
   tenantId: string;
   canEdit: boolean;
+  canOperate: boolean;
   editor: WorkOrderEditorData | null;
 }) {
   const router = useRouter();
@@ -273,7 +275,7 @@ export function WorkOrderDetail({
             {order.description ? <p className="mt-1.5 text-base text-[#4a5a70]">{order.description}</p> : null}
           </div>
           <div className="flex flex-wrap justify-end gap-2.5">
-            {closed ? null : (
+            {canOperate && !closed ? (
               <Button type="button" className="h-11 rounded-[10px] bg-[#008300] text-white hover:bg-[#006b00]" disabled={busy} onClick={() => { setBusy(true); void toggleWorkOrderTimer(order.id).then((result) => { setBusy(false); apply(result); }); }}>
                 {busy ? <Loader2 className="animate-spin" /> : running ? (
                   <span className="relative flex size-2.5" aria-hidden>
@@ -283,7 +285,7 @@ export function WorkOrderDetail({
                 ) : <Play />}
                 {running ? `Pausar · ${timerLabel}` : "Iniciar OS"}
               </Button>
-            )}
+            ) : null}
             {closed ? (
               <>
                 <OpenWorkOrderReportButton workOrderId={order.id} className={whiteButton} />
@@ -335,14 +337,14 @@ export function WorkOrderDetail({
                 {workOrderStatusLabel(status)}
               </span>
             )}
-            {!canEdit && !closed ? (
+            {canOperate && !canEdit && !closed ? (
               <Button type="button" className="h-11 rounded-[10px]" disabled={busy || Boolean(completeBlock)} onClick={() => { setBusy(true); void completeWorkOrder(order.id).then((result) => { setBusy(false); apply(result); }); }}>
                 Concluir OS
               </Button>
             ) : null}
           </div>
         </div>
-        {!canEdit && !closed && completeBlock ? <p className="-mt-3 mb-4 text-sm text-[#4a5a70]">{completeBlock}</p> : null}
+        {canOperate && !canEdit && !closed && completeBlock ? <p className="-mt-3 mb-4 text-sm text-[#4a5a70]">{completeBlock}</p> : null}
         <div className="mx-auto mb-7 flex max-w-[760px] items-start" role="group" aria-label="Etapas da OS">
           {STEPS.map((item, index) => {
             const current = index === step;
@@ -383,7 +385,7 @@ export function WorkOrderDetail({
             {displayTasks.length === 0 ? <EmptyBox icon={<ClipboardCheck className="size-5" />} text="Esta ordem não tem tarefas." /> : (
               <ul>
                 {displayTasks.map((task, index) => {
-                  const canExecute = !closed && Boolean(task.id);
+                  const canExecute = canOperate && !closed && Boolean(task.id);
                   return (
                   <li key={task.id ?? task.label} className="flex gap-2.5">
                     <div className="flex w-6 flex-none flex-col items-center">
@@ -418,9 +420,9 @@ export function WorkOrderDetail({
 
           <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Mão de obra">
             <SectionHead title="Mão de obra" subtitle="Tempo trabalhado por técnico">
-              {closed ? null : (
+              {canOperate && !closed ? (
                 <Button type="button" variant="outline" className={whiteButton} onClick={() => setLaborOpen(true)}><Plus /> Adicionar tempo</Button>
-              )}
+              ) : null}
             </SectionHead>
             {activity.labors.length === 0 ? <EmptyBox icon={<Timer className="size-5" />} text="Nenhum tempo lançado." /> : (
               <>
@@ -444,11 +446,11 @@ export function WorkOrderDetail({
                         <Timer className="size-3.5" />{labor.fromTimer ? "Temporizador" : "Manual"}
                       </span>
                     </div>
-                    {closed ? null : (
+                    {canOperate && !closed ? (
                       <button type="button" className="flex size-11 items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover lançamento de ${formatDay(labor.workedOn)}`} onClick={() => deleteWorkOrderLabor(order.id, labor.id).then(apply)}>
                         <Trash2 className="size-[18px]" />
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 ))}
                 <div className="flex justify-end gap-3 border-t border-[#e9edf3] pt-3 text-[15px]">
@@ -466,20 +468,20 @@ export function WorkOrderDetail({
 
           <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Peças">
             <SectionHead title="Peças" subtitle="Itens do inventário usados nesta ordem">
-              {closed ? null : (
+              {canOperate && !closed ? (
                 <Button type="button" variant="outline" className={whiteButton} onClick={() => setPartsOpen(true)}><Plus /> Adicionar peças</Button>
-              )}
+              ) : null}
             </SectionHead>
             {activity.parts.length === 0 ? <EmptyBox icon={<Package className="size-5" />} text="Nenhuma peça nesta ordem." /> : (
               <ul className="space-y-2">
                 {activity.parts.map((part) => (
                   <li key={part.id} className="flex items-center justify-between gap-3 border-t border-[#e9edf3] py-2.5 text-[15px]">
                     <span>{part.name}<span className="text-[#4a5a70]"> · {formatQuantity(part.quantity, part.unit)} · {formatBrl(part.cost * part.quantity)}</span></span>
-                    {closed ? null : (
+                    {canOperate && !closed ? (
                       <button type="button" className="flex size-11 items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover ${part.name}`} onClick={() => removeWorkOrderPart(order.id, part.id).then(apply)}>
                         <Trash2 className="size-[18px]" />
                       </button>
-                    )}
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -530,7 +532,7 @@ export function WorkOrderDetail({
           </section>
           <section className="min-w-0 rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Fotos">
             <SectionHead title="Fotos" subtitle="Até 3 fotos, com no máximo 2 MB cada">
-              {photos.length < WORK_ORDER_PHOTO_LIMIT ? (
+              {canOperate && photos.length < WORK_ORDER_PHOTO_LIMIT ? (
                 <PhotoSourcePicker disabled={uploading} onFile={onFile}>
                   {({ phone, openGallery, openCamera }) =>
                     phone ? (
@@ -562,9 +564,11 @@ export function WorkOrderDetail({
                       <a href={file.url} target="_blank" rel="noreferrer" title={file.name} className="block truncate text-[15px] font-semibold text-[#2a78d6]">{file.name}</a>
                       <div className="text-[13px] text-[#4a5a70]">Imagem</div>
                     </div>
-                    <button type="button" className="flex size-11 flex-none items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover foto ${file.name}`} onClick={() => deleteWorkOrderFile(order.id, file.id).then(apply)}>
-                      <Trash2 className="size-[18px]" />
-                    </button>
+                    {canOperate ? (
+                      <button type="button" className="flex size-11 flex-none items-center justify-center rounded-[10px] text-[#b42323] hover:bg-[rgba(208,59,59,0.11)]" aria-label={`Remover foto ${file.name}`} onClick={() => deleteWorkOrderFile(order.id, file.id).then(apply)}>
+                        <Trash2 className="size-[18px]" />
+                      </button>
+                    ) : null}
                   </li>
                 ))}
               </ul>

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { WorkOrderDetail } from "@/components/work-orders/work-order-detail";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
+import { canExecuteWorkOrder } from "@/lib/work-orders/access";
 import { loadWorkOrderDetail, loadWorkOrderEditor } from "@/lib/work-orders/queries";
 
 export const metadata: Metadata = {
@@ -21,6 +22,10 @@ export default async function WorkOrderDetailPage({
   const detail = await loadWorkOrderDetail(id).catch(() => null);
   if (!detail) notFound();
   const editor = canEdit ? await loadWorkOrderEditor(id).catch(() => null) : null;
+  const canOperate = canExecuteWorkOrder(appUser, {
+    primaryUserId: detail.order.primaryUserId,
+    assigneeIds: detail.order.assigneeIds,
+  });
 
   return (
     <WorkOrderDetail
@@ -28,6 +33,7 @@ export default async function WorkOrderDetailPage({
       activity={detail.activity}
       tenantId={tenantId}
       canEdit={canEdit}
+      canOperate={canOperate}
       editor={editor}
     />
   );

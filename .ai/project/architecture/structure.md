@@ -94,7 +94,7 @@ Describe the real structural organization of the repository and the architectura
   ou do vencimento quando não há início, com a sigla do tipo. No dia e na semana, o início estimado vira horário e a duração estimada define o tamanho. O clique no dia lista as ordens dele abaixo do calendário; o clique na ordem abre o detalhe. Concluir grava `completed_by`/`completed_on`; a primeira
   saída de `OPEN` (exceto para `ON_HOLD`) grava `first_time_to_react`.
   Iniciar o temporizador passa a ordem para em andamento e pausar passa para pausada.
-  O técnico conclui por um botão próprio. A ordem só pode ser concluída com tempo de mão de obra registrado e todas as tarefas executadas. Concluir para o temporizador e grava o tempo que estava correndo.
+  O técnico só inicia, conclui, responde tarefas, envia fotos, registra tempo e lança peças nas ordens em que é um dos responsáveis. O técnico conclui por um botão próprio. A ordem só pode ser concluída com tempo de mão de obra registrado e todas as tarefas executadas. Concluir para o temporizador e grava o tempo que estava correndo.
   Concluída, a ordem não aceita tempo, tarefas nem peças até um gestor alterar o status. O gestor troca o status num modal.
   As tarefas pertencem à ordem. Uma lista nomeada (`checklist`) guarda uma
   cópia reutilizável: ao escolhê-la, as tarefas entram na ordem sem vínculo
