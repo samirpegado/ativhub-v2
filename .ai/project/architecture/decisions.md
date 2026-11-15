@@ -15,7 +15,7 @@ Use this file as a lightweight ADR log.
 
 - **Status**: accepted
 - **Context**: A lista de ordens e o histórico do ativo desenhavam o mesmo status com cores diferentes. Cada tela inventava o próprio mapa.
-- **Decision**: Aberto, Em andamento, Pausado e Concluído têm uma cor só, definida em `workOrderStatusStyle` (`src/lib/work-orders/status.ts`). Lista de ordens, histórico do ativo, o selo do Andamento e qualquer outra listagem de ordem mostram o status no mesmo selo: fundo colorido, bolinha e o nome. O stepper pinta cada etapa com a cor do status dela. A etapa atual, a linha até ela e o texto "Etapa atual" usam a cor do status da ordem; Pausado usa a cor de Pausado. Bolinha solta e gráfico usam a mesma cor, por `workOrderStatusDot` e `workOrderStatusColor`. Não criar outro mapa de cor na tela.
+- **Decision**: Aberto, Em andamento, Pausado e Concluído têm uma cor só, definida em `workOrderStatusStyle` (`src/lib/work-orders/status.ts`). Lista de ordens, histórico do ativo, o selo do Andamento e qualquer outra listagem de ordem mostram o status no mesmo selo: fundo colorido, bolinha e o nome. O selo no canto do card Andamento segue essa cor. Os ícones da linha do tempo desse card são a exceção: enquanto a ordem não está concluída, etapas já alcançadas, o check e a linha até a etapa atual ficam azuis (`#2a78d6`); ao concluir, ficam verdes (`#008300`). Bolinha solta e gráfico usam a mesma cor, por `workOrderStatusDot` e `workOrderStatusColor`. Não criar outro mapa de cor na tela.
 - **Consequences**: Uma mudança de cor vale para todas as telas. O histórico do ativo mantém o selo em volta do status.
 
 ### ADR-0009 - Filtros de lista

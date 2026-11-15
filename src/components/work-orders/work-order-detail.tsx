@@ -349,19 +349,19 @@ export function WorkOrderDetail({
           {STEPS.map((item, index) => {
             const current = index === step;
             const reached = index <= step;
-            const tone = workOrderStatusStyle(current ? status : item.status);
+            const tone = closed ? "#008300" : "#2a78d6";
             return (
             <div key={item.status} className="contents">
-              {index > 0 ? <div className="mt-3.5 h-[3px] w-3 shrink-0 rounded-sm sm:w-auto sm:min-w-4 sm:flex-1" style={{ background: reached ? tone.color : "#e9edf3" }} /> : null}
+              {index > 0 ? <div className="mt-3.5 h-[3px] w-3 shrink-0 rounded-sm sm:w-auto sm:min-w-4 sm:flex-1" style={{ background: reached ? tone : "#e9edf3" }} /> : null}
               <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center sm:gap-2">
                 <span
                   className={`flex size-8 shrink-0 items-center justify-center rounded-full ${reached ? "text-white" : "border border-[#cbd5e1] text-[#5b6b80]"}`}
-                  style={reached ? { background: tone.color, boxShadow: current ? `0 0 0 5px color-mix(in srgb, ${tone.color} 18%, transparent)` : undefined } : undefined}
+                  style={reached ? { background: tone, boxShadow: current ? `0 0 0 5px color-mix(in srgb, ${tone} 18%, transparent)` : undefined } : undefined}
                 >
                   {index < step || closed ? <Check className="size-[18px]" strokeWidth={3} /> : <span className="size-2 rounded-full bg-current" />}
                 </span>
                 <span className={`text-xs leading-tight sm:text-sm ${current ? "font-bold" : "font-semibold"}`}>{item.label}</span>
-                {current ? <span className="-mt-0.5 text-[11px] font-semibold leading-tight sm:text-xs" style={{ color: tone.ink }}>{status === "ON_HOLD" ? "Pausado" : "Etapa atual"}</span> : null}
+                {current ? <span className="-mt-0.5 text-[11px] font-semibold leading-tight text-[#14233a] sm:text-xs">{status === "ON_HOLD" ? "Pausado" : "Etapa atual"}</span> : null}
               </div>
             </div>
             );
