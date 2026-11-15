@@ -17,7 +17,7 @@ export default async function PublicAssetPage({
   if ("error" in result) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-lg px-4 py-8">
+    <main className="mx-auto w-full max-w-4xl px-4 py-8">
       <PublicAssetView asset={result.asset} />
     </main>
   );

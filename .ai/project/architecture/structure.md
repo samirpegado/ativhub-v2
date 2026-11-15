@@ -143,7 +143,8 @@ Describe the real structural organization of the repository and the architectura
   O PIN antigo da localização e o da empresa (`settings.requestPin`) saíram.
   Na página pública, o PIN do cliente da localização emite um token de 30
   minutos (`public_access_session`). Com ele, o visitante vê as ordens não
-  arquivadas do ativo, com custos, baixa o relatório e abre solicitação. Dez
+  arquivadas do ativo, com custos, e abre solicitação. O PDF só aparece na ordem
+  concluída e abre a folha pública de impressão. Dez
   PINs errados em 15 minutos travam o cliente. Ativo sem localização não abre.
   `public_session_asset` e `public_asset_history` não são concedidas a `anon`.
 - CRUD autenticado em `/locations` e `/assets` (lista + modal de criar/editar).

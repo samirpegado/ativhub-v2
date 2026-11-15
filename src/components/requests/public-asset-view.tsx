@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { FileDown, Loader2 } from "lucide-react";
-import {
-  loadPublicOverview,
-  loadPublicReport,
-  unlockPublicAsset,
-} from "@/app/s/actions";
+import { loadPublicOverview, unlockPublicAsset } from "@/app/s/actions";
 import { PublicRequestForm } from "@/components/requests/public-request-form";
-import { printPublicWorkOrderReport } from "@/components/requests/public-report";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,15 +23,7 @@ function formatDay(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(date);
 }
 
-function HistoryList({
-  items,
-  pendingId,
-  onPrint,
-}: {
-  items: PublicHistoryItem[];
-  pendingId: string | null;
-  onPrint: (id: string) => void;
-}) {
+function HistoryList({ items }: { items: PublicHistoryItem[] }) {
   if (items.length === 0) {
     return <p className="text-sm text-muted-foreground">Nenhuma manutenção registrada.</p>;
   }
@@ -54,20 +42,17 @@ function HistoryList({
                 {formatDay(item.at)} · {workOrderTypeLabel(item.type)} · {workOrderStatusLabel(item.status)}
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0"
-              disabled={pendingId === item.id}
-              onClick={() => onPrint(item.id)}
-            >
-              {pendingId === item.id ? <Loader2 className="animate-spin" /> : <FileDown />}
-              PDF
-            </Button>
+            {item.status === "COMPLETE" ? (
+              <Button variant="outline" size="sm" className="shrink-0" asChild>
+                <Link href={`/work-orders/${item.id}/print`}>
+                  <FileDown />
+                  PDF
+                </Link>
+              </Button>
+            ) : null}
           </div>
           {item.description ? (
-            <p className="line-clamp-3 text-sm text-muted-foreground">{item.description}</p>
+            <p className="text-sm whitespace-pre-wrap text-muted-foreground">{item.description}</p>
           ) : null}
           <p className="text-xs text-muted-foreground">
             Peças {formatBrl(item.partsCost)} · Mão de obra {formatBrl(item.laborCost)}
@@ -87,7 +72,6 @@ export function PublicAssetView({ asset }: { asset: PublicAsset }) {
   const [overview, setOverview] = useState<PublicOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
-  const [printingId, setPrintingId] = useState<string | null>(null);
   const [booting, setBooting] = useState(true);
   const [pending, startTransition] = useTransition();
 
@@ -142,26 +126,6 @@ export function PublicAssetView({ asset }: { asset: PublicAsset }) {
       window.sessionStorage.setItem(storageKey(asset.id), result.token);
       setToken(result.token);
       setOverview({ asset: result.asset, history: result.history });
-    });
-  }
-
-  function printOrder(workOrderId: string) {
-    if (!token) return;
-    setError(null);
-    setPrintingId(workOrderId);
-    startTransition(async () => {
-      const result = await loadPublicReport(token, workOrderId);
-      setPrintingId(null);
-      if ("error" in result) {
-        if (result.error.includes("Sessão")) {
-          window.sessionStorage.removeItem(storageKey(asset.id));
-          setToken(null);
-          setOverview(null);
-        }
-        setError(result.error);
-        return;
-      }
-      printPublicWorkOrderReport(result.report);
     });
   }
 
@@ -239,7 +203,7 @@ export function PublicAssetView({ asset }: { asset: PublicAsset }) {
       ) : null}
       <div className="space-y-3">
         <h2 className="font-semibold">Manutenções</h2>
-        <HistoryList items={overview.history} pendingId={printingId} onPrint={printOrder} />
+        <HistoryList items={overview.history} />
       </div>
     </Card>
   );
