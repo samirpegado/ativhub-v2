@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, ClipboardCheck, Clock3, Wrench } from "lucide-react";
 import { completeWorkOrder, loadWorkOrderActivity, toggleWorkOrderTimer } from "@/app/(app)/work-orders/activity-actions";
@@ -180,7 +181,6 @@ export function TechDashboard({
                   today={data.today}
                   tomorrow={tomorrow}
                   pending={pending}
-                  onOpen={() => router.push(`/work-orders/${item.id}`)}
                   onStart={() => run(() => toggleWorkOrderTimer(item.id))}
                 />
               ))
@@ -276,14 +276,12 @@ function UpcomingRow({
   today,
   tomorrow,
   pending,
-  onOpen,
   onStart,
 }: {
   item: UpcomingOrder;
   today: string;
   tomorrow: string;
   pending: boolean;
-  onOpen: () => void;
   onStart: () => void;
 }) {
   const day = item.dueDate ? civilDay(item.dueDate) : "";
@@ -305,9 +303,13 @@ function UpcomingRow({
         <span className="rounded-full bg-[#e9edf3] px-2.5 py-1 text-[13px] font-semibold">{item.running ? "Em execução" : "Pendente"}</span>
       )}
       {item.running ? (
-        <Button type="button" variant="outline" className="h-11 min-w-24" onClick={onOpen}>Abrir</Button>
+        <Button variant="outline" className="h-11 min-w-24" asChild>
+          <Link href={`/work-orders/${item.id}`}>Abrir</Link>
+        </Button>
       ) : day === tomorrow ? (
-        <Button type="button" variant="outline" className="h-11 min-w-24" onClick={onOpen}>Ver OS</Button>
+        <Button variant="outline" className="h-11 min-w-24" asChild>
+          <Link href={`/work-orders/${item.id}`}>Ver OS</Link>
+        </Button>
       ) : (
         <Button type="button" className="h-11 min-w-24" disabled={pending} onClick={onStart}>Iniciar</Button>
       )}

@@ -70,7 +70,7 @@ Describe the real structural organization of the repository and the architectura
   O texto de cada papel vem de `role.description`.
 - `/` é o painel (`maintenance_overview`). Quem edita ordens vê a visão do administrador:
   ordens a fechar, em execução contra o tempo estimado, as OS ainda abertas,
-  ativos parados, fechamento semanal e MTTR. As duas visões usam o período do painel
+  ativos parados, fechamento semanal e MTTR. O card Em andamento agora lista as OS ainda abertas de 5 em 5, só no navegador; os totais do card seguem a lista inteira. As duas visões usam o período do painel
   (esta semana, últimos 15 ou 30 dias; o padrão é 30 dias). O técnico vê a OS em execução,
   a fila desse período e o cumprimento no prazo.
   `/dashboard` redireciona para `/`. A lista de ordens fica em `/work-orders`.
@@ -86,8 +86,9 @@ Describe the real structural organization of the repository and the architectura
   Também pede responsáveis e não edita mais o trabalhador principal
   (`work_order.primary_user_id` permanece no banco). A página da ordem aceita até 3 fotos
   (PNG, JPG ou WebP, no máximo 2 MB). No celular, a foto oferece galeria ou câmera. Cada foto é gravada em JPEG com o maior lado em 512 px e qualidade 0,6. O calendário pede a mesma função com todas as ordens, sem esses filtros. O clique na ordem abre
-  `/work-orders/[id]`, que chama `work_order_detail()` no servidor. Toda lista em tabela deve seguir esse padrão:
+  `/work-orders/[id]`, que chama `work_order_detail()` no servidor. Enquanto essa consulta não volta, a rota mostra o esqueleto da página (voltar, Andamento e as colunas). O mesmo vale para a solicitação, o ativo e a preventiva: o esqueleto aparece antes da consulta, e a linha da lista abre a ficha por link. Toda lista em tabela deve seguir esse padrão:
   filtros, busca e paginação na RPC, com a query devolvendo os dados completos da tela.
+  Enquanto a busca, o filtro, a página ou a troca lista/calendário não voltam, só as linhas (ou o calendário) entram em shimmer; a barra permanece e o campo de busca não perde o foco. A primeira abertura de ordens, solicitações, ativos, preventiva, inventário, clientes, fornecedores e localizações mostra essa mesma casca. A busca de localizações continua no navegador.
   Localizações, ativos, pessoas, equipes e listas de verificação ainda paginam 20 itens no navegador.
   Ativos, ordens e preventivas marcam os registros da página e excluem o lote por server action.
   A aba Calendário mostra dia, semana e mês. A ordem entra no dia do início estimado,

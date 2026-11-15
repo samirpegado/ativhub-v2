@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import { deleteRequests } from "@/app/(app)/requests/actions";
+import { TableSkeleton } from "@/components/loading/table-skeleton";
 import { RequestForm } from "@/components/requests/request-form";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { BulkActionBar } from "@/components/lists/bulk-action-bar";
@@ -127,7 +129,7 @@ export function RequestsView({
 
   return (
     <div className="space-y-3">
-      <Card className={cn("items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]", navigating && "opacity-70")}>
+      <Card className="items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]">
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
           <NativeSelect
             className="h-9 w-48 shrink-0"
@@ -207,7 +209,9 @@ export function RequestsView({
           />
         ) : null}
         <Separator />
-        {items.length === 0 ? (
+        {navigating ? (
+          <TableSkeleton columns={5} />
+        ) : items.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
             <p className="max-w-md text-sm font-medium">
               {totalAll === 0 ? "Solicitações feitas pelo QR do ativo aparecem aqui" : "Nenhum resultado para a busca."}
@@ -243,13 +247,12 @@ export function RequestsView({
                     <tr
                       key={item.id}
                       className={cn(
-                        "cursor-pointer border-b last:border-0 hover:bg-muted/40",
+                        "relative cursor-pointer border-b last:border-0 hover:bg-muted/40",
                         item.readAt ? "font-normal" : "font-bold",
                       )}
-                      onClick={() => router.push(`/requests/${item.id}`)}
                     >
                       {canEdit ? (
-                        <td className={listTdClass} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+                        <td className={`${listTdClass} relative z-10`} onPointerDown={(event) => event.stopPropagation()}>
                           <RowCheckbox
                             checked={selection.isSelected(item.id)}
                             label={`Selecionar ${item.title}`}
@@ -257,7 +260,10 @@ export function RequestsView({
                           />
                         </td>
                       ) : null}
-                      <td className={listTdIdClass}>{item.customId ?? "—"}</td>
+                      <td className={listTdIdClass}>
+                        <Link href={`/requests/${item.id}`} className="absolute inset-0 z-0" aria-label={`Abrir ${item.title}`} />
+                        {item.customId ?? "—"}
+                      </td>
                       <td className={listTdClass}>{item.requesterName ?? "—"}</td>
                       <td className={listTdClass}>{item.assetName ?? "—"}</td>
                       <td className={`${listTdClass} whitespace-nowrap`}>{formatWhen(item.createdAt)}</td>

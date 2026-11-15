@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { civilDay, monthTitle } from "@/lib/dashboard/overview";
 import type { WorkOrderCalendarItem } from "@/lib/work-orders/queries";
@@ -117,10 +118,8 @@ function pillOf(type: string) {
 
 export function WorkOrderCalendar({
   orders,
-  onOpen,
 }: {
   orders: WorkOrderCalendarItem[];
-  onOpen: (id: string) => void;
 }) {
   const today = civilDay(new Date().toISOString());
   const [view, setView] = useState<View>("month");
@@ -195,9 +194,9 @@ export function WorkOrderCalendar({
       </div>
 
       {view === "month" ? (
-        <MonthGrid focus={focus} today={today} selected={selected} items={visible} onOpen={onOpen} onSelect={setSelected} />
+        <MonthGrid focus={focus} today={today} selected={selected} items={visible} onSelect={setSelected} />
       ) : (
-        <TimeGrid days={range} today={today} selected={selected} items={visible} now={now} onOpen={onOpen} onSelect={setSelected} />
+        <TimeGrid days={range} today={today} selected={selected} items={visible} now={now} onSelect={setSelected} />
       )}
 
       <section className="mt-4 rounded-[14px] border border-[#14233a]/12 bg-white p-4" aria-label="Ordens do dia selecionado">
@@ -210,7 +209,7 @@ export function WorkOrderCalendar({
               const pill = pillOf(item.order.type);
               return (
                 <li key={item.order.id}>
-                  <button type="button" className="flex w-full items-center justify-between gap-3 py-3 text-left" onClick={() => onOpen(item.order.id)}>
+                  <Link href={`/work-orders/${item.order.id}`} className="flex w-full items-center justify-between gap-3 py-3 text-left">
                     <span className="min-w-0">
                       <span className="font-mono text-sm text-[#4a5a70]">{item.order.customId ?? "Ordem"}</span>
                       <span className="mt-0.5 block truncate font-semibold">{item.order.title}</span>
@@ -222,7 +221,7 @@ export function WorkOrderCalendar({
                       <span className={cn("size-2.5 rounded-full", workOrderStatusDot(item.order.status))} />
                       {workOrderStatusLabel(item.order.status)}
                     </span>
-                  </button>
+                  </Link>
                 </li>
               );
             })}
@@ -246,14 +245,12 @@ function MonthGrid({
   today,
   selected,
   items,
-  onOpen,
   onSelect,
 }: {
   focus: string;
   today: string;
   selected: string;
   items: Placed[];
-  onOpen: (id: string) => void;
   onSelect: (iso: string) => void;
 }) {
   const start = monthStart(focus);
@@ -301,7 +298,7 @@ function MonthGrid({
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {dayItems.slice(0, 3).map((item) => (
-                    <EventButton key={item.order.id} item={item} onOpen={onOpen} compact />
+                    <EventButton key={item.order.id} item={item} compact />
                   ))}
                   {dayItems.length > 3 ? <span className="px-1 text-[11px] font-semibold text-[#4a5a70]">+{dayItems.length - 3}</span> : null}
                 </div>
@@ -320,7 +317,6 @@ function TimeGrid({
   selected,
   items,
   now,
-  onOpen,
   onSelect,
 }: {
   days: string[];
@@ -328,7 +324,6 @@ function TimeGrid({
   selected: string;
   items: Placed[];
   now: { day: string; minutes: number } | null;
-  onOpen: (id: string) => void;
   onSelect: (iso: string) => void;
 }) {
   const columns = days.length;
@@ -349,7 +344,7 @@ function TimeGrid({
           {days.map((iso) => (
             <div key={iso} className="space-y-1 border-l border-[#e9edf3] p-1">
               {items.filter((item) => item.day === iso && item.minutes == null).map((item) => (
-                <EventButton key={item.order.id} item={item} onOpen={onOpen} />
+                <EventButton key={item.order.id} item={item} />
               ))}
             </div>
           ))}
@@ -382,7 +377,7 @@ function TimeGrid({
                 const height = Math.max(28, ((end - start) / 60) * HOUR_PX);
                 return (
                   <div key={item.order.id} className="absolute right-1 left-1 z-10" style={{ top, height }}>
-                    <EventButton item={item} onOpen={onOpen} timed />
+                    <EventButton item={item} timed />
                   </div>
                 );
               })}
@@ -399,25 +394,20 @@ function TimeGrid({
 
 function EventButton({
   item,
-  onOpen,
   compact = false,
   timed = false,
 }: {
   item: Placed;
-  onOpen: (id: string) => void;
   compact?: boolean;
   timed?: boolean;
 }) {
   const pill = pillOf(item.order.type);
   const label = item.order.customId ? `${item.order.customId} · ${item.order.title}` : item.order.title;
   return (
-    <button
-      type="button"
+    <Link
+      href={`/work-orders/${item.order.id}`}
       title={label}
-      onClick={(event) => {
-        event.stopPropagation();
-        onOpen(item.order.id);
-      }}
+      onClick={(event) => event.stopPropagation()}
       className={cn("block max-w-full truncate rounded-md px-1.5 py-0.5 text-left text-[11px] font-semibold", pill.className, timed && "h-full w-full")}
     >
       {compact ? `${pill.short}${item.order.customId ? ` ${item.order.customId}` : ""}` : (
@@ -426,6 +416,6 @@ function EventButton({
           {label}
         </>
       )}
-    </button>
+    </Link>
   );
 }

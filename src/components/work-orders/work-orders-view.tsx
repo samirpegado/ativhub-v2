@@ -2,6 +2,7 @@
 
 import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ClipboardCheck, ListFilter, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { FormDialog } from "@/components/forms/form-dialog";
@@ -14,6 +15,7 @@ import {
   WorkOrderFiltersDialog,
   type WorkOrderFilterDraft,
 } from "@/components/work-orders/work-order-filters-dialog";
+import { TableSkeleton } from "@/components/loading/table-skeleton";
 import { WorkOrderForm } from "@/components/work-orders/work-order-form";
 import { WorkOrderTasksDialog } from "@/components/work-orders/work-order-tasks-dialog";
 
@@ -21,11 +23,7 @@ const WorkOrderCalendar = dynamic(
   () => import("./work-order-calendar").then((mod) => mod.WorkOrderCalendar),
   {
     ssr: false,
-    loading: () => (
-      <div className="px-4 py-16 text-center text-sm text-muted-foreground">
-        Carregando calendário…
-      </div>
-    ),
+    loading: () => <TableSkeleton columns={8} />,
   },
 );
 import type { ChecklistRecord } from "@/lib/checklists/queries";
@@ -261,7 +259,7 @@ export function WorkOrdersView({
         </div>
       </div>
 
-      <Card className={cn("items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]", navigating && "opacity-70")}>
+      <Card className="items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]">
         {view === "list" ? (
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
           <div className="relative min-w-40 flex-1">
@@ -303,11 +301,10 @@ export function WorkOrdersView({
           />
         ) : null}
         {view === "list" ? <Separator /> : null}
-        {view === "calendar" ? (
-          <WorkOrderCalendar
-            orders={calendar}
-            onOpen={(id) => router.push(`/work-orders/${id}`)}
-          />
+        {navigating ? (
+          <TableSkeleton columns={8} />
+        ) : view === "calendar" ? (
+          <WorkOrderCalendar orders={calendar} />
         ) : orders.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
             <p className="max-w-md text-sm font-medium text-foreground">
@@ -354,11 +351,10 @@ export function WorkOrdersView({
                   return (
                   <tr
                     key={order.id}
-                    className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
-                    onClick={() => router.push(`/work-orders/${order.id}`)}
+                    className="relative cursor-pointer border-b last:border-0 hover:bg-muted/40"
                   >
                     {canEdit ? (
-                      <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
+                      <td className={`${listTdClass} relative z-10`}>
                         <RowCheckbox
                           checked={selection.isSelected(order.id)}
                           label={`Selecionar ${order.title}`}
@@ -374,7 +370,12 @@ export function WorkOrdersView({
                       </span>
                     </td>
                     <td className={listTdClass}>
-                      <div className="flex w-56 max-w-56 flex-col gap-1.5">
+                      <Link
+                        href={`/work-orders/${order.id}`}
+                        className="absolute inset-0 z-0"
+                        aria-label={`Abrir ${order.title}`}
+                      />
+                      <div className="relative flex w-56 max-w-56 flex-col gap-1.5">
                         <span className="line-clamp-2 break-words font-medium leading-snug">{order.title}</span>
                         <span className="flex flex-wrap items-center gap-1.5">
                           <span className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
@@ -414,7 +415,7 @@ export function WorkOrdersView({
                     </td>
                     <td className={`${listTdClass} whitespace-nowrap`}>{formatWhen(order.dueDate)}</td>
                     {canEdit ? (
-                      <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
+                      <td className={`${listTdClass} relative z-10`}>
                         <div className="flex items-center justify-center gap-1">
                           <Button
                             type="button"

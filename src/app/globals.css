@@ -57,7 +57,7 @@
 :root {
   /* AtivHub brand tokens — derivados do PureLightTheme (ver docs/ativhub-mvp-plan.md secao 3).
      Valores OKLCH aproximados dos HEX de marca; ajustar fino contra o modelo visual. */
-  --background: oklch(0.969 0.006 270); /* #f2f5f9 */
+  --background: #eef1f6;
   --foreground: oklch(0.324 0.063 263); /* #223354 */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.324 0.063 263);

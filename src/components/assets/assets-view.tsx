@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ListFilter, Pencil, Plus, QrCode, Search, Trash2 } from "lucide-react";
 import { deleteAsset, deleteAssets } from "@/app/(app)/assets/actions";
 import { exportAssetsCsv } from "@/app/(app)/assets/csv-actions";
+import { TableSkeleton } from "@/components/loading/table-skeleton";
 import { AssetFiltersDialog } from "@/components/assets/asset-filters-dialog";
 import { AssetForm } from "@/components/assets/asset-form";
 import { AssetImportDialog } from "@/components/assets/asset-import-dialog";
@@ -161,7 +162,7 @@ export function AssetsView({
           ) : null}
         </div>
 
-        <Card className={cn("items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]", navigating && "opacity-70")}>
+        <Card className="items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]">
           <div className="px-4 pb-3">
             <div className="relative min-w-40">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -198,7 +199,9 @@ export function AssetsView({
             />
           ) : null}
           <Separator />
-          {assets.length === 0 ? (
+          {navigating ? (
+            <TableSkeleton columns={6} />
+          ) : assets.length === 0 ? (
             <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
               <p className="max-w-md text-sm font-medium">
                 {totalAll === 0
@@ -234,15 +237,10 @@ export function AssetsView({
                   {assets.map((asset) => (
                     <tr
                       key={asset.id}
-                      className="group cursor-pointer border-b last:border-0 hover:bg-muted/40"
-                      onClick={() => {
-                        startNavigation(() => {
-                          router.push(`/assets/${asset.id}`);
-                        });
-                      }}
+                      className="group relative cursor-pointer border-b last:border-0 hover:bg-muted/40"
                     >
                       {canEdit ? (
-                        <td className={listTdClass} onClick={(event) => event.stopPropagation()}>
+                        <td className={`${listTdClass} relative z-10`}>
                           <RowCheckbox
                             checked={selection.isSelected(asset.id)}
                             label={`Selecionar ${asset.name}`}
@@ -252,9 +250,8 @@ export function AssetsView({
                       ) : null}
                       <td className={listTdIdClass}>{asset.custom_id ?? "—"}</td>
                       <td className={listTdNameClass}>
-                        <Link href={`/assets/${asset.id}`} className="hover:underline" onClick={(event) => event.stopPropagation()}>
-                          {asset.name}
-                        </Link>
+                        <Link href={`/assets/${asset.id}`} className="absolute inset-0 z-0" aria-label={`Abrir ${asset.name}`} />
+                        <span className="relative">{asset.name}</span>
                       </td>
                       <td className={listTdClass}>{asset.categoryName ?? "—"}</td>
                       <td className={listTdClass}>

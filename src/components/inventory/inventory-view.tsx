@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { deletePart, deletePartSet } from "@/app/(app)/inventory/actions";
+import { TableSkeleton } from "@/components/loading/table-skeleton";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { PartDrawer } from "@/components/inventory/part-drawer";
 import { PartForm } from "@/components/inventory/part-form";
@@ -139,12 +140,7 @@ export function InventoryView({
         ) : null}
       </div>
 
-      <Card
-        className={cn(
-          "items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]",
-          navigating && "opacity-70",
-        )}
-      >
+      <Card className="items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]">
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
           {query.sets ? null : (
             <NativeSelect
@@ -184,7 +180,9 @@ export function InventoryView({
           </div>
         ) : null}
         <Separator />
-        {query.sets ? (
+        {navigating ? (
+          <TableSkeleton columns={query.sets ? 4 : 5} />
+        ) : query.sets ? (
           sets.length === 0 ? (
             <Empty
               title={

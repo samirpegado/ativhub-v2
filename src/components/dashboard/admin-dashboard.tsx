@@ -2,10 +2,10 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Clock3, ClipboardCheck, Wrench } from "lucide-react";
 import { PeriodSelect } from "@/components/dashboard/period-select";
 import { DashCard, DashTitle, Donut, Kpi, Meter } from "@/components/dashboard/widgets";
+import { TablePagination } from "@/components/lists/table-pagination";
 import {
   clock,
   longDate,
@@ -26,8 +26,12 @@ export function AdminDashboard({
   data: MaintenanceOverview;
   range: TechRange;
 }) {
-  const router = useRouter();
   const queue = data.board;
+  const [boardPage, setBoardPage] = useState(1);
+  const boardPageSize = 5;
+  const boardPageCount = Math.max(1, Math.ceil(queue.length / boardPageSize));
+  const boardCurrent = Math.min(boardPage, boardPageCount);
+  const boardRows = queue.slice((boardCurrent - 1) * boardPageSize, boardCurrent * boardPageSize);
   const overItems = queue.filter((item) => pace(item.elapsedSeconds, item.estimatedSeconds) === "over");
   const warn = queue.filter((item) => pace(item.elapsedSeconds, item.estimatedSeconds) === "warn").length;
   const over = overItems.length;
@@ -106,9 +110,17 @@ export function AdminDashboard({
                   <div className="min-w-[210px] flex-[1.6]">Tempo</div>
                   <div className="w-[156px]">Situação</div>
                 </div>
-                {queue.map((item) => (
-                  <RunningRow key={item.id} item={item} onOpen={() => router.push(`/work-orders/${item.id}`)} />
+                {boardRows.map((item) => (
+                  <RunningRow key={item.id} item={item} />
                 ))}
+                <div className="-mx-4 border-t border-[#e9edf3]">
+                  <TablePagination
+                    page={boardCurrent}
+                    pageSize={boardPageSize}
+                    total={queue.length}
+                    onPageChange={setBoardPage}
+                  />
+                </div>
               </div>
             )}
           </DashCard>
@@ -266,7 +278,7 @@ export function AdminDashboard({
   );
 }
 
-function RunningRow({ item, onOpen }: { item: RunningOrder; onOpen: () => void }) {
+function RunningRow({ item }: { item: RunningOrder }) {
   const elapsed = useLiveElapsed(item.elapsedSeconds, item.live);
   const state = pace(elapsed, item.estimatedSeconds);
   const ratio = item.estimatedSeconds > 0 ? Math.min(100, Math.round((elapsed / item.estimatedSeconds) * 100)) : 0;
@@ -280,7 +292,7 @@ function RunningRow({ item, onOpen }: { item: RunningOrder; onOpen: () => void }
         : workOrderStatusLabel(item.status);
   const tone = state === "over" ? "crit" : item.live && state === "warn" ? "warn" : item.status === "ON_HOLD" ? "warn" : "ok";
   return (
-    <button type="button" onClick={onOpen} className="flex w-full flex-wrap items-center gap-x-5 gap-y-3 border-t border-[#e9edf3] py-3.5 text-left hover:bg-[#f7f9fc]">
+    <Link href={`/work-orders/${item.id}`} className="flex w-full flex-wrap items-center gap-x-5 gap-y-3 border-t border-[#e9edf3] py-3.5 text-left hover:bg-[#f7f9fc]">
       <div className="min-w-[190px] flex-[1.4]">
         <div className="text-[15px] font-semibold">{item.assetName}</div>
         <div className="font-mono text-xs text-[#4a5a70]">{[item.customId, workOrderTypeLabel(item.type)].filter(Boolean).join(" · ")}</div>
@@ -304,7 +316,7 @@ function RunningRow({ item, onOpen }: { item: RunningOrder; onOpen: () => void }
       <div className="w-full lg:w-[156px]">
         <Pill tone={tone}>{situation}</Pill>
       </div>
-    </button>
+    </Link>
   );
 }
 

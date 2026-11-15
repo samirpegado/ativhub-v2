@@ -39,7 +39,7 @@ export function WorkOrderTasksDialog({
         order.tasks.map((task) => [
           task.id ?? task.label,
           {
-            value: task.taskType === "SUBTASK" ? (subtaskDone(task.value) ? SUBTASK_DONE : "") : (task.value ?? ""),
+            value: savedTaskValue(task),
             comment: task.comment ?? "",
           },
         ]),
@@ -154,14 +154,16 @@ export function WorkOrderTaskDialog({
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const taskId = task?.id ?? null;
+  const savedValue = task ? savedTaskValue(task) : "";
+  const savedComment = task?.comment ?? "";
 
   useEffect(() => {
-    if (!task) return;
     setError(null);
     setPending(false);
-    setValue(task.taskType === "SUBTASK" ? (subtaskDone(task.value) ? SUBTASK_DONE : "") : (task.value ?? ""));
-    setComment(task.comment ?? "");
-  }, [task]);
+    setValue(savedValue);
+    setComment(savedComment);
+  }, [taskId, savedValue, savedComment]);
 
   async function register() {
     if (!order || !task) return;
@@ -206,6 +208,10 @@ export function WorkOrderTaskDialog({
       ) : null}
     </FormDialog>
   );
+}
+
+function savedTaskValue(task: WorkOrderTask) {
+  return task.taskType === "SUBTASK" ? (subtaskDone(task.value) ? SUBTASK_DONE : "") : (task.value ?? "");
 }
 
 function TaskAnswer({

@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState, useTransition, type ReactN
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { adoptInternalCustomer, deleteCustomer, deleteVendor, linkLocationsToInternal } from "@/app/(app)/parties/actions";
+import { TableSkeleton } from "@/components/loading/table-skeleton";
 import { CustomerForm } from "@/components/parties/customer-form";
 import { VendorForm } from "@/components/parties/vendor-form";
 import { FormDialog } from "@/components/forms/form-dialog";
@@ -33,7 +34,6 @@ import type { MutationState } from "@/lib/forms/state";
 import { partyHref, type PartyListQuery, type PartySection } from "@/lib/parties/list-params";
 import type { CustomerRecord, VendorRecord } from "@/lib/parties/queries";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
-import { cn } from "@/lib/utils";
 
 function Detail({ label, value }: { label: string; value: string | null }) {
   return (
@@ -157,7 +157,7 @@ export function PartiesView({
         ) : null}
       </div>
 
-      <Card className={cn("items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]", navigating && "opacity-70")}>
+      <Card className="items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]">
         <div className="px-4 pb-3">
           <div className="relative min-w-40">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -172,7 +172,9 @@ export function PartiesView({
           </div>
         ) : null}
         <Separator />
-        {total === 0 ? (
+        {navigating ? (
+          <TableSkeleton columns={customersView ? 5 : 4} />
+        ) : total === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
             <p className="max-w-md text-sm font-medium">
               {totalAll === 0

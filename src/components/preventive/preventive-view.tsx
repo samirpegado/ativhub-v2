@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Trash2 } from "lucide-react";
 import { deletePreventive, deletePreventives } from "@/app/(app)/preventive/actions";
+import { TableSkeleton } from "@/components/loading/table-skeleton";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { BulkActionBar } from "@/components/lists/bulk-action-bar";
 import { RowCheckbox } from "@/components/lists/row-checkbox";
@@ -97,12 +99,7 @@ export function PreventiveView({
           Agendamento
         </Button>
       </div>
-      <Card
-        className={cn(
-          "items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]",
-          navigating && "opacity-70",
-        )}
-      >
+      <Card className="items-stretch overflow-hidden py-4 shadow-[0px_2px_3px_rgba(159,162,191,0.18),0px_1px_1px_rgba(159,162,191,0.32)]">
         <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
           <NativeSelect
             className="h-9 w-48 shrink-0"
@@ -158,7 +155,9 @@ export function PreventiveView({
           />
         ) : null}
         <Separator />
-        {screen.items.length === 0 ? (
+        {navigating ? (
+          <TableSkeleton columns={5} />
+        ) : screen.items.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <p className="font-medium">
               {screen.totalAll === 0
@@ -200,11 +199,10 @@ export function PreventiveView({
                 {screen.items.map((item) => (
                   <tr
                     key={item.id}
-                    className="cursor-pointer border-b last:border-0 hover:bg-muted/40"
-                    onClick={() => router.push(`/preventive/${item.id}`)}
+                    className="relative cursor-pointer border-b last:border-0 hover:bg-muted/40"
                   >
                     {canEdit ? (
-                      <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                      <td className="relative z-10 px-4 py-3">
                         <RowCheckbox
                           checked={selection.isSelected(item.id)}
                           label={`Selecionar ${item.name}`}
@@ -213,6 +211,7 @@ export function PreventiveView({
                       </td>
                     ) : null}
                     <td className={listTdNameClass}>
+                      <Link href={`/preventive/${item.id}`} className="absolute inset-0 z-0" aria-label={`Abrir ${item.name}`} />
                       {item.customId ? <span className="mr-2">{item.customId}</span> : null}
                       {item.name}
                       {item.disabled ? (
@@ -234,7 +233,7 @@ export function PreventiveView({
                     <td className={listTdClass}>
                       <span className="line-clamp-2 block w-40 max-w-40 break-words">{item.assigneeNames ?? "—"}</span>
                     </td>
-                    <td className={listTdClass}>
+                    <td className={`${listTdClass} relative z-10`}>
                       <div className="flex justify-center gap-1">
                         <Button
                           type="button"
