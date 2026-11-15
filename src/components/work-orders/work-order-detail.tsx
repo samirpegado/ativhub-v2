@@ -375,17 +375,20 @@ export function WorkOrderDetail({
 
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[2] basis-[560px] flex-col gap-5">
-          <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-6" aria-label="Tarefas">
-            <SectionHead title="Tarefas" subtitle={`${answered} de ${order.tasks.length} respondida${answered === 1 ? "" : "s"}`} />
+          <section className="rounded-[14px] border border-[#14233a]/12 bg-white p-4 sm:p-5" aria-label="Tarefas">
+            <div className="mb-3">
+              <h2 className="text-base font-semibold tracking-tight">Tarefas</h2>
+              <p className="text-xs text-[#4a5a70]">{answered} de {order.tasks.length} respondida{answered === 1 ? "" : "s"}</p>
+            </div>
             {displayTasks.length === 0 ? <EmptyBox icon={<ClipboardCheck className="size-5" />} text="Esta ordem não tem tarefas." /> : (
               <ul>
                 {displayTasks.map((task, index) => {
                   const canExecute = !closed && Boolean(task.id);
                   return (
-                  <li key={task.id ?? task.label} className="flex gap-3.5">
-                    <div className="flex w-7 flex-none flex-col items-center">
-                      <span className={`flex size-7 items-center justify-center rounded-full ${task.value ? "bg-[#008300] text-white" : "border border-[#cbd5e1] bg-white"}`}>
-                        {task.value ? <Check className="size-4" strokeWidth={3} /> : null}
+                  <li key={task.id ?? task.label} className="flex gap-2.5">
+                    <div className="flex w-6 flex-none flex-col items-center">
+                      <span className={`flex size-6 items-center justify-center rounded-full ${task.value ? "bg-[#008300] text-white" : "border border-[#cbd5e1] bg-white"}`}>
+                        {task.value ? <Check className="size-3.5" strokeWidth={3} /> : null}
                       </span>
                       {index < displayTasks.length - 1 ? <span className="w-0.5 flex-1 bg-[#cbd5e1]" /> : null}
                     </div>
@@ -395,16 +398,16 @@ export function WorkOrderDetail({
                       onClick={() => {
                         if (task.id) setExecutingTask(task);
                       }}
-                      className={`min-w-0 flex-1 text-left ${index < displayTasks.length - 1 ? "pb-5" : ""} ${canExecute ? "cursor-pointer rounded-lg hover:bg-[#f5f7fb]" : ""}`}
+                      className={`min-w-0 flex-1 text-left ${index < displayTasks.length - 1 ? "pb-3" : ""} ${canExecute ? "cursor-pointer rounded-lg hover:bg-[#fafbfc]" : ""}`}
                     >
-                      <div className="text-base font-semibold">{task.label}</div>
+                      <div className="text-sm font-semibold">{task.label}</div>
                       {task.value ? (
-                        <div className="mt-3 rounded-[10px] bg-[#f5f7fb] px-4 py-3.5">
-                          <div className="text-xs font-semibold tracking-wide text-[#5b6b80] uppercase">Resposta</div>
-                          <div className="mt-1 text-[15px]">{taskAnswerLabel(task)}{task.comment ? ` — ${task.comment}` : ""}</div>
+                        <div className="mt-1.5 rounded-lg bg-[#f8f9fb] px-3 py-2">
+                          <div className="text-[11px] font-semibold tracking-wide text-[#5b6b80] uppercase">Resposta</div>
+                          <div className="mt-0.5 text-[13px]">{taskAnswerLabel(task)}{task.comment ? ` — ${task.comment}` : ""}</div>
                         </div>
-                      ) : <p className="mt-1 text-sm text-[#4a5a70]">Pendente</p>}
-                      {task.executedAt ? <div className="mt-2 text-[13px] text-[#4a5a70]">Respondida em {formatWhen(task.executedAt)}</div> : null}
+                      ) : <p className="mt-0.5 text-xs text-[#4a5a70]">Pendente</p>}
+                      {task.executedAt ? <div className="mt-1 text-xs text-[#4a5a70]">Respondida em {formatWhen(task.executedAt)}</div> : null}
                     </button>
                   </li>
                   );
