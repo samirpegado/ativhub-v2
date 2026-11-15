@@ -28,10 +28,14 @@ export function TechDashboard({
   data,
   firstName,
   range,
+  periodBase = "/",
+  preview = false,
 }: {
   data: MaintenanceOverview;
   firstName: string;
   range: TechRange;
+  periodBase?: string;
+  preview?: boolean;
 }) {
   const router = useRouter();
   const [answering, setAnswering] = useState<WorkOrderRecord | null>(null);
@@ -83,7 +87,7 @@ export function TechDashboard({
           <h1 className="mt-0.5 text-[28px] font-semibold tracking-tight">Olá, {firstName || "técnico"}</h1>
           <p className="mt-0.5 text-[#4a5a70]">{longDate(data.today)}</p>
         </div>
-        <PeriodSelect range={range} />
+        <PeriodSelect range={range} basePath={periodBase} />
       </header>
 
       <section aria-label="Minhas OS" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
@@ -151,11 +155,17 @@ export function TechDashboard({
                 {state === "over" ? `+${clock(elapsed - active.estimatedSeconds)} acima do estimado` : state === "warn" ? "Perto do limite" : "No prazo"}
               </span>
             </div>
+            {preview ? (
+              <Button variant="outline" className="h-12" asChild>
+                <Link href={`/work-orders/${active.id}`}>Abrir OS</Link>
+              </Button>
+            ) : (
             <div className="flex w-full max-w-[200px] flex-col gap-2.5">
               <Button type="button" className="h-12" disabled={pending} onClick={() => openChecklist(active.id)}>Abrir checklist</Button>
               <Button type="button" variant="outline" className="h-12" disabled={pending} onClick={() => run(() => completeWorkOrder(active.id))}>Concluir OS</Button>
               <Button type="button" variant="outline" className="h-12" disabled={pending} onClick={() => run(() => toggleWorkOrderTimer(active.id))}>Registrar pausa</Button>
             </div>
+            )}
           </>
         ) : (
           <div className="flex w-full flex-wrap items-center justify-between gap-4">
@@ -181,6 +191,7 @@ export function TechDashboard({
                   today={data.today}
                   tomorrow={tomorrow}
                   pending={pending}
+                  preview={preview}
                   onStart={() => run(() => toggleWorkOrderTimer(item.id))}
                 />
               ))
@@ -276,12 +287,14 @@ function UpcomingRow({
   today,
   tomorrow,
   pending,
+  preview = false,
   onStart,
 }: {
   item: UpcomingOrder;
   today: string;
   tomorrow: string;
   pending: boolean;
+  preview?: boolean;
   onStart: () => void;
 }) {
   const day = item.dueDate ? civilDay(item.dueDate) : "";
@@ -310,7 +323,7 @@ function UpcomingRow({
         <Button variant="outline" className="h-11 min-w-24" asChild>
           <Link href={`/work-orders/${item.id}`}>Ver OS</Link>
         </Button>
-      ) : (
+      ) : preview ? null : (
         <Button type="button" className="h-11 min-w-24" disabled={pending} onClick={onStart}>Iniciar</Button>
       )}
     </div>

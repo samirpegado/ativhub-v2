@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function PeoplePage() {
-  await requireArea("people", "view", { redirect: true });
+  const { appUser } = await requireArea("people", "view", { redirect: true });
   const [{ people, canManage }, teams, roles] = await Promise.all([
     listPeople(),
     listTeams(),
@@ -21,6 +21,7 @@ export default async function PeoplePage() {
       teams={teams}
       roles={roles}
       canManage={canManage}
+      openDashboard={appUser.isAdmin}
     />
   );
 }

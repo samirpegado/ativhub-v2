@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { SearchableTable } from "@/components/lists/searchable-table";
 import { PersonForm } from "@/components/people/person-form";
@@ -22,12 +23,15 @@ export function PeopleView({
   teams,
   roles,
   canManage,
+  openDashboard = false,
 }: {
   people: PersonRecord[];
   teams: TeamRecord[];
   roles: RoleOption[];
   canManage: boolean;
+  openDashboard?: boolean;
 }) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("people");
   const [editingPerson, setEditingPerson] = useState<PersonRecord | null | "new">(
     null,
@@ -56,6 +60,7 @@ export function PeopleView({
           deleteAction={deletePerson}
           deleteNoun="a pessoa"
           manage={canManage}
+          onOpen={openDashboard ? (id) => router.push(`/people/${id}`) : undefined}
           onCreate={() => setEditingPerson("new")}
           onEdit={(id) => {
             setEditingPerson(people.find((person) => person.id === id) ?? null);

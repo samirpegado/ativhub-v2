@@ -22,9 +22,11 @@ import { workOrderStatusLabel, workOrderTypeLabel } from "@/lib/work-orders/stat
 export function AdminDashboard({
   data,
   range,
+  periodBase = "/",
 }: {
   data: MaintenanceOverview;
   range: TechRange;
+  periodBase?: string;
 }) {
   const queue = data.board;
   const [boardPage, setBoardPage] = useState(1);
@@ -55,7 +57,7 @@ export function AdminDashboard({
           <h1 className="mt-0.5 text-[28px] font-semibold tracking-tight">Visão geral da manutenção</h1>
           <p className="mt-0.5 text-[#4a5a70]">{longDate(data.today)}</p>
         </div>
-        <PeriodSelect range={range} />
+        <PeriodSelect range={range} basePath={periodBase} />
       </header>
 
       <section aria-label="Indicadores de OS" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">

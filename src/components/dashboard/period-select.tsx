@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { techRange, type TechRange } from "@/lib/dashboard/overview";
 
-export function PeriodSelect({ range }: { range: TechRange }) {
+export function PeriodSelect({ range, basePath = "/" }: { range: TechRange; basePath?: string }) {
   const router = useRouter();
   const root = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -23,7 +23,10 @@ export function PeriodSelect({ range }: { range: TechRange }) {
   function choose(next: TechRange) {
     setOpen(false);
     if (next === range) return;
-    router.replace(next === "30" ? "/" : `/?range=${next}`, { scroll: false });
+    const path = basePath === "/"
+      ? (next === "30" ? "/" : `/?range=${next}`)
+      : (next === "30" ? basePath : `${basePath}?range=${next}`);
+    router.replace(path, { scroll: false });
   }
 
   return (

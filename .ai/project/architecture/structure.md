@@ -67,7 +67,9 @@ Describe the real structural organization of the repository and the architectura
 - `/people` lista pessoas e equipes. Nova pessoa chama a edge function
   `create-tenant-user`, que cria o usuário no Auth e a membership no tenant.
   Papéis de cadastro: Administrador, Técnico, Solicitante e Somente leitura.
-  O texto de cada papel vem de `role.description`.
+  O texto de cada papel vem de `role.description`. O administrador, ao clicar na pessoa,
+  abre o painel que ela vê ao entrar: a visão da empresa, se ela edita ordens, ou a fila
+  dela, se só consulta. Quem não vê o painel de manutenção mostra a tela em que o acesso começa.
 - `/` é o painel (`maintenance_overview`). Quem edita ordens vê a visão do administrador:
   ordens a fechar, em execução contra o tempo estimado, as OS ainda abertas,
   ativos parados, fechamento semanal e MTTR. O card Em andamento agora lista as OS ainda abertas de 5 em 5, só no navegador; os totais do card seguem a lista inteira. As duas visões usam o período do painel

@@ -1,4 +1,5 @@
-import { can } from "@/lib/auth/areas";
+import { areasFromPermissions, can } from "@/lib/auth/areas";
+import { requireAdminPage } from "@/lib/auth/permissions";
 import { requireTenant } from "@/lib/auth/current-user";
 import { isAssignableRole } from "@/lib/people/roles";
 
@@ -92,6 +93,34 @@ export async function listPeople() {
   return {
     people,
     canManage: can(appUser, "people", "edit"),
+  };
+}
+
+export async function loadPersonDashboard(id: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const { supabase, tenantId } = await requireAdminPage();
+  const { data, error } = await supabase
+    .from("membership")
+    .select("id, first_name, last_name, is_owner, role:role_id(code, permissions)")
+    .eq("id", id)
+    .eq("tenant_id", tenantId)
+    .eq("enabled", true)
+    .maybeSingle();
+  if (error || !data) return null;
+
+  const role = Array.isArray(data.role) ? (data.role[0] ?? null) : data.role;
+  const roleCode = role?.code ?? "";
+  const isAdmin = roleCode === "ADMIN" || data.is_owner;
+  const areas = areasFromPermissions(roleCode, role?.permissions ?? null, isAdmin);
+  const access = { isAdmin, areas };
+  return {
+    id: data.id,
+    firstName: data.first_name,
+    lastName: data.last_name,
+    editor: can(access, "work_orders", "edit"),
+    viewer: can(access, "work_orders", "view"),
+    areas,
+    isAdmin,
   };
 }
 
