@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CardListSkeleton } from "@/components/loading/card-list-skeleton";
 import { TableSkeleton } from "@/components/loading/table-skeleton";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -10,10 +11,12 @@ export function ListPageSkeleton({
   toolbar,
   filters,
   columns,
+  cards = false,
 }: {
   toolbar?: ReactNode;
   filters?: ReactNode;
   columns?: number;
+  cards?: boolean;
 }) {
   return (
     <div className="space-y-3">
@@ -21,7 +24,7 @@ export function ListPageSkeleton({
       <Card className={cardClass}>
         {filters ? <div className="flex flex-wrap items-center gap-2 px-4 pb-3">{filters}</div> : null}
         {filters ? <Separator /> : null}
-        <TableSkeleton columns={columns} />
+        {cards ? <CardListSkeleton /> : <TableSkeleton columns={columns} />}
       </Card>
     </div>
   );

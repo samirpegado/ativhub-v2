@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Calendar, MapPin, Plus, Search, User, Wrench } from "lucide-react";
 import { deleteRequests } from "@/app/(app)/requests/actions";
+import { CardListSkeleton } from "@/components/loading/card-list-skeleton";
 import { TableSkeleton } from "@/components/loading/table-skeleton";
 import { RequestForm } from "@/components/requests/request-form";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { BulkActionBar } from "@/components/lists/bulk-action-bar";
+import { CardFact, RecordCard, RecordCardList, mobileCardClass } from "@/components/lists/record-card";
 import { RowCheckbox } from "@/components/lists/row-checkbox";
 import { useRowSelection } from "@/components/lists/use-row-selection";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -20,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Separator } from "@/components/ui/separator";
 import type { AssetPickerHit } from "@/lib/assets/picker";
+import { isMobile } from "@/lib/app/is-mobile";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import {
   REQUEST_STATUSES,
@@ -35,6 +38,22 @@ const STATE_LABEL = {
   approved: "Aprovada",
   rejected: "Recusada",
 };
+
+const STATE_CHIP = {
+  pending: "bg-[#eef0f3] text-[#6b7280]",
+  treating: "bg-[#fdf1dc] text-[#b45309]",
+  approved: "bg-[#e8f6ec] text-[#15803d]",
+  rejected: "bg-[#fde8e8] text-[#b91c1c]",
+};
+
+function whenParts(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    day: new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(date),
+    time: new Intl.DateTimeFormat("pt-BR", { timeStyle: "short" }).format(date),
+  };
+}
 
 function formatWhen(value: string) {
   const date = new Date(value);
@@ -210,7 +229,7 @@ export function RequestsView({
         ) : null}
         <Separator />
         {navigating ? (
-          <TableSkeleton columns={5} />
+          isMobile ? <CardListSkeleton /> : <TableSkeleton columns={5} />
         ) : items.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
             <p className="max-w-md text-sm font-medium">
@@ -220,6 +239,56 @@ export function RequestsView({
               {totalAll === 0 ? "A pessoa na frente do equipamento pede manutenção sem login." : "Tente outro termo ou ajuste o filtro."}
             </p>
           </div>
+        ) : isMobile ? (
+          <RecordCardList>
+            {items.map((item) => {
+              const state = requestState(item);
+              const when = whenParts(item.createdAt);
+              return (
+                <RecordCard
+                  key={item.id}
+                  href={`/requests/${item.id}`}
+                  label={`Abrir ${item.title}`}
+                  contentClassName="gap-0"
+                  className={mobileCardClass}
+                >
+                  <div className="flex items-center justify-between gap-2.5">
+                    <span className={cn("truncate text-xs tracking-wide text-[#6b7280]", item.readAt ? "font-semibold" : "font-bold text-[#1a1f2b]")}>
+                      {item.customId ?? "—"}
+                    </span>
+                    <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold", STATE_CHIP[state])}>
+                      <span className="size-1.5 rounded-full bg-current" />
+                      {STATE_LABEL[state]}
+                    </span>
+                  </div>
+                  <h3 className="my-2 text-base leading-snug font-bold text-[#1a1f2b]">{item.title}</h3>
+                  <div className="grid gap-2 border-t border-[#e6e8ec] py-3">
+                    <CardFact icon={<Wrench strokeWidth={1.8} />} label="Ativo">
+                      {item.assetName ?? "—"}
+                    </CardFact>
+                    <CardFact icon={<MapPin strokeWidth={1.8} />} label="Localização">
+                      {item.locationName ?? "—"}
+                    </CardFact>
+                    <CardFact icon={<Calendar strokeWidth={1.8} />} label="Quando">
+                      {when ? (
+                        <span>
+                          <b>{when.day}</b>
+                          {" · "}
+                          {when.time}
+                        </span>
+                      ) : (
+                        <span className="text-[#6b7280]">—</span>
+                      )}
+                    </CardFact>
+                  </div>
+                  <div className="flex items-center gap-2 border-t border-[#e6e8ec] pt-3 text-[#6b7280]">
+                    <User className="size-4 shrink-0" strokeWidth={1.8} />
+                    <span className="truncate text-[12.5px] text-[#374151]">{item.requesterName ?? "—"}</span>
+                  </div>
+                </RecordCard>
+              );
+            })}
+          </RecordCardList>
         ) : (
           <div className="w-full min-w-0 overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">

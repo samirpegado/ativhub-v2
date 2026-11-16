@@ -1,9 +1,11 @@
 import { ListPageSkeleton } from "@/components/loading/list-page-skeleton";
 import { Shimmer } from "@/components/loading/shimmer";
+import { isMobile } from "@/lib/app/is-mobile";
 
 export default function InventoryLoading() {
   return (
     <ListPageSkeleton
+      cards={isMobile}
       columns={5}
       toolbar={
         <div className="flex flex-wrap items-center justify-between gap-3">

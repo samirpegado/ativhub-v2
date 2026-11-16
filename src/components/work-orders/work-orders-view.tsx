@@ -4,9 +4,11 @@ import { useActionState, useCallback, useEffect, useRef, useState, useTransition
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ClipboardCheck, ListFilter, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Calendar, ClipboardCheck, ListFilter, MapPin, Pencil, Plus, Search, Trash2, User, Wrench } from "lucide-react";
 import { FormDialog } from "@/components/forms/form-dialog";
+import { CardListSkeleton } from "@/components/loading/card-list-skeleton";
 import { BulkActionBar } from "@/components/lists/bulk-action-bar";
+import { CardFact, RecordCard, RecordCardList, mobileCardClass } from "@/components/lists/record-card";
 import { RowCheckbox } from "@/components/lists/row-checkbox";
 import { listTdClass, listTdIdClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
@@ -33,6 +35,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { deleteWorkOrder, deleteWorkOrders, updateWorkOrderDates } from "@/app/(app)/work-orders/actions";
+import { isMobile } from "@/lib/app/is-mobile";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import type { AssetPickerHit } from "@/lib/assets/picker";
 import type { LocationOption } from "@/lib/locations/queries";
@@ -68,6 +71,23 @@ function formatWhen(value: string | null) {
   }).format(new Date(value));
 }
 
+
+function dueParts(value: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    day: new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(date),
+    time: new Intl.DateTimeFormat("pt-BR", { timeStyle: "short" }).format(date),
+  };
+}
+
+function cardPriority(priority: string) {
+  if (priority === "HIGH") return { label: "Prioridade alta", className: "bg-[#fde8e8] text-[#b91c1c]" };
+  if (priority === "MEDIUM") return { label: "Prioridade média", className: "bg-[#fdf1dc] text-[#b45309]" };
+  if (priority === "LOW") return { label: "Prioridade baixa", className: "bg-[#e6eefc] text-[#1d4ed8]" };
+  return { label: "Sem prioridade", className: "bg-transparent px-0.5 font-medium text-[#6b7280]" };
+}
 
 function priorityClass(priority: string) {
   if (priority === "HIGH") return "bg-destructive/10 text-destructive";
@@ -302,7 +322,7 @@ export function WorkOrdersView({
         ) : null}
         {view === "list" ? <Separator /> : null}
         {navigating ? (
-          <TableSkeleton columns={8} />
+          isMobile && view === "list" ? <CardListSkeleton /> : <TableSkeleton columns={8} />
         ) : view === "calendar" ? (
           <WorkOrderCalendar orders={calendar} />
         ) : orders.length === 0 ? (
@@ -320,6 +340,123 @@ export function WorkOrdersView({
                 : "Tente outro termo ou ajuste os filtros."}
             </p>
           </div>
+        ) : isMobile ? (
+          <RecordCardList>
+            {orders.map((order) => {
+              const style = workOrderStatusStyle(order.status);
+              const priority = cardPriority(order.priority);
+              const due = dueParts(order.dueDate);
+              const overdue = workOrderIsOverdue(order);
+              const place = [order.locationName, order.customerName].filter(Boolean).join(" · ");
+              const people = order.assignees.map((person) => person.name).join(", ");
+              return (
+                <RecordCard
+                  key={order.id}
+                  href={`/work-orders/${order.id}`}
+                  label={`Abrir ${order.title}`}
+                  contentClassName="gap-0"
+                  className={mobileCardClass}
+                >
+                  <div className="flex items-center justify-between gap-2.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      {canEdit ? (
+                        <div className="relative z-10">
+                          <RowCheckbox
+                            checked={selection.isSelected(order.id)}
+                            label={`Selecionar ${order.title}`}
+                            onChange={() => selection.toggle(order.id)}
+                          />
+                        </div>
+                      ) : null}
+                      <span className="truncate text-xs font-semibold tracking-wide text-[#6b7280]">
+                        {order.customId ?? "—"}
+                      </span>
+                    </div>
+                    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${style.chip}`}>
+                      <span className={`size-1.5 rounded-full ${style.dot}`} />
+                      {workOrderStatusLabel(order.status)}
+                    </span>
+                  </div>
+                  <h3 className="my-2 text-base leading-snug font-bold text-[#1a1f2b]">{order.title}</h3>
+                  <div className="mb-3 flex flex-wrap gap-1.5">
+                    <span className="rounded-md bg-[#eef0f3] px-2.5 py-0.5 text-xs font-semibold text-[#374151]">
+                      {workOrderTypeLabel(order.type)}
+                    </span>
+                    <span className={cn("rounded-md px-2.5 py-0.5 text-xs font-semibold", priority.className)}>
+                      {priority.label}
+                    </span>
+                  </div>
+                  <div className="grid gap-2 border-t border-[#e6e8ec] py-3">
+                    <CardFact icon={<Wrench strokeWidth={1.8} />} label="Ativo">
+                      {order.assetName ?? "—"}
+                    </CardFact>
+                    <CardFact icon={<MapPin strokeWidth={1.8} />} label="Localização">
+                      {place || "—"}
+                    </CardFact>
+                    <CardFact icon={<Calendar strokeWidth={1.8} />} label="Vencimento">
+                      {due ? (
+                        <span className={overdue ? "text-[#b91c1c]" : undefined}>
+                          <b>{due.day}</b>
+                          {" · "}
+                          {due.time}
+                        </span>
+                      ) : (
+                        <span className="text-[#6b7280]">—</span>
+                      )}
+                    </CardFact>
+                  </div>
+                  <div className="flex items-center justify-between gap-2.5 border-t border-[#e6e8ec] pt-3">
+                    <div className="flex min-w-0 items-center gap-2 text-[#6b7280]">
+                      <User className="size-4 shrink-0" strokeWidth={1.8} />
+                      <span className="truncate text-[12.5px] text-[#374151]">{people || "—"}</span>
+                    </div>
+                    {canEdit ? (
+                      <div className="relative z-10 flex shrink-0 items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-primary hover:bg-primary/10 hover:text-primary"
+                          aria-label={`Responder tarefas de ${order.title}`}
+                          onClick={() => setAnswering(order)}
+                        >
+                          <ClipboardCheck className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-primary hover:bg-primary/10 hover:text-primary"
+                          aria-label={`Editar ${order.title}`}
+                          onClick={() => setEditing(order)}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <form
+                          action={formAction}
+                          onSubmit={(event) => {
+                            if (!window.confirm(`Excluir a ordem "${order.title}"?`)) event.preventDefault();
+                          }}
+                        >
+                          <input type="hidden" name="id" value={order.id} />
+                          <Button
+                            type="submit"
+                            variant="ghost"
+                            size="icon-sm"
+                            disabled={pending}
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            aria-label={`Remover ${order.title}`}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </form>
+                      </div>
+                    ) : null}
+                  </div>
+                </RecordCard>
+              );
+            })}
+          </RecordCardList>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1080px] text-left text-sm">

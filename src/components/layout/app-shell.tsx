@@ -24,6 +24,7 @@ import { AssetQrScanButton } from "@/components/assets/asset-qr-scan-dialog";
 import { Logo } from "@/components/brand/logo";
 import { UserMenu } from "@/components/layout/user-menu";
 import { navItems } from "@/components/layout/nav";
+import { isMobile, isNativeShell } from "@/lib/app/is-mobile";
 import { can } from "@/lib/auth/areas";
 import type { AppUser } from "@/lib/auth/current-user";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,22 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+
+const barLabels: Record<(typeof navItems)[number]["href"], string> = {
+  "/": "Início",
+  "/work-orders": "Ordens",
+  "/preventive": "Preventiva",
+  "/requests": "Solicitações",
+  "/assets": "Ativos",
+  "/locations": "Locais",
+  "/inventory": "Peças",
+  "/customers": "Clientes",
+  "/vendors": "Fornecedores",
+  "/people": "Pessoas",
+  "/settings": "Ajustes",
+};
+
+const technicianBarHrefs = new Set<string>(["/", "/work-orders", "/requests", "/assets", "/inventory"]);
 
 const icons: Record<(typeof navItems)[number]["href"], LucideIcon> = {
   "/": LayoutDashboard,
@@ -145,6 +162,38 @@ function SidebarChrome({
   );
 }
 
+function BottomBar({ user }: { user: AppUser }) {
+  const pathname = usePathname();
+  const items = visibleNav(user).filter((item) => technicianBarHrefs.has(item.href));
+
+  return (
+    <nav
+      aria-label="Navegação"
+      className="z-20 grid shrink-0 border-t border-[#14233a]/10 bg-card pb-[env(safe-area-inset-bottom)]"
+      style={{ gridTemplateColumns: `repeat(${Math.max(items.length, 1)}, minmax(0, 1fr))` }}
+    >
+      {items.map((item) => {
+        const Icon = icons[item.href];
+        const active = isActivePath(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "flex min-w-0 flex-col items-center gap-1 px-0.5 py-2 text-[10px] leading-tight font-medium",
+              active ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            <Icon className="size-5" />
+            <span className="max-w-full truncate">{barLabels[item.href]}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function AppShell({
   user,
   pendingRequestCount = null,
@@ -157,18 +206,26 @@ export function AppShell({
   const pathname = usePathname();
   const title = pageTitle(pathname);
   const [open, setOpen] = useState(false);
+  const [native, setNative] = useState(isMobile);
   const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    setNative(isNativeShell());
+  }, []);
 
   useEffect(() => {
     mainRef.current?.scrollTo(0, 0);
   }, [pathname]);
 
   return (
-    <div className="h-dvh overflow-hidden bg-background lg:pl-[290px]">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[290px] bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
-        <SidebarChrome user={user} priorityLogo />
-      </aside>
+    <div className={cn("h-dvh overflow-hidden bg-background", !native && "lg:pl-[290px]")}>
+      {native ? null : (
+        <aside className="fixed inset-y-0 left-0 z-30 hidden w-[290px] bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
+          <SidebarChrome user={user} priorityLogo />
+        </aside>
+      )}
 
+      {native ? null : (
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="left"
@@ -185,6 +242,7 @@ export function AppShell({
           />
         </SheetContent>
       </Sheet>
+      )}
 
       <div className="flex h-full min-h-0 flex-col">
       <header className="z-20 flex h-20 shrink-0 items-center justify-between gap-2 bg-card/95 px-4 shadow-[0px_2px_8px_-3px_rgba(34,51,84,0.2),0px_5px_22px_-4px_rgba(34,51,84,0.1)] backdrop-blur-[3px]">
@@ -192,7 +250,7 @@ export function AppShell({
           <Button
             variant="ghost"
             size="icon"
-            className="shrink-0 text-primary lg:hidden"
+            className={cn("shrink-0 text-primary lg:hidden", native && "hidden")}
             onClick={() => setOpen((value) => !value)}
             aria-label={open ? "Fechar menu" : "Abrir menu"}
           >
@@ -230,6 +288,7 @@ export function AppShell({
       <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-4 py-4 sm:px-8">{children}</div>
       </main>
+      {native ? <BottomBar user={user} /> : null}
       </div>
     </div>
   );

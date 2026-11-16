@@ -1,9 +1,11 @@
 import { ListPageSkeleton } from "@/components/loading/list-page-skeleton";
 import { Shimmer } from "@/components/loading/shimmer";
+import { isMobile } from "@/lib/app/is-mobile";
 
 export default function RequestsLoading() {
   return (
     <ListPageSkeleton
+      cards={isMobile}
       columns={5}
       filters={
         <>

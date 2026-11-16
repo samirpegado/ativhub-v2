@@ -3,9 +3,10 @@
 import { useActionState, useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ListFilter, Pencil, Plus, QrCode, Search, Trash2 } from "lucide-react";
+import { Box, ListFilter, MapPin, Pencil, Plus, QrCode, Search, Trash2 } from "lucide-react";
 import { deleteAsset, deleteAssets } from "@/app/(app)/assets/actions";
 import { exportAssetsCsv } from "@/app/(app)/assets/csv-actions";
+import { CardListSkeleton } from "@/components/loading/card-list-skeleton";
 import { TableSkeleton } from "@/components/loading/table-skeleton";
 import { AssetFiltersDialog } from "@/components/assets/asset-filters-dialog";
 import { AssetForm } from "@/components/assets/asset-form";
@@ -14,6 +15,7 @@ import { AssetQrDialog } from "@/components/assets/asset-qr-dialog";
 import { printQrLabels, qrDataUrl } from "@/components/assets/print-qr-labels";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { BulkActionBar } from "@/components/lists/bulk-action-bar";
+import { CardFact, RecordCard, RecordCardList, mobileCardClass } from "@/components/lists/record-card";
 import { RowCheckbox } from "@/components/lists/row-checkbox";
 import { listTdClass, listTdIdClass, listTdNameClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
@@ -28,6 +30,7 @@ import { assetStatusClass, assetStatusLabel } from "@/lib/assets/status";
 import type { AssetRecord } from "@/lib/assets/queries";
 import type { AssetCategory } from "@/lib/categories/queries";
 import type { MutationState } from "@/lib/forms/state";
+import { isMobile } from "@/lib/app/is-mobile";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import type { LocationRecord } from "@/lib/locations/queries";
 import { cn } from "@/lib/utils";
@@ -200,7 +203,7 @@ export function AssetsView({
           ) : null}
           <Separator />
           {navigating ? (
-            <TableSkeleton columns={6} />
+            isMobile ? <CardListSkeleton /> : <TableSkeleton columns={6} />
           ) : assets.length === 0 ? (
             <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
               <p className="max-w-md text-sm font-medium">
@@ -212,6 +215,78 @@ export function AssetsView({
                 {totalAll === 0 ? "Pressione o botão '+' para criar um ativo" : "Tente outro termo ou ajuste os filtros."}
               </p>
             </div>
+          ) : isMobile ? (
+            <RecordCardList>
+              {assets.map((asset) => {
+                const customer = asset.location_id ? customerByLocation.get(asset.location_id) : null;
+                const place = [asset.locationName, customer].filter(Boolean).join(" · ");
+                return (
+                  <RecordCard
+                    key={asset.id}
+                    href={`/assets/${asset.id}`}
+                    label={`Abrir ${asset.name}`}
+                    contentClassName="gap-0"
+                    className={mobileCardClass}
+                  >
+                    <div className="flex items-center justify-between gap-2.5">
+                      <div className="flex min-w-0 items-center gap-2">
+                        {canEdit ? (
+                          <div className="relative z-10">
+                            <RowCheckbox
+                              checked={selection.isSelected(asset.id)}
+                              label={`Selecionar ${asset.name}`}
+                              onChange={() => selection.toggle(asset.id)}
+                            />
+                          </div>
+                        ) : null}
+                        <span className="truncate text-xs font-semibold tracking-wide text-[#6b7280]">
+                          {asset.custom_id ?? "—"}
+                        </span>
+                      </div>
+                      <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold", assetStatusClass(asset.status))}>
+                        <span className="size-1.5 rounded-full bg-current" />
+                        {assetStatusLabel(asset.status)}
+                      </span>
+                    </div>
+                    <h3 className="my-2 text-base leading-snug font-bold text-[#1a1f2b]">{asset.name}</h3>
+                    <div className="mb-3 flex flex-wrap gap-1.5">
+                      <span className="rounded-md bg-[#eef0f3] px-2.5 py-0.5 text-xs font-semibold text-[#374151]">
+                        {asset.categoryName ?? "Sem categoria"}
+                      </span>
+                    </div>
+                    <div className="grid gap-2 border-t border-[#e6e8ec] py-3">
+                      <CardFact icon={<MapPin strokeWidth={1.8} />} label="Localização">
+                        {place || "—"}
+                      </CardFact>
+                      <CardFact icon={<Box strokeWidth={1.8} />} label="Instalação">
+                        {asset.area ?? "—"}
+                      </CardFact>
+                    </div>
+                    {canEdit ? (
+                      <div className="relative z-10 flex items-center justify-end gap-1 border-t border-[#e6e8ec] pt-3" onClick={(event) => event.stopPropagation()}>
+                        <Button type="button" variant="ghost" size="icon-sm" aria-label={`Gerar QR code de ${asset.name}`} onClick={() => setQrAsset(asset)}>
+                          <QrCode className="size-4" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon-sm" className="text-primary" aria-label={`Editar ${asset.name}`} onClick={() => setEditing(asset)}>
+                          <Pencil className="size-4" />
+                        </Button>
+                        <form
+                          action={formAction}
+                          onSubmit={(event) => {
+                            if (!window.confirm(`Excluir o ativo "${asset.name}"?`)) event.preventDefault();
+                          }}
+                        >
+                          <input type="hidden" name="id" value={asset.id} />
+                          <Button type="submit" variant="ghost" size="icon-sm" disabled={pending} className="text-destructive" aria-label={`Remover ${asset.name}`}>
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </form>
+                      </div>
+                    ) : null}
+                  </RecordCard>
+                );
+              })}
+            </RecordCardList>
           ) : (
             <div className="w-full min-w-0 overflow-x-auto">
               <table className="w-full min-w-[980px] text-left text-sm">

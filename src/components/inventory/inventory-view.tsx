@@ -2,14 +2,16 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Banknote, Boxes, FileText, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { deletePart, deletePartSet } from "@/app/(app)/inventory/actions";
+import { CardListSkeleton } from "@/components/loading/card-list-skeleton";
 import { TableSkeleton } from "@/components/loading/table-skeleton";
 import { FormDialog } from "@/components/forms/form-dialog";
 import { PartDrawer } from "@/components/inventory/part-drawer";
 import { PartForm } from "@/components/inventory/part-form";
 import { SetDrawer } from "@/components/inventory/set-drawer";
 import { SetForm } from "@/components/inventory/set-form";
+import { CardFact, RecordCard, RecordCardList, mobileCardClass } from "@/components/lists/record-card";
 import { listTdClass, listTdNameClass, listThClass } from "@/components/lists/table-classes";
 import { TablePagination } from "@/components/lists/table-pagination";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,9 +27,16 @@ import {
   inventoryHref,
   type InventoryListQuery,
 } from "@/lib/inventory/list-params";
+import { isMobile } from "@/lib/app/is-mobile";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import type { PartOption, PartRecord, PartSetRecord } from "@/lib/inventory/queries";
 import { cn } from "@/lib/utils";
+
+function stockChip(part: { quantity: number; minQuantity: number; nonStock: boolean }) {
+  if (part.nonStock) return { label: "Sem controle", className: "bg-[#eef0f3] text-[#6b7280]" };
+  if (isLowStock(part)) return { label: "Estoque baixo", className: "bg-[#fde8e8] text-[#b91c1c]" };
+  return { label: "Em estoque", className: "bg-[#e8f6ec] text-[#15803d]" };
+}
 
 function formatWhen(value: string) {
   const date = new Date(value);
@@ -181,7 +190,7 @@ export function InventoryView({
         ) : null}
         <Separator />
         {navigating ? (
-          <TableSkeleton columns={query.sets ? 4 : 5} />
+          isMobile ? <CardListSkeleton /> : <TableSkeleton columns={query.sets ? 4 : 5} />
         ) : query.sets ? (
           sets.length === 0 ? (
             <Empty
@@ -196,6 +205,45 @@ export function InventoryView({
                   : "Tente outro termo."
               }
             />
+          ) : isMobile ? (
+            <RecordCardList>
+              {sets.map((item) => (
+                <RecordCard
+                  key={item.id}
+                  label={`Abrir ${item.name}`}
+                  onOpen={() => setOpenSetId(item.id)}
+                  contentClassName="gap-0"
+                  className={mobileCardClass}
+                >
+                  <div className="flex items-center justify-between gap-2.5">
+                    <span className="truncate text-xs font-semibold tracking-wide text-[#6b7280]">
+                      {formatWhen(item.createdAt)}
+                    </span>
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#eef0f3] px-2.5 py-0.5 text-xs font-bold text-[#6b7280]">
+                      <span className="size-1.5 rounded-full bg-current" />
+                      {item.partCount} {item.partCount === 1 ? "peça" : "peças"}
+                    </span>
+                  </div>
+                  <h3 className="my-2 text-base leading-snug font-bold text-[#1a1f2b]">{item.name}</h3>
+                  <div className="grid gap-2 border-t border-[#e6e8ec] py-3">
+                    <CardFact icon={<Banknote strokeWidth={1.8} />} label="Custo total">
+                      {formatPartCost(item.totalCost, null)}
+                    </CardFact>
+                  </div>
+                  {canEdit ? (
+                    <div className="relative z-10 flex justify-end border-t border-[#e6e8ec] pt-3" onClick={(event) => event.stopPropagation()}>
+                      <RowActions
+                        label={item.name}
+                        pending={setPending}
+                        action={setDelete}
+                        id={item.id}
+                        onEdit={() => setEditingSet(item)}
+                      />
+                    </div>
+                  ) : null}
+                </RecordCard>
+              ))}
+            </RecordCardList>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
@@ -250,6 +298,61 @@ export function InventoryView({
                 : "Tente outro termo ou ajuste o filtro."
             }
           />
+        ) : isMobile ? (
+          <RecordCardList>
+            {parts.map((part) => {
+              const stock = stockChip(part);
+              return (
+                <RecordCard
+                  key={part.id}
+                  label={`Abrir ${part.name}`}
+                  onOpen={() => setOpenPartId(part.id)}
+                  contentClassName="gap-0"
+                  className={mobileCardClass}
+                >
+                  <div className="flex items-center justify-between gap-2.5">
+                    <span className="truncate text-xs font-semibold tracking-wide text-[#6b7280]">
+                      {part.barcode ?? "—"}
+                    </span>
+                    <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold", stock.className)}>
+                      <span className="size-1.5 rounded-full bg-current" />
+                      {stock.label}
+                    </span>
+                  </div>
+                  <h3 className="my-2 text-base leading-snug font-bold text-[#1a1f2b]">{part.name}</h3>
+                  <div className="mb-3 flex flex-wrap gap-1.5">
+                    <span className="rounded-md bg-[#eef0f3] px-2.5 py-0.5 text-xs font-semibold text-[#374151]">
+                      {part.categoryName ?? "Sem categoria"}
+                    </span>
+                  </div>
+                  <div className="grid gap-2 border-t border-[#e6e8ec] py-3">
+                    <CardFact icon={<Banknote strokeWidth={1.8} />} label="Valor">
+                      {formatPartCost(part.cost, part.unit)}
+                    </CardFact>
+                    <CardFact icon={<Boxes strokeWidth={1.8} />} label="Quantidade">
+                      <span className={isLowStock(part) ? "text-[#b91c1c]" : undefined}>
+                        {formatQuantity(part.quantity, part.unit)}
+                      </span>
+                    </CardFact>
+                    <CardFact icon={<FileText strokeWidth={1.8} />} label="Descrição">
+                      <span className="line-clamp-2">{part.description ?? "—"}</span>
+                    </CardFact>
+                  </div>
+                  {canEdit ? (
+                    <div className="relative z-10 flex justify-end border-t border-[#e6e8ec] pt-3" onClick={(event) => event.stopPropagation()}>
+                      <RowActions
+                        label={part.name}
+                        pending={partPending}
+                        action={partDelete}
+                        id={part.id}
+                        onEdit={() => setEditingPart(part)}
+                      />
+                    </div>
+                  ) : null}
+                </RecordCard>
+              );
+            })}
+          </RecordCardList>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1080px] text-left text-sm">
