@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   webDir: "www",
   server: {
     url: "https://ativhub.sgapps.org",
+    errorPath: "offline.html",
     cleartext: false,
     androidScheme: "https",
   },

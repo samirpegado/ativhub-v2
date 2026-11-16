@@ -30,7 +30,7 @@ import { assetStatusClass, assetStatusLabel } from "@/lib/assets/status";
 import type { AssetRecord } from "@/lib/assets/queries";
 import type { AssetCategory } from "@/lib/categories/queries";
 import type { MutationState } from "@/lib/forms/state";
-import { isMobile } from "@/lib/app/is-mobile";
+import { useNativeShell } from "@/lib/app/use-native-shell";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import type { LocationRecord } from "@/lib/locations/queries";
 import { cn } from "@/lib/utils";
@@ -56,6 +56,7 @@ export function AssetsView({
   canEdit: boolean;
   canExport: boolean;
 }) {
+  const native = useNativeShell();
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
   const [search, setSearch] = useState(query.search);
@@ -203,7 +204,7 @@ export function AssetsView({
           ) : null}
           <Separator />
           {navigating ? (
-            isMobile ? <CardListSkeleton /> : <TableSkeleton columns={6} />
+            native ? <CardListSkeleton /> : <TableSkeleton columns={6} />
           ) : assets.length === 0 ? (
             <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
               <p className="max-w-md text-sm font-medium">
@@ -215,7 +216,7 @@ export function AssetsView({
                 {totalAll === 0 ? "Pressione o botão '+' para criar um ativo" : "Tente outro termo ou ajuste os filtros."}
               </p>
             </div>
-          ) : isMobile ? (
+          ) : native ? (
             <RecordCardList>
               {assets.map((asset) => {
                 const customer = asset.location_id ? customerByLocation.get(asset.location_id) : null;

@@ -35,7 +35,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { deleteWorkOrder, deleteWorkOrders, updateWorkOrderDates } from "@/app/(app)/work-orders/actions";
-import { isMobile } from "@/lib/app/is-mobile";
+import { useNativeShell } from "@/lib/app/use-native-shell";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import type { AssetPickerHit } from "@/lib/assets/picker";
 import type { LocationOption } from "@/lib/locations/queries";
@@ -127,6 +127,7 @@ export function WorkOrdersView({
   presetAssetId?: string | null;
   lockedAsset?: AssetPickerHit | null;
 }) {
+  const native = useNativeShell();
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
   const [editing, setEditing] = useState<WorkOrderRecord | null | "new">(null);
@@ -322,7 +323,7 @@ export function WorkOrdersView({
         ) : null}
         {view === "list" ? <Separator /> : null}
         {navigating ? (
-          isMobile && view === "list" ? <CardListSkeleton /> : <TableSkeleton columns={8} />
+          native && view === "list" ? <CardListSkeleton /> : <TableSkeleton columns={8} />
         ) : view === "calendar" ? (
           <WorkOrderCalendar orders={calendar} />
         ) : orders.length === 0 ? (
@@ -340,7 +341,7 @@ export function WorkOrdersView({
                 : "Tente outro termo ou ajuste os filtros."}
             </p>
           </div>
-        ) : isMobile ? (
+        ) : native ? (
           <RecordCardList>
             {orders.map((order) => {
               const style = workOrderStatusStyle(order.status);

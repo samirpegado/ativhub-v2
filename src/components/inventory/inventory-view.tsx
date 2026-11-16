@@ -27,7 +27,7 @@ import {
   inventoryHref,
   type InventoryListQuery,
 } from "@/lib/inventory/list-params";
-import { isMobile } from "@/lib/app/is-mobile";
+import { useNativeShell } from "@/lib/app/use-native-shell";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import type { PartOption, PartRecord, PartSetRecord } from "@/lib/inventory/queries";
 import { cn } from "@/lib/utils";
@@ -65,6 +65,7 @@ export function InventoryView({
   setTotalAll?: number;
   partOptions?: PartOption[];
 }) {
+  const native = useNativeShell();
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
   const [search, setSearch] = useState(query.search);
@@ -190,7 +191,7 @@ export function InventoryView({
         ) : null}
         <Separator />
         {navigating ? (
-          isMobile ? <CardListSkeleton /> : <TableSkeleton columns={query.sets ? 4 : 5} />
+          native ? <CardListSkeleton /> : <TableSkeleton columns={query.sets ? 4 : 5} />
         ) : query.sets ? (
           sets.length === 0 ? (
             <Empty
@@ -205,7 +206,7 @@ export function InventoryView({
                   : "Tente outro termo."
               }
             />
-          ) : isMobile ? (
+          ) : native ? (
             <RecordCardList>
               {sets.map((item) => (
                 <RecordCard
@@ -298,7 +299,7 @@ export function InventoryView({
                 : "Tente outro termo ou ajuste o filtro."
             }
           />
-        ) : isMobile ? (
+        ) : native ? (
           <RecordCardList>
             {parts.map((part) => {
               const stock = stockChip(part);

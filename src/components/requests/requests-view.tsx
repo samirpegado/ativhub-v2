@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Separator } from "@/components/ui/separator";
 import type { AssetPickerHit } from "@/lib/assets/picker";
-import { isMobile } from "@/lib/app/is-mobile";
+import { useNativeShell } from "@/lib/app/use-native-shell";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import {
   REQUEST_STATUSES,
@@ -82,6 +82,7 @@ export function RequestsView({
   presetAssetId?: string | null;
   lockedAsset?: AssetPickerHit | null;
 }) {
+  const native = useNativeShell();
   const router = useRouter();
   const [navigating, startNavigation] = useTransition();
   const [search, setSearch] = useState(query.search);
@@ -229,7 +230,7 @@ export function RequestsView({
         ) : null}
         <Separator />
         {navigating ? (
-          isMobile ? <CardListSkeleton /> : <TableSkeleton columns={5} />
+          native ? <CardListSkeleton /> : <TableSkeleton columns={5} />
         ) : items.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-2 px-6 py-16 text-center">
             <p className="max-w-md text-sm font-medium">
@@ -239,7 +240,7 @@ export function RequestsView({
               {totalAll === 0 ? "A pessoa na frente do equipamento pede manutenção sem login." : "Tente outro termo ou ajuste o filtro."}
             </p>
           </div>
-        ) : isMobile ? (
+        ) : native ? (
           <RecordCardList>
             {items.map((item) => {
               const state = requestState(item);
