@@ -214,11 +214,24 @@ export function AppShell({
   }, []);
 
   useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRoot = root.style.overflow;
+    const previousBody = body.style.overflow;
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      root.style.overflow = previousRoot;
+      body.style.overflow = previousBody;
+    };
+  }, []);
+
+  useEffect(() => {
     mainRef.current?.scrollTo(0, 0);
   }, [pathname]);
 
   return (
-    <div className={cn("h-dvh overflow-hidden bg-background", !native && "lg:pl-[290px]")}>
+    <div className={cn("fixed inset-0 flex flex-col overflow-hidden bg-background", !native && "lg:pl-[290px]")}>
       {native ? null : (
         <aside className="fixed inset-y-0 left-0 z-30 hidden w-[290px] bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
           <SidebarChrome user={user} priorityLogo />
@@ -244,7 +257,7 @@ export function AppShell({
       </Sheet>
       )}
 
-      <div className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
       <header className="z-20 flex h-20 shrink-0 items-center justify-between gap-2 bg-card/95 px-4 shadow-[0px_2px_8px_-3px_rgba(34,51,84,0.2),0px_5px_22px_-4px_rgba(34,51,84,0.1)] backdrop-blur-[3px]">
         <div className="flex min-w-0 items-center gap-1">
           <Button
@@ -285,7 +298,7 @@ export function AppShell({
         </div>
       </header>
 
-      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto">
+      <main ref={mainRef} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
         <div className="px-4 py-4 sm:px-8">{children}</div>
       </main>
       {native ? <BottomBar user={user} /> : null}
