@@ -37,7 +37,7 @@ export function PhotoSourcePicker({
       })}
       <input ref={galleryRef} type="file" accept={accept} disabled={disabled} className="sr-only" onChange={pick} />
       {phone ? (
-        <input ref={cameraRef} type="file" accept={accept} capture="environment" disabled={disabled} className="sr-only" onChange={pick} />
+        <input ref={cameraRef} type="file" accept="image/*" capture="environment" disabled={disabled} className="sr-only" onChange={pick} />
       ) : null}
     </>
   );

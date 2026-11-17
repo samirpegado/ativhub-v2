@@ -27,6 +27,9 @@
 .DS_Store
 *.pem
 
+# Credenciais locais do Firebase App Distribution e da assinatura Android.
+.github/firebase/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

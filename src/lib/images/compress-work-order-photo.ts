@@ -11,7 +11,8 @@ export function isWorkOrderPhotoName(name: string) {
 }
 
 export async function compressWorkOrderPhoto(file: File): Promise<File> {
-  if (!ACCEPTED.has(file.type)) {
+  const type = file.type || (/\.jpe?g$/i.test(file.name) ? "image/jpeg" : "");
+  if (!ACCEPTED.has(type)) {
     throw new Error("Envie uma imagem PNG, JPG ou WebP.");
   }
   if (file.size > MAX_BYTES) {
