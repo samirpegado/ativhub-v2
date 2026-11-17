@@ -1,5 +1,8 @@
 apply plugin: 'com.android.application'
 
+def appVersionCode = ((findProperty("appVersionCode") ?: "1").toString()).toInteger()
+def appVersionName = (findProperty("appVersionName") ?: "1.0").toString()
+
 android {
     namespace = "org.sgapps.ativhub"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +10,8 @@ android {
         applicationId "org.sgapps.ativhub"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode (project.findProperty("appVersionCode") ?: "1").toInteger()
-        versionName project.findProperty("appVersionName") ?: "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
