@@ -49,3 +49,6 @@ next-env.d.ts
 
 # snapshots locais do Playwright
 /.playwright-mcp/
+
+# Cache local da CLI do Supabase
+/supabase/.temp/

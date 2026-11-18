@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoginForm } from "./login-form";
+import { RegisterPrompt } from "./register-prompt";
 
 export const metadata: Metadata = {
   title: {
@@ -46,12 +46,7 @@ export default async function LoginPage({
               </Alert>
             ) : null}
             <LoginForm defaultEmail={email ?? ""} next={next ?? "/"} />
-            <p className="mt-8 text-sm">
-              <span className="font-bold">Ainda não tem uma conta?</span>{" "}
-              <Link href="/register" className="font-bold text-primary hover:underline">
-                Inscreva-se aqui
-              </Link>
-            </p>
+            <RegisterPrompt />
           </CardContent>
         </Card>
       </div>

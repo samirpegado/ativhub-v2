@@ -67,6 +67,7 @@ Describe the real structural organization of the repository and the architectura
   pagamento. Sem teste vigente ou assinatura ativa, só `/subscription`, o perfil
   e o logout continuam disponíveis.
 - Auth via `@supabase/ssr` (cookies) + `src/proxy.ts` (convenção Next 16).
+- O login oculta o convite “Ainda não tem uma conta? Inscreva-se aqui” na casca mobile Capacitor, usando `useNativeShell`; no navegador o convite permanece.
 - Tenant ativo em `auth.jwt().app_metadata.tenant_id`, lido por
   `current_tenant_id()`.
 - `/profile` é a conta do usuário: foto, atividade de OT e dados pessoais.

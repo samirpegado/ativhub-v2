@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ordem de Serviço OS-000042 · AtivManutenção Ltda</title>
+<style>
+  :root{
+    --ink:#1a1f2b; --muted:#6b7280; --line:#e6e8ec; --soft:#f6f7f9; --accent:#1e3a5f;
+    --ok:#15803d; --warn:#b45309; --bad:#b91c1c; --info:#2563eb;
+  }
+  *{box-sizing:border-box;font-feature-settings:"calt" 0}
+  body{margin:0;background:#eef0f3;color:var(--ink);font:14px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .page{max-width:800px;margin:24px auto;background:#fff;padding:44px 48px;border-radius:6px}
+  h1{font-size:22px;line-height:1.25;margin:0 0 6px}
+  h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:700}
+  section{margin-top:34px}
+  .muted{color:var(--muted)}
+  .small{font-size:12px}
+  .right{text-align:right}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* cabeçalho */
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;gap:14px;align-items:center}
+  .brand svg{width:44px;height:44px;flex:none}
+  .brand b{display:block;font-size:15px}
+  .brand span{display:block;font-size:12px;color:var(--muted);line-height:1.45}
+  .os-id{text-align:right}
+  .os-id small{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .os-id{white-space:nowrap}
+  .os-id strong{font-size:22px;color:var(--accent);letter-spacing:.01em}
+
+  /* título */
+  .meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 12px;font-size:13px}
+  .tag{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .info{color:var(--info)} .gray{color:var(--muted)}
+
+  .facts{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .facts dt{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .facts dd{margin:2px 0 0;font-weight:700;font-size:15px}
+  .facts dd small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+
+  /* duas colunas */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+  .cols p{margin:0 0 2px}
+
+  /* ativo */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 24px;margin:0}
+  .grid dt{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .grid dd{margin:1px 0 0}
+  .grid .span{grid-column:1/-1}
+  .asset-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+  .asset-head b{font-size:16px}
+
+  /* tabelas */
+  table{width:100%;border-collapse:collapse}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:0 8px 8px 0;border-bottom:1px solid var(--ink)}
+  td{padding:10px 8px 10px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  th.right,td.right{padding-right:0}
+  tr.pending td{color:var(--muted)}
+  td .type{display:block;font-size:12px;color:var(--muted)}
+  tfoot td{border-bottom:0;font-weight:700;padding-top:12px}
+  tr{break-inside:avoid}
+
+  /* total */
+  .total{margin-left:auto;width:300px}
+  .total div{display:flex;justify-content:space-between;padding:5px 0}
+  .total .grand{border-top:2px solid var(--ink);margin-top:6px;padding-top:12px;font-size:20px;font-weight:800;color:var(--accent)}
+
+  /* imagens anexas */
+  .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .gallery figure{margin:0;break-inside:avoid}
+  .gallery img,.gallery .ph{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+  .gallery .ph{background:#e9edf1;display:grid;place-items:center;color:var(--muted);font-size:12px;font-weight:600}
+
+  footer{margin-top:36px;text-align:center;font-size:11px;color:var(--muted)}
+
+  @media (max-width:640px){
+    .gallery{grid-template-columns:1fr 1fr}
+    .page{padding:24px 18px;margin:0;border-radius:0}
+    .facts{grid-template-columns:1fr 1fr}
+    .cols,.grid{grid-template-columns:1fr}
+    .top{flex-direction:column}.os-id{text-align:left}
+  }
+  @media print{
+    @page{size:A4;margin:14mm}
+    body{background:#fff}
+    .page{margin:0;padding:0;max-width:none;border-radius:0}
+    section{break-inside:avoid-page}
+  }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <!-- Cabeçalho: logo + empresa + código da OS -->
+  <header class="top">
+    <div class="brand">
+      <!-- Substituir pelo logo da empresa: <img src="{{empresa.logo_url}}" width="44" height="44" alt=""> -->
+      <svg viewBox="0 0 44 44" aria-hidden="true"><rect width="44" height="44" rx="10" fill="#1e3a5f"/><text x="22" y="29" text-anchor="middle" font-size="18" font-weight="700" fill="#fff" font-family="Arial">AM</text></svg>
+      <div>
+        <b>AtivManutenção Ltda</b>
+        <span>Avenida Brigadeiro Faria Lima, 3477, Conjunto 101, Itaim Bibi, São Paulo - SP, 04543-011</span>
+        <span>(11) 4000-2000 · <a href="https://ativmanutencao.com.br" style="color:inherit">ativmanutencao.com.br</a></span>
+      </div>
+    </div>
+    <div class="os-id">
+      <small>Ordem de serviço</small>
+      <strong>OS-000042</strong>
+    </div>
+  </header>
+
+  <!-- Título -->
+  <section style="margin-top:26px">
+    <h1>Troca do rolamento da bomba centrífuga</h1>
+    <div class="meta">
+      <span class="tag ok"><span class="dot"></span>Concluído</span>
+      <span class="tag bad"><span class="dot"></span>Prioridade alta</span>
+      <span class="tag gray">Corretiva</span>
+    </div>
+    <p style="margin:0">Vibração acima do normal no mancal dianteiro. Cliente pediu atendimento no mesmo dia.</p>
+
+
+    <dl class="facts" style="margin-bottom:0;margin-top:22px">
+      <div><dt>Vencimento</dt><dd>14/11/2026<small>às 18:00</small></dd></div>
+      <div><dt>Tempo registrado</dt><dd>2h 15m<small>2 lançamentos</small></dd></div>
+      <div><dt>Tarefas</dt><dd>4 de 5<small>em aberto</small></dd></div>
+      <div><dt>Peças</dt><dd>2<small>utilizadas</small></dd></div>
+    </dl>
+  </section>
+
+  <!-- Cliente e local -->
+  <section>
+    <div class="cols">
+      <div>
+        <h2>Cliente</h2>
+        <p><b>Indústria Famac</b> <span class="muted">· Indústria</span></p>
+        <p class="muted small">CNPJ 12.345.678/0001-90</p>
+        <p>(11) 98888-0000</p>
+        <p>manutencao@famac.com.br</p>
+        <p class="muted small" style="margin-top:6px">Contrato de manutenção das bombas do galpão 2.</p>
+      </div>
+      <div>
+        <h2>Local do serviço</h2>
+        <p><b>Galpão 2 · Sala de bombas</b></p>
+        <p>Avenida Paulista, 1000, Galpão 2, Bela Vista, São Paulo - SP, 01310-100</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ativo (sem foto) -->
+  <section>
+    <h2>Ativo atendido</h2>
+    <div class="asset-head">
+      <b>Bomba centrífuga FAMAC FASP 60</b>
+      <span class="muted">AT-00018</span>
+      <span class="tag bad small"><span class="dot"></span>Fora de serviço</span>
+    </div>
+    <dl class="grid">
+      <div><dt>Categoria</dt><dd>Bombas</dd></div>
+      <div><dt>Fabricante</dt><dd>FAMAC</dd></div>
+      <div><dt>Modelo</dt><dd>FASP 60</dd></div>
+      <div><dt>Número de série</dt><dd>FASP60-2024-0881</dd></div>
+      <div><dt>Código de barras</dt><dd>7891234567890</dd></div>
+      <div><dt>Potência</dt><dd>2 CV</dd></div>
+      <div><dt>Instalação</dt><dd>Sala de bombas, lado direito</dd></div>
+      <div><dt>Em serviço desde</dt><dd>12/03/2024</dd></div>
+      <div><dt>Fim da garantia</dt><dd>12/03/2026</dd></div>
+      <div><dt>Custo de aquisição</dt><dd class="num">R$ 8.450,00</dd></div>
+      <div class="span"><dt>Descrição</dt><dd>Bomba mono 220 V, motor WEG, mancal dianteiro. <span class="muted">Rolamento 6205. Troca recomendada a cada 8.000 h.</span></dd></div>
+    </dl>
+  </section>
+
+  <!-- Tarefas: ordem de resposta, pendentes no fim -->
+  <section>
+    <h2>Tarefas · 4 de 5 respondidas</h2>
+    <table>
+      <thead><tr><th style="width:34%">Tarefa</th><th style="width:26%">Resposta</th><th>Comentário</th><th class="right" style="width:112px">Data</th></tr></thead>
+      <tbody>
+        <tr><td>Conferir alinhamento do eixo<span class="type">subtarefa</span></td><td class="ok"><b>✓ Concluída</b></td><td class="muted">—</td><td class="right small muted num">14/11/2026<br>09:12</td></tr>
+        <tr><td>Medir vibração<span class="type">número</span></td><td><b>4,8 mm/s</b></td><td>acima do limite de 4,5</td><td class="right small muted num">14/11/2026<br>09:40</td></tr>
+        <tr><td>Inspeção visual do mancal<span class="type">inspeção</span></td><td class="bad"><b>● Reprovado</b></td><td>trinca na pista interna</td><td class="right small muted num">14/11/2026<br>10:05</td></tr>
+        <tr><td>Causa provável<span class="type">múltipla escolha</span></td><td><b>Desgaste do rolamento</b></td><td class="muted">—</td><td class="right small muted num">14/11/2026<br>10:20</td></tr>
+        <tr class="pending"><td>Observação do cliente<span class="type">texto</span></td><td><i>Pendente</i></td><td>—</td><td class="right small num">—</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Mão de obra -->
+  <section>
+    <h2>Mão de obra</h2>
+    <table>
+      <thead><tr><th>Data</th><th>Técnico</th><th>Origem</th><th class="right">Tempo</th></tr></thead>
+      <tbody>
+        <tr><td class="num">14/11/2026</td><td>Ana Souza</td><td class="muted">Manual</td><td class="right num">1h 30m</td></tr>
+        <tr><td class="num">14/11/2026</td><td>Carlos Lima</td><td class="muted">Temporizador</td><td class="right num">0h 45m</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="3">Total registrado</td><td class="right num">2h 15m</td></tr></tfoot>
+    </table>
+  </section>
+
+  <!-- Peças -->
+  <section>
+    <h2>Peças utilizadas</h2>
+    <table>
+      <thead><tr><th>Peça</th><th>Quantidade</th><th class="right">Valor</th></tr></thead>
+      <tbody>
+        <tr><td>Rolamento 6205</td><td>2 un</td><td class="right num">R$ 90,00</td></tr>
+        <tr><td>Retentor 35x52x7</td><td>1 un</td><td class="right num">R$ 18,50</td></tr>
+      </tbody>
+      <tfoot><tr><td colspan="2">Total em peças</td><td class="right num">R$ 108,50</td></tr></tfoot>
+    </table>
+  </section>
+
+  <!-- Valor total -->
+  <section>
+    <div class="total">
+      <div><span>Serviço <span class="muted small">(R$ 180,00/h × 2,25 h)</span></span><span class="num">R$ 405,00</span></div>
+      <div><span>Peças</span><span class="num">R$ 108,50</span></div>
+      <div class="grand"><span>Total</span><span class="num">R$ 513,50</span></div>
+    </div>
+  </section>
+
+  <!-- Imagens anexas: só imagens; documentos (PDF etc.) não são listados. Repetir <figure> para cada imagem. -->
+  <section>
+    <h2>Imagens anexas</h2>
+    <div class="gallery">
+      <figure>
+        <!-- Substituir pelo arquivo real: <img src="{{arquivo.url}}" alt="bomba_centrifuga_mancal"> -->
+        <div class="ph" role="img" aria-label="bomba_centrifuga_mancal">Imagem</div>
+      </figure>
+    </div>
+  </section>
+
+
+  <footer>Documento gerado pelo AtivHub em 14/11/2026</footer>
+</main>
+</body>
+</html>
