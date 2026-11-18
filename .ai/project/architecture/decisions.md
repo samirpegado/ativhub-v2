@@ -11,6 +11,13 @@ Use this file as a lightweight ADR log.
 - **Decision**: `TODO`
 - **Consequences**: `TODO`
 
+### ADR-0011 - Navegação e impressão no Android
+
+- **Status**: accepted
+- **Context**: A casca Capacitor precisa respeitar o histórico SPA do Next.js e abrir a impressão fora da WebView.
+- **Decision**: `MainActivity` mantém o callback de voltar ativo e consulta `location.pathname` e `history.length` antes de navegar. Home e login exigem dois toques em até 2 segundos para sair. Sem histórico em outra tela, retorna à home. O plugin local `ReportBrowser` abre por `ACTION_VIEW` apenas o relatório de uma OS com UUID válido no domínio do app, sem receber URLs arbitrárias. A folha pública mantém somente Imprimir.
+- **Consequences**: Requer publicar o Next.js e distribuir um novo APK. O navegador usa a rota pública existente, sem compartilhar os cookies da WebView. Validar em aparelho: home → lista → detalhe → voltar duas vezes; entrada direta no detalhe; dois toques na home dentro e fora do intervalo; relatório externo e retorno à mesma OS pelo Android. Typecheck/lint e compilação não substituem esse teste de integração no aparelho.
+
 ### ADR-0010 - Cores de status da ordem
 
 - **Status**: accepted

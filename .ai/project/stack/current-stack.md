@@ -9,8 +9,8 @@ Document the real stack currently used by the repository.
 - **Primary runtime**: Node.js
 - **Primary language**: TypeScript/JavaScript
 - **package.json name**: `ativhub`
-- **Key dependencies**: @supabase/ssr, @supabase/supabase-js, class-variance-authority, cn, lucide-react, next, radix-ui, react, react-dom, shadcn, tw-animate-css
-- **Key devDependencies**: @tailwindcss/turbopack, @types/node, @types/react, @types/react-dom, eslint, eslint-config-next, tailwindcss, typescript
+- **Key dependencies**: @capacitor/android, @capacitor/core, @fullcalendar/react, @supabase/ssr, @supabase/supabase-js, class-variance-authority, cn, html5-qrcode, lucide-react, next, qrcode, radix-ui
+- **Key devDependencies**: @capacitor/cli, @tailwindcss/turbopack, @types/node, @types/qrcode, @types/react, @types/react-dom, eslint, eslint-config-next, tailwindcss, typescript
 - **Lockfiles**: package-lock.json
 <!-- END: AUTO-STACK -->
 

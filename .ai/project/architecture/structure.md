@@ -13,25 +13,33 @@ Describe the real structural organization of the repository and the architectura
 - `.github/`
 - `.kiro/`
 - `.vscode/`
+- `android/`
 - `docs/`
 - `public/`
 - `scripts/`
 - `src/`
 - `supabase/`
+- `www/`
 
 ## Detected top-level files
+- `.dockerignore`
 - `.env.example`
 - `.env.local`
 - `.gitignore`
 - `AGENTS.md`
+- `AtivHub_Card_OS.html`
+- `AtivHub_Ordem_de_Servico_OS-000042.html`
+- `capacitor.config.ts`
 - `CLAUDE.md`
 - `components.json`
+- `Dockerfile`
 - `eslint.config.mjs`
 - `GEMINI.md`
 - `next-env.d.ts`
 - `next.config.ts`
 - `package-lock.json`
 - `package.json`
+- `plano-implementacao.md`
 - `README.md`
 - `tsconfig.json`
 - `tsconfig.tsbuildinfo`
@@ -106,7 +114,7 @@ Describe the real structural organization of the repository and the architectura
   Por hora, o cadastro pede o valor da hora daquele serviço e a cobrança multiplica esse valor pelas horas registradas.
   Na página da ordem, o card de tarefas vem primeiro e o botão Iniciar OS fica junto das ações principais enquanto a ordem não está concluída. Ele liga o temporizador;
   o lançamento manual e o tempo do temporizador podem ser apagados. A página também mostra peças
-  e o relatório para impressão. Relatório PDF abre a folha de impressão, no tamanho fixo de uma página, com Voltar ao lado de Imprimir. Essa folha também abre sem login: o identificador da ordem é o acesso, e só mostra essa ordem. O envio por e-mail, visível com a ordem concluída, manda um botão para essa folha pelo template WORK_ORDER_REPORT. As fotos ficam na coluna lateral, no máximo 3. O nome longo é cortado com reticências. As tarefas aparecem na ordem em que foram cumpridas, com a data da resposta; as pendentes ficam no fim. Cada uma abre o próprio registro e pode ser cumprida fora da ordem da lista. Cada tarefa guarda `executed_at` e `comment`; editar a ordem preserva essa execução.
+  e o relatório para impressão. Relatório PDF abre a folha de impressão, no tamanho fixo de uma página, apenas com o botão Imprimir. No Android, o plugin local ReportBrowser abre essa URL no navegador externo; na web, abre uma nova aba. Essa folha também abre sem login: o identificador da ordem é o acesso, e só mostra essa ordem. O envio por e-mail, visível com a ordem concluída, manda um botão para essa folha pelo template WORK_ORDER_REPORT. As fotos ficam na coluna lateral, no máximo 3. O nome longo é cortado com reticências. As tarefas aparecem na ordem em que foram cumpridas, com a data da resposta; as pendentes ficam no fim. Cada uma abre o próprio registro e pode ser cumprida fora da ordem da lista. Cada tarefa guarda `executed_at` e `comment`; editar a ordem preserva essa execução.
   A subtarefa é um item concluído ou pendente. A tabela `work_order_update` permanece, sem tela de escrita.   A peça da ordem é buscada no servidor pelo nome, descrição ou código de barras.
   Ao lançar, o estoque baixa quando `non_stock` é falso, e remover a linha devolve a quantidade.
 - `/preventive` lista os agendamentos, sem localização nem ativos. O código usa o prefixo PV-. Um agendamento não é editado: a alteração é excluir e criar outro. `preventive_screen` recebe busca, prioridade,
@@ -131,7 +139,7 @@ Describe the real structural organization of the repository and the architectura
   contratantes vai para clientes, o restante para fornecedores. `/requests` lista solicitações, sem coluna de ações. O código usa o prefixo S-.
   O clique abre `/requests/[id]`, no mesmo padrão visual da ordem. Pendente é a que não foi recusada, não está em tratamento e ainda não tem ordem. Em tratamento é a mesma solicitação aberta. O ativo da solicitação é um só e se escolhe na mesma busca com filtros da preventiva. Aberto a partir do ativo, o formulário mostra esse ativo direto, sem a busca. Por enquanto toda solicitação é de serviço. Com usuário logado, ela aceita uma foto de até 5 MB na origem. O arquivo gravado é JPEG com o maior lado em 1600 px e qualidade 0,8. No celular, a foto oferece galeria ou câmera. Quem edita pode alterar ou excluir
   essas, inclusive em lote, na página da solicitação. O administrador também exclui uma solicitação já aprovada; a ordem criada permanece e deixa de apontar para a solicitação. Aprovar chama `approve_request` e abre o formulário da ordem criada.
-  No site, `isMobile` fica false e a tela estreita abre o menu pelo botão. O projeto Android em `android/` é a casca Capacitor (`org.sgapps.ativhub`) e abre `https://ativhub.sgapps.org`. O botão voltar do Android volta a página anterior. Mudança nessa casca dispara o GitHub Actions, que assina o APK e envia ao Firebase App Distribution, no grupo `tecnicos`. O ícone e a espera são o favicon sobre fundo branco; sem internet a mesma tela permanece. No app Capacitor a WebView liga a barra de baixo só com Início, Ordens, Solicitações, Ativos e Peças, também para o administrador. Na casca nativa, essas quatro listas viram cartões; o calendário das ordens e as outras listas continuam em tabela. O cabeçalho mostra um sino com a quantidade de solicitações pendentes ainda não lidas, exceto o técnico. `request.read_at` guarda a primeira abertura pelo administrador; a abertura pelo técnico não preenche o campo. Na lista, a solicitação não lida aparece em negrito. Ao lado, quem vê ativos tem um QR code: a câmera lê a etiqueta e abre `/assets/[id]`.
+  No site, `isMobile` fica false e a tela estreita abre o menu pelo botão. O projeto Android em `android/` é a casca Capacitor (`org.sgapps.ativhub`) e abre `https://ativhub.sgapps.org`. O botão voltar do Android consulta a rota e o histórico JavaScript da WebView: volta à página anterior ou à home se não houver histórico. Na home (e no login), dois toques em até 2 segundos encerram o app, com aviso no primeiro toque. Mudança nessa casca dispara o GitHub Actions, que assina o APK e envia ao Firebase App Distribution, no grupo `tecnicos`. O ícone e a espera são o favicon sobre fundo branco; sem internet a mesma tela permanece. No app Capacitor a WebView liga a barra de baixo só com Início, Ordens, Solicitações, Ativos e Peças, também para o administrador. Na casca nativa, essas quatro listas viram cartões; o calendário das ordens e as outras listas continuam em tabela. O cabeçalho mostra um sino com a quantidade de solicitações pendentes ainda não lidas, exceto o técnico. `request.read_at` guarda a primeira abertura pelo administrador; a abertura pelo técnico não preenche o campo. Na lista, a solicitação não lida aparece em negrito. Ao lado, quem vê ativos tem um QR code: a câmera lê a etiqueta e abre `/assets/[id]`.
   `/settings` (só administrador) edita os quatro papéis, as listas de verificação e as
   categorias de ativo (`category.type = ASSET`, cor oculta na tela e preservada em `category.color`), cada um na sua aba. `/checklists`
   redireciona para a aba de listas. A categoria do ativo também se cria no formulário

@@ -46,25 +46,10 @@ export function WorkOrderPrintSheet({
     };
   }, [workOrderId]);
 
-  function goBack() {
-    if (window.opener && !window.opener.closed) {
-      window.close();
-      return;
-    }
-    if (window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-    window.location.assign(`/work-orders/${workOrderId}`);
-  }
-
   return (
     <div className="os-stage">
       <style>{PRINT_CSS}</style>
       <div className="os-toolbar">
-        <button type="button" className="back" onClick={goBack}>
-          Voltar
-        </button>
         <button type="button" className="print" onClick={() => window.print()}>
           Imprimir
         </button>
@@ -90,7 +75,6 @@ const PRINT_CSS = `
 .os-toolbar{position:fixed;top:16px;right:16px;z-index:20;display:flex;gap:8px}
 .os-toolbar button{border:0;border-radius:8px;font:600 14px/1 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:12px 18px;cursor:pointer}
 .os-toolbar .print{background:#1e3a5f;color:#fff}
-.os-toolbar .back{background:#fff;color:#1e3a5f;box-shadow:inset 0 0 0 1px #d5dbe3}
 .os-clip{overflow:hidden}
 .page{width:800px;background:#fff;padding:44px 48px;border-radius:6px;color:#1a1f2b;font:14px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
 .page *{box-sizing:border-box}

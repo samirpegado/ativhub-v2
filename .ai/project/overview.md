@@ -21,8 +21,8 @@ equipes — sem workflows, portal com login de cliente ou PO. O front em
 Resumo inferido automaticamente a partir do repositório:
 
 - Variante detectada: `nextjs-web`
-- Diretórios principais: `.agents/`, `.ai/`, `.cursor/`, `.docs/`, `.github/`, `.kiro/`, `.vscode/`, `docs/`
-- Arquivos principais: `.env.example`, `.env.local`, `.gitignore`, `AGENTS.md`, `CLAUDE.md`, `components.json`, `eslint.config.mjs`, `GEMINI.md`
+- Diretórios principais: `.agents/`, `.ai/`, `.cursor/`, `.docs/`, `.github/`, `.kiro/`, `.vscode/`, `android/`
+- Arquivos principais: `.dockerignore`, `.env.example`, `.env.local`, `.gitignore`, `AGENTS.md`, `AtivHub_Card_OS.html`, `AtivHub_Ordem_de_Servico_OS-000042.html`, `capacitor.config.ts`
 <!-- END: AUTO-SUMMARY -->
 
 ## Core flows

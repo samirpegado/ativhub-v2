@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Capacitor, registerPlugin } from "@capacitor/core";
+
+const ReportBrowser = registerPlugin<{
+  open(options: { workOrderId: string }): Promise<void>;
+}>("ReportBrowser");
 
 export function OpenWorkOrderReportButton({
   workOrderId,
@@ -42,9 +47,19 @@ export function OpenWorkOrderReportButton({
       className={className}
       disabled={opening}
       aria-busy={opening}
-      onClick={() => {
+      onClick={async () => {
         if (opening) return;
         setOpening(true);
+        if (Capacitor.getPlatform() === "android") {
+          try {
+            await ReportBrowser.open({ workOrderId });
+          } catch {
+            window.alert("Não foi possível abrir o relatório no navegador. Verifique se o aplicativo está atualizado e há um navegador instalado.");
+          } finally {
+            finish();
+          }
+          return;
+        }
         const popup = window.open(`/work-orders/${workOrderId}/print`, "_blank");
         if (!popup) {
           finish();
