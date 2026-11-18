@@ -60,4 +60,4 @@ jobs:
         run: |
           node -e "require('fs').writeFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, process.env.FIREBASE_SERVICE_ACCOUNT)"
           node -e "require('fs').writeFileSync(process.env.RUNNER_TEMP + '/notes.txt', process.env.RELEASE_NOTES)"
-          npx --yes firebase-tools@14 appdistribution:distribute android/app/build/outputs/apk/release/app-release.apk --app "$FIREBASE_APP_ID" --groups tecnicos --release-notes-file "$RUNNER_TEMP/notes.txt"
+          npx --yes firebase-tools@14 appdistribution:distribute android/app/build/outputs/apk/release/app-release.apk --app "$FIREBASE_APP_ID" --groups ativhub --release-notes-file "$RUNNER_TEMP/notes.txt"
