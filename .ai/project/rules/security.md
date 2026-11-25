@@ -35,7 +35,7 @@
   fica no schema privado.
 - **Ver como** exige permissão de suporte e uma sessão vinculada ao operador,
   à sessão dele no Auth e ao vínculo alvo. O banco revalida o papel e a
-  assinatura do alvo em cada leitura. O motivo e os eventos ficam em tabelas
+  assinatura do alvo em cada leitura. O contexto e os eventos ficam em tabelas
   privadas. Revogar a permissão do operador encerra as prévias abertas.
 
 ## Acesso público do QR

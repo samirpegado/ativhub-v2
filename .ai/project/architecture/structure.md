@@ -81,7 +81,7 @@ Describe the real structural organization of the repository and the architectura
   interações em primeiro plano. `record_membership_access` grava o horário do
   banco por vínculo com intervalo mínimo de cinco minutos. QR público, perfil,
   assinatura e prévias de suporte ficam fora da medição.
-- A seção Pessoas oferece **Ver como** para abrir uma prévia de suporte de 15
+- O botão **Ver como** na seção Pessoas abre direto a prévia de suporte de 15
   minutos. `/admin/support/[id]` usa o papel e a assinatura atuais da pessoa.
   Os painéis reutilizam a consulta de manutenção com escopo explícito de
   empresa e apresentam as informações sem controles operacionais.

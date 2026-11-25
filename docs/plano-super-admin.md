@@ -54,10 +54,10 @@ O último login é `auth.users.last_sign_in_at` associado aos vínculos da pági
 
 ## Fase 4 — Run as somente leitura
 
-1. Na seção Pessoas, selecione **Ver como** em um vínculo habilitado e informe o motivo. A autorização de suporte pertence ao Super Admin. Cada prévia dura 15 minutos e fica vinculada à sessão do operador, ao tenant e à pessoa selecionada. [Sessões no Supabase](https://supabase.com/docs/guides/auth/sessions#access-token-jwt-claims)
+1. Na seção Pessoas, selecione **Ver como** em um vínculo habilitado para abrir a prévia. A autorização de suporte pertence ao Super Admin. Cada prévia dura 15 minutos e fica vinculada à sessão do operador, ao tenant e à pessoa selecionada. [Sessões no Supabase](https://supabase.com/docs/guides/auth/sessions#access-token-jwt-claims)
 2. `/admin/support/[id]` mostra empresa, pessoa, papel, tempo restante e **Encerrar visualização**. Ela exibe o painel inicial de manutenção ou indica a área em que a pessoa começa. Para assinatura vencida, a prévia indica o aviso de assinatura.
 3. A consulta de suporte revalida a sessão, o papel e a elegibilidade do vínculo. A consulta compartilhada do painel limita os dados à empresa e ao escopo do vínculo. A prévia é somente leitura e a identidade autenticada é a do operador.
-4. As tabelas privadas `support_preview` e `support_preview_audit` guardam o contexto, o motivo e os eventos. Revogar o operador fecha as prévias abertas. A expiração bloqueia novas leituras e é registrada quando a prévia é consultada ou encerrada.
+4. As tabelas privadas `support_preview` e `support_preview_audit` registram o contexto e os eventos da prévia. Revogar o operador fecha as prévias abertas. A expiração bloqueia novas leituras e é registrada quando a prévia é consultada ou encerrada.
 
 ## Critérios de aceite
 
@@ -69,4 +69,4 @@ O último login é `auth.users.last_sign_in_at` associado aos vínculos da pági
 
 ## Ordem de entrega
 
-Aplicar as migrations de atividade e de prévia de suporte antes de publicar a versão do app que inclui **Último acesso ao tenant** e **Ver como**. [Atividade](../supabase/migrations/20261125124259_membership_activity.sql) · [Prévia de suporte](../supabase/migrations/20261125124346_platform_support_preview.sql)
+Aplicar as migrations de atividade e de prévia de suporte antes de publicar a versão do app que inclui **Último acesso ao tenant** e **Ver como**. [Atividade](../supabase/migrations/20261125124259_membership_activity.sql) · [Prévia de suporte](../supabase/migrations/20261125124346_platform_support_preview.sql) · [Abertura direta](../supabase/migrations/20261125130742_platform_support_preview_without_reason.sql)

@@ -22,14 +22,9 @@ export async function startSupportPreview(
   }
   if (!tenantId || !membershipId) return { error: "Selecione uma pessoa para visualizar o painel." };
 
-  const reason = String(formData.get("reason") ?? "").trim();
-  const reasonLength = Array.from(reason).length;
-  if (reasonLength < 3 || reasonLength > 300) return { error: "Informe um motivo de 3 a 300 caracteres." };
-
   const { data, error } = await supabase.rpc("platform_start_support_preview", {
     p_tenant_id: tenantId,
     p_membership_id: membershipId,
-    p_reason: reason,
   });
   if (error?.code === "42501") return { error: "Seu acesso de suporte está indisponível." };
   if (error) return { error: "Não foi possível abrir a visualização. Tente novamente." };

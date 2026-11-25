@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { listTdClass, listTdNameClass } from "@/components/lists/table-classes";
 import { platformListHref } from "@/components/platform-admin/list-href";
 import { PlatformList } from "@/components/platform-admin/platform-list";
-import { SupportPreviewDialog } from "@/components/platform-admin/support-preview-dialog";
+import { SupportPreviewButton } from "@/components/platform-admin/support-preview-button";
 import { PlatformDate, PlatformTable, TenantMetrics } from "@/components/platform-admin/tenant-tables";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
 import { PLATFORM_TENANTS_PATH } from "@/lib/platform-admin/paths";
@@ -81,7 +81,7 @@ export default async function PlatformTenantPage({
                 {canPreview ? (
                   <td className={listTdClass}>
                     {person.enabled ? (
-                      <SupportPreviewDialog
+                      <SupportPreviewButton
                         tenantId={tenant.id}
                         membershipId={person.id}
                         personName={[person.firstName, person.lastName].filter(Boolean).join(" ") || person.email || "Pessoa"}

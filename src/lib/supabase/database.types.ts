@@ -1822,7 +1822,7 @@ export type Database = {
         Returns: Json
       }
       platform_start_support_preview: {
-        Args: { p_tenant_id: string; p_membership_id: string; p_reason: string }
+        Args: { p_tenant_id: string; p_membership_id: string; p_reason?: string }
         Returns: string | null
       }
       platform_support_preview_status: { Args: never; Returns: boolean }
