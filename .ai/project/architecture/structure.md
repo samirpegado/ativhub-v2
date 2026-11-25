@@ -70,6 +70,12 @@ Describe the real structural organization of the repository and the architectura
 - O login oculta o convite “Ainda não tem uma conta? Inscreva-se aqui” na casca mobile Capacitor, usando `useNativeShell`; no navegador o convite permanece.
 - Tenant ativo em `auth.jwt().app_metadata.tenant_id`, lido por
   `current_tenant_id()`.
+- `/admin/tenants` é o painel de Super Admin da plataforma. O grupo
+  `(platform)` tem layout próprio e usa `src/lib/platform-admin/` para validar
+  o operador e consultar os dados. A lista mostra totais por empresa e o detalhe
+  lista clientes e pessoas, com o último login do Supabase Auth em Brasília.
+  A conta interna pode operar sem vínculo com empresa. A assinatura do tenant
+  continua sendo verificada nas rotas operacionais.
 - `/profile` é a conta do usuário: foto, atividade de OT e dados pessoais.
   A foto é reduzida no navegador para no máximo 256×256 em JPEG (qualidade 0,72) antes do Storage.
   Cargo (`job_title`) só muda com papel ADMIN.

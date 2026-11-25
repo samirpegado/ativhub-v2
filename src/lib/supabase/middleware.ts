@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { subscriptionIsOpen } from "@/lib/billing/access";
+import { isPlatformPath, PLATFORM_TENANTS_PATH } from "@/lib/platform-admin/paths";
 import type { Database } from "./database.types";
 
 /**
@@ -42,6 +43,7 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const emailVerified = Boolean(user?.email_confirmed_at);
+  const platformRoute = isPlatformPath(pathname);
   const isPublicRoute =
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
@@ -84,14 +86,26 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", pathname);
+    if (platformRoute) url.search = "";
+    url.searchParams.set("next", platformRoute ? pathname + request.nextUrl.search : pathname);
     return NextResponse.redirect(url);
   }
 
   const tenantId = user?.app_metadata?.tenant_id as string | undefined;
+  if (user && emailVerified && !tenantId && pathname === "/") {
+    const { data: platformAdmin } = await supabase.rpc("platform_admin_status");
+    if (platformAdmin === true) {
+      const url = request.nextUrl.clone();
+      url.pathname = PLATFORM_TENANTS_PATH;
+      url.search = "";
+      const response = NextResponse.redirect(url);
+      for (const cookie of supabaseResponse.cookies.getAll()) response.cookies.set(cookie);
+      return response;
+    }
+  }
   const billingRoute =
     pathname.startsWith("/subscription") || pathname.startsWith("/profile");
-  if (user && emailVerified && tenantId && !isPublicRoute && !billingRoute) {
+  if (user && emailVerified && tenantId && !isPublicRoute && !billingRoute && !platformRoute) {
     const { data, error } = await supabase
       .from("subscription")
       .select("status, trial_ends_at, current_period_end, plan_id")

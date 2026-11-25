@@ -19,12 +19,25 @@
   role). O papel só muda se `is_tenant_admin()`; o e-mail da membership
   acompanha o Auth e o cliente não altera.
 
+## Administração da plataforma
+
+- A migration restringe o cadastro de Super Admin ao único UUID autorizado no
+  Supabase Auth. A autorização é lida do schema privado em cada consulta.
+- Para consultar empresas, as RPCs exigem e-mail confirmado, concessão ativa
+  e sessão Auth vigente da conta autorizada. As funções públicas são
+  `SECURITY INVOKER`. A implementação privilegiada e a trilha de auditoria
+  ficam em schema privado.
+- A consulta global de clientes retorna nome, tipo e indicação de cliente
+  interno. A auditoria guarda o operador, a ação, o tenant quando aplicável e
+  o horário da consulta.
+
 ## Acesso público do QR
 
-- O PIN da localização fica em texto: o gestor precisa lê-lo e repassá-lo.
+- O PIN do cliente (`customer.request_pin`) fica em texto para o gestor consultar
+  e repassar. A localização aponta para o cliente.
 - O visitante só lê histórico, relatório e solicitação depois de
   `public_asset_unlock`, que devolve um token de 30 minutos.
-- Dez erros em 15 minutos travam o PIN daquela localização.
+- Dez erros em 15 minutos travam o PIN daquele cliente.
 - `public_session_asset` e `public_asset_history` não podem ser concedidas a
   `anon` nem `authenticated`.
 

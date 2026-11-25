@@ -1815,6 +1815,21 @@ export type Database = {
       }
       current_tenant_id: { Args: never; Returns: string }
       generate_due_preventive_work_orders: { Args: never; Returns: number }
+      platform_admin_status: { Args: never; Returns: boolean }
+      platform_tenant_screen: {
+        Args: {
+          p_tenant_id: string
+          p_tab: string
+          p_search?: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: Json
+      }
+      platform_tenants_screen: {
+        Args: { p_search?: string; p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
       preventive_detail: { Args: { p_id: string }; Returns: Json }
       preventive_screen: {
         Args: {
