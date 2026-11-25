@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { PeopleView } from "@/components/people/people-view";
 import { requireArea } from "@/lib/auth/permissions";
 import { listPeople, listRoles, listTeams } from "@/lib/people/queries";
@@ -16,12 +17,14 @@ export default async function PeoplePage() {
   ]);
 
   return (
-    <PeopleView
-      people={people}
-      teams={teams}
-      roles={roles}
-      canManage={canManage}
-      openDashboard={appUser.isAdmin}
-    />
+    <TenantActivity user={appUser}>
+      <PeopleView
+        people={people}
+        teams={teams}
+        roles={roles}
+        canManage={canManage}
+        openDashboard={appUser.isAdmin}
+      />
+    </TenantActivity>
   );
 }

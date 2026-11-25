@@ -23,10 +23,12 @@ export function AdminDashboard({
   data,
   range,
   periodBase = "/",
+  showOperationalLinks = true,
 }: {
   data: MaintenanceOverview;
   range: TechRange;
   periodBase?: string;
+  showOperationalLinks?: boolean;
 }) {
   const queue = data.board;
   const [boardPage, setBoardPage] = useState(1);
@@ -113,7 +115,7 @@ export function AdminDashboard({
                   <div className="w-[156px]">Situação</div>
                 </div>
                 {boardRows.map((item) => (
-                  <RunningRow key={item.id} item={item} />
+                  <RunningRow key={item.id} item={item} showOperationalLinks={showOperationalLinks} />
                 ))}
                 <div className="-mx-4 border-t border-[#e9edf3]">
                   <TablePagination
@@ -134,25 +136,25 @@ export function AdminDashboard({
               tone={over > 0 ? "crit" : "ok"}
               title={over > 0 ? `${over} OS acima do tempo estimado` : "Nenhuma OS acima do tempo"}
               detail={overNames || "O tempo registrado está dentro do estimado."}
-              href="/work-orders"
+              href={showOperationalLinks ? "/work-orders" : undefined}
             />
             <Attention
               tone={stopped > 0 ? "crit" : "ok"}
               title={stopped > 0 ? `${stopped} ativos fora de operação` : "Nenhum ativo fora de operação"}
               detail={`${data.downCount} fora de serviço · ${data.emergencyCount} em desligamento de emergência`}
-              href="/assets?status=DOWN,EMERGENCY_SHUTDOWN"
+              href={showOperationalLinks ? "/assets?status=DOWN,EMERGENCY_SHUTDOWN" : undefined}
             />
             <Attention
               tone={data.overdueCount > 0 ? "crit" : "ok"}
               title={data.overdueCount > 0 ? `${data.overdueCount} OS vencidas` : "Nenhuma OS vencida"}
               detail="Prazo de atendimento expirado"
-              href="/work-orders?overdue=1"
+              href={showOperationalLinks ? "/work-orders?overdue=1" : undefined}
             />
             <Attention
               tone={data.staleCount > 0 ? "warn" : "ok"}
               title={data.staleCount > 0 ? `${data.staleCount} OS paradas há mais de 48 h` : "Nenhuma OS parada há mais de 48 h"}
               detail="Abertas ou com status Pausado, sem alguém executando agora."
-              href="/work-orders?status=OPEN,ON_HOLD"
+              href={showOperationalLinks ? "/work-orders?status=OPEN,ON_HOLD" : undefined}
             />
           </DashCard>
 
@@ -280,7 +282,7 @@ export function AdminDashboard({
   );
 }
 
-function RunningRow({ item }: { item: RunningOrder }) {
+function RunningRow({ item, showOperationalLinks }: { item: RunningOrder; showOperationalLinks: boolean }) {
   const elapsed = useLiveElapsed(item.elapsedSeconds, item.live);
   const state = pace(elapsed, item.estimatedSeconds);
   const ratio = item.estimatedSeconds > 0 ? Math.min(100, Math.round((elapsed / item.estimatedSeconds) * 100)) : 0;
@@ -293,8 +295,9 @@ function RunningRow({ item }: { item: RunningOrder }) {
         ? "No prazo"
         : workOrderStatusLabel(item.status);
   const tone = state === "over" ? "crit" : item.live && state === "warn" ? "warn" : item.status === "ON_HOLD" ? "warn" : "ok";
-  return (
-    <Link href={`/work-orders/${item.id}`} className="flex w-full flex-wrap items-center gap-x-5 gap-y-3 border-t border-[#e9edf3] py-3.5 text-left hover:bg-[#f7f9fc]">
+  const rowClass = "flex w-full flex-wrap items-center gap-x-5 gap-y-3 border-t border-[#e9edf3] py-3.5 text-left";
+  const content = (
+    <>
       <div className="min-w-[190px] flex-[1.4]">
         <div className="text-[15px] font-semibold">{item.assetName}</div>
         <div className="font-mono text-xs text-[#4a5a70]">{[item.customId, workOrderTypeLabel(item.type)].filter(Boolean).join(" · ")}</div>
@@ -318,22 +321,24 @@ function RunningRow({ item }: { item: RunningOrder }) {
       <div className="w-full lg:w-[156px]">
         <Pill tone={tone}>{situation}</Pill>
       </div>
-    </Link>
+    </>
   );
+  return showOperationalLinks ? (
+    <Link href={`/work-orders/${item.id}`} className={`${rowClass} hover:bg-[#f7f9fc]`}>{content}</Link>
+  ) : <div className={rowClass}>{content}</div>;
 }
 
 function useLiveElapsed(base: number, ticking: boolean) {
-  const [seconds, setSeconds] = useState(base);
+  const [elapsed, setElapsed] = useState<{ base: number; seconds: number } | null>(null);
   useEffect(() => {
-    setSeconds(base);
     if (!ticking) return;
     const origin = Date.now();
     const id = window.setInterval(() => {
-      setSeconds(base + Math.max(0, Math.floor((Date.now() - origin) / 1000)));
+      setElapsed({ base, seconds: base + Math.max(0, Math.floor((Date.now() - origin) / 1000)) });
     }, 30000);
     return () => window.clearInterval(id);
   }, [base, ticking]);
-  return seconds;
+  return ticking && elapsed?.base === base ? elapsed.seconds : base;
 }
 
 function Pill({ tone, children }: { tone: "ok" | "warn" | "crit"; children: ReactNode }) {
@@ -353,7 +358,7 @@ function Attention({
 }: {
   title: string;
   detail: string;
-  href: string;
+  href?: string;
   tone: "ok" | "warn" | "crit";
 }) {
   const toneClass = tone === "ok" ? "bg-[rgba(12,163,12,0.11)] text-[#006300]" : tone === "warn" ? "bg-[rgba(250,178,25,0.22)] text-[#8a5600]" : "bg-[rgba(208,59,59,0.11)] text-[#b42323]";
@@ -366,7 +371,7 @@ function Attention({
         <div className="font-semibold">{title}</div>
         <div className="text-[13px] text-[#4a5a70]">{detail}</div>
       </div>
-      <Link href={href} className="text-[13px] font-semibold whitespace-nowrap">Ver →</Link>
+      {href ? <Link href={href} className="text-[13px] font-semibold whitespace-nowrap">Ver →</Link> : null}
     </div>
   );
 }

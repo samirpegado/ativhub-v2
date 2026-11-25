@@ -17,6 +17,7 @@ Use this file as a lightweight ADR log.
 - **Contexto.** O painel interno consulta os dados operacionais de todas as empresas cadastradas. O papel `ADMIN` pertence à empresa e o RLS limita a operação ao tenant da sessão.
 - **Decisão.** `/admin/tenants` abre em um grupo de rotas independente da área operacional e da assinatura. A conta exclusiva em `platform_private.platform_admin` entra pelo login do AtivHub. Cada RPC de dados valida o UUID, a concessão vigente, o e-mail confirmado e a sessão ativa no Supabase Auth, retorna os campos da tela e registra a consulta em `platform_private.platform_admin_audit`.
 - **Consequências.** A migration inicial concede acesso ao UUID autorizado quando a conta já existe. As consultas operacionais são protegidas pelo RLS do tenant. Consultar o procedimento de ativação e revogação no [plano do Super Admin](../../../docs/plano-super-admin.md).
+- **Atividade e suporte.** O último acesso é gravado por vínculo pela sessão operacional autenticada. A prévia de suporte usa uma sessão própria vinculada ao operador e à sessão dele no Auth. A consulta de manutenção é compartilhada, com escopo explícito por empresa e o mesmo RLS para o acesso operacional.
 
 ### ADR-0011 - Navegação e impressão no Android
 

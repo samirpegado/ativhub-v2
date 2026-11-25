@@ -30,6 +30,13 @@
 - A consulta global de clientes retorna nome, tipo e indicação de cliente
   interno. A auditoria guarda o operador, a ação, o tenant quando aplicável e
   o horário da consulta.
+- O registro de último acesso deriva a pessoa e o tenant da sessão autenticada.
+  A RPC confere vínculo habilitado e assinatura vigente. A tabela de atividade
+  fica no schema privado.
+- **Ver como** exige permissão de suporte e uma sessão vinculada ao operador,
+  à sessão dele no Auth e ao vínculo alvo. O banco revalida o papel e a
+  assinatura do alvo em cada leitura. O motivo e os eventos ficam em tabelas
+  privadas. Revogar a permissão do operador encerra as prévias abertas.
 
 ## Acesso público do QR
 

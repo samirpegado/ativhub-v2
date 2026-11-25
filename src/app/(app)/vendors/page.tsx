@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { PartiesView } from "@/components/parties/parties-view";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
@@ -22,13 +23,15 @@ export default async function VendorsPage({
   if (query.page > pageCount) redirect(partyHref("vendors", { ...query, page: pageCount }));
 
   return (
-    <PartiesView
-      section="vendors"
-      query={query}
-      canEdit={can(appUser, "parties", "edit")}
-      vendors={screen.items}
-      total={screen.total}
-      totalAll={screen.totalAll}
-    />
+    <TenantActivity user={appUser}>
+      <PartiesView
+        section="vendors"
+        query={query}
+        canEdit={can(appUser, "parties", "edit")}
+        vendors={screen.items}
+        total={screen.total}
+        totalAll={screen.totalAll}
+      />
+    </TenantActivity>
   );
 }

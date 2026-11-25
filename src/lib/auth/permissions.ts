@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireTenant } from "@/lib/auth/current-user";
-import { can, type MenuArea } from "@/lib/auth/areas";
+import { AREA_LABELS, can, type AreaAccess, type MenuArea } from "@/lib/auth/areas";
 
 const PATHS: { href: string; area: MenuArea }[] = [
   { href: "/", area: "work_orders" },
@@ -14,8 +14,19 @@ const PATHS: { href: string; area: MenuArea }[] = [
   { href: "/people", area: "people" },
 ];
 
-export function firstAllowedPath(user: { isAdmin: boolean; areas: import("@/lib/auth/areas").AreaAccess }) {
-  return PATHS.find((item) => can(user, item.area, "view"))?.href ?? "/profile";
+type NavigationAccess = { isAdmin: boolean; areas: AreaAccess };
+
+function firstAllowedPage(user: NavigationAccess) {
+  return PATHS.find((item) => can(user, item.area, "view"));
+}
+
+export function firstAllowedPath(user: NavigationAccess) {
+  return firstAllowedPage(user)?.href ?? "/profile";
+}
+
+export function firstAllowedPageLabel(user: NavigationAccess) {
+  const page = firstAllowedPage(user);
+  return page ? AREA_LABELS[page.area] : "Minha conta";
 }
 
 export async function requireArea(

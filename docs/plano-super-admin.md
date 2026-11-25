@@ -1,6 +1,6 @@
 # Plano de desenvolvimento do Super Admin
 
-O Super Admin do AtivHub terá um painel interno para consultar todas as empresas cadastradas, os clientes de cada uma e o volume de ativos, ordens de serviço (OS), clientes, localizações e pessoas. A primeira entrega cobre o painel e o último login disponível. O registro de último acesso ao tenant e o Run as entram nas fases seguintes.
+O Super Admin do AtivHub consulta todas as empresas cadastradas e seus totais de ativos, ordens de serviço (OS), clientes, localizações e pessoas. A ficha da empresa abre em Pessoas, onde o operador pode ver o último login, o último acesso ao tenant e abrir uma prévia de suporte.
 
 ## Ativação da conta
 
@@ -18,7 +18,7 @@ A próxima consulta verifica a revogação. Para reativar a mesma conta, definir
 
 ## Base atual
 
-- O schema conectado do Supabase tem `tenant`, `customer`, `asset`, `work_order`, `location`, `membership` e `role`. `membership.user_id` liga a pessoa ao Supabase Auth. `auth.users.last_sign_in_at` já existe. O repositório e o schema consultado não apresentam um registro de atividade por vínculo.
+- O schema do Supabase tem `tenant`, `customer`, `asset`, `work_order`, `location`, `membership` e `role`. `membership.user_id` liga a pessoa ao Supabase Auth. `auth.users.last_sign_in_at` fornece o último login. O último uso do tenant começa a ser medido com o registro de atividade por vínculo.
 - O `ADMIN` atual é um papel dentro da empresa. O app resolve o tenant pelo `app_metadata.tenant_id`, aplica RLS às tabelas operacionais e trata a vigência da assinatura nas rotas do app. O painel global precisa funcionar com uma conta da plataforma sem vínculo com empresa e incluir empresas com assinatura vencida. [Autenticação atual](../src/lib/auth/current-user.ts) · [Proxy e assinatura](../src/lib/supabase/middleware.ts)
 - O PIN usado no QR está em `customer.request_pin`. [Migração do PIN de cliente](../supabase/migrations/20261104200000_customer_pin_and_location_link.sql) · [Regra de segurança](../.ai/project/rules/security.md)
 - Já existe uma prévia do painel da pessoa no mesmo tenant. Ela oferece componentes e regras de visibilidade para reaproveitar no Run as. Alguns links ainda levam a rotas operacionais. Abrir certas páginas operacionais pode marcar uma solicitação como lida ou disparar a geração de OS preventivas. [Prévia da pessoa](<../src/app/(app)/people/[id]/page.tsx>) · [Leitura de solicitações](<../src/app/(app)/requests/[id]/page.tsx>) · [Geração de preventivas](../src/lib/preventive/queries.ts)
@@ -33,7 +33,7 @@ A próxima consulta verifica a revogação. Para reativar a mesma conta, definir
 ## Fase 2 — Lista e detalhe de empresas
 
 1. Em `/admin/tenants`, listar nome da empresa, data de cadastro e os cinco totais. Oferecer busca por empresa e paginação no banco com até 20 linhas por página e ordenação estável. Incluir empresas com contadores zerados. Seguir o padrão de listas e estados de carregamento do AtivHub. [Regras de listas](../.ai/project/rules/coding.md)
-2. Em `/admin/tenants/[id]`, mostrar os totais e abas **Clientes** e **Pessoas**, com busca e paginação próprias. Em Clientes, apresentar nome e tipo, identificando o cliente interno. Em Pessoas, apresentar nome, e-mail, papel, situação e data/hora de último login. Projetar somente os campos usados pela tela. O cadastro operacional de clientes devolve PIN e CPF/CNPJ, e a projeção global usa apenas os campos de consulta descritos aqui. [RPC de clientes](../supabase/migrations/20261104233000_assets_phase_and_internal_customer.sql#L258)
+2. Em `/admin/tenants/[id]`, mostrar os totais e a seção **Pessoas**, com busca e paginação. A lista apresenta nome, e-mail, papel, situação e data e hora de último login. Clientes aparecem nos indicadores da empresa.
 3. Agregar cada tabela pelo `tenant_id` depois de selecionar a página de empresas. Usar uma chamada de banco por tela ou aba, sem multiplicar linhas entre entidades. Os índices existentes cobrem `tenant_id` em ativos, OS, localizações e pessoas. Avaliar um índice geral de clientes por tenant com `EXPLAIN` e massa representativa, pois os índices atuais de clientes por tenant são parciais.
 
 | Indicador | Regra proposta |
@@ -48,16 +48,16 @@ O último login é `auth.users.last_sign_in_at` associado aos vínculos da pági
 
 ## Fase 3 — Último acesso ao tenant
 
-- Criar `membership_activity` com um registro por vínculo e `last_access_at` em UTC. Atualizar pelo relógio do banco em uma operação que derive usuário e tenant da sessão e confira o vínculo habilitado. Limitar a persistência a uma atualização por vínculo a cada cinco minutos, inclusive com abas concorrentes.
-- Instrumentar a abertura concluída de uma tela operacional visível e interações válidas no aplicativo autenticado, inclusive na WebView Android. Requisições de prefetch, renovação de sessão, tarefas em segundo plano, QR público e prévias de suporte ficam fora dessa medição.
-- Mostrar **Último acesso ao tenant** com data, hora e fuso na aba Pessoas. Manter **Último login** como campo distinto. A coluna de acesso começa a registrar dados após a publicação. Até a primeira atividade medida, mostrar **Sem acesso registrado**.
+- `platform_private.membership_activity` grava um timestamp UTC por vínculo com `record_membership_access`. A RPC deriva usuário e tenant da sessão e confere vínculo habilitado e assinatura vigente. O banco limita a gravação a uma vez a cada cinco minutos por vínculo.
+- A abertura de uma página operacional visível e interações em primeiro plano registram atividade. Prefetch, renovação de sessão, tarefas em segundo plano, QR público, perfil, assinatura e prévias de suporte ficam fora dessa medição.
+- A seção Pessoas mostra **Último acesso ao tenant** e **Último login**, ambos em horário de Brasília. A atividade começa a ser medida após a publicação do app. Até a primeira atividade medida, a coluna exibe **Sem acesso registrado**.
 
 ## Fase 4 — Run as somente leitura
 
-1. Adicionar **Ver como pessoa** à aba Pessoas para operadores com autorização específica de suporte. Selecionar um vínculo habilitado, informar um motivo e confirmar a operação. Criar uma sessão de suporte revogável, com validade inicial proposta de 15 minutos, ligada à sessão do operador, ao tenant e ao vínculo selecionado. [Sessões no Supabase](https://supabase.com/docs/guides/auth/sessions#access-token-jwt-claims)
-2. Abrir uma rota administrativa dedicada com uma faixa que mostre empresa, pessoa, tempo restante e **Encerrar visualização**. Começar pelo painel inicial e pela indicação da tela de entrada do papel. Reaproveitar os componentes visuais e o cálculo de permissões. Os links da prévia levam somente a telas assistidas implementadas. A prévia apresenta o estado esperado da conta alvo, inclusive um eventual bloqueio de assinatura.
-3. Validar a sessão de suporte e os direitos atuais do alvo em cada leitura. Usar consultas próprias que respeitem tenant, papel e escopo do vínculo para reproduzir o que a pessoa vê. A identidade autenticada continua sendo a do operador. A prévia usa dados somente leitura, com endpoints apartados do fluxo operacional, inclusive para ações automáticas disparadas por páginas comuns.
-4. Auditar início, leituras, encerramento, expiração ou revogação, com operador, vínculo alvo, tenant, motivo e horário. O acesso termina na expiração, no logout, na revogação ou se o alvo perder elegibilidade. Liberar para operadores autorizados após validar o painel global.
+1. Na seção Pessoas, selecione **Ver como** em um vínculo habilitado e informe o motivo. A autorização de suporte pertence ao Super Admin. Cada prévia dura 15 minutos e fica vinculada à sessão do operador, ao tenant e à pessoa selecionada. [Sessões no Supabase](https://supabase.com/docs/guides/auth/sessions#access-token-jwt-claims)
+2. `/admin/support/[id]` mostra empresa, pessoa, papel, tempo restante e **Encerrar visualização**. Ela exibe o painel inicial de manutenção ou indica a área em que a pessoa começa. Para assinatura vencida, a prévia indica o aviso de assinatura.
+3. A consulta de suporte revalida a sessão, o papel e a elegibilidade do vínculo. A consulta compartilhada do painel limita os dados à empresa e ao escopo do vínculo. A prévia é somente leitura e a identidade autenticada é a do operador.
+4. As tabelas privadas `support_preview` e `support_preview_audit` guardam o contexto, o motivo e os eventos. Revogar o operador fecha as prévias abertas. A expiração bloqueia novas leituras e é registrada quando a prévia é consultada ou encerrada.
 
 ## Critérios de aceite
 
@@ -69,4 +69,4 @@ O último login é `auth.users.last_sign_in_at` associado aos vínculos da pági
 
 ## Ordem de entrega
 
-Publicar primeiro o painel com as contagens, a lista de clientes e pessoas e o horário de último login. Ativar a medição de último acesso em seguida. Liberar o Run as de painel como entrega opcional. Qualquer suporte que precise alterar dados exige um escopo de produto separado.
+Aplicar as migrations de atividade e de prévia de suporte antes de publicar a versão do app que inclui **Último acesso ao tenant** e **Ver como**. [Atividade](../supabase/migrations/20261125124259_membership_activity.sql) · [Prévia de suporte](../supabase/migrations/20261125124346_platform_support_preview.sql)

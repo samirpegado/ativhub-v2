@@ -30,12 +30,14 @@ export function TechDashboard({
   range,
   periodBase = "/",
   preview = false,
+  showOperationalLinks = true,
 }: {
   data: MaintenanceOverview;
   firstName: string;
   range: TechRange;
   periodBase?: string;
   preview?: boolean;
+  showOperationalLinks?: boolean;
 }) {
   const router = useRouter();
   const [answering, setAnswering] = useState<WorkOrderRecord | null>(null);
@@ -155,7 +157,7 @@ export function TechDashboard({
                 {state === "over" ? `+${clock(elapsed - active.estimatedSeconds)} acima do estimado` : state === "warn" ? "Perto do limite" : "No prazo"}
               </span>
             </div>
-            {preview ? (
+            {showOperationalLinks && (preview ? (
               <Button variant="outline" className="h-12" asChild>
                 <Link href={`/work-orders/${active.id}`}>Abrir OS</Link>
               </Button>
@@ -165,13 +167,13 @@ export function TechDashboard({
               <Button type="button" variant="outline" className="h-12" disabled={pending} onClick={() => run(() => completeWorkOrder(active.id))}>Concluir OS</Button>
               <Button type="button" variant="outline" className="h-12" disabled={pending} onClick={() => run(() => toggleWorkOrderTimer(active.id))}>Registrar pausa</Button>
             </div>
-            )}
+            ))}
           </>
         ) : (
           <div className="flex w-full flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">Nenhuma OS em execução</h2>
-              <p className="mt-1 text-sm text-[#4a5a70]">Inicie a próxima obrigação para o tempo começar a contar.</p>
+              {showOperationalLinks ? <p className="mt-1 text-sm text-[#4a5a70]">Inicie a próxima obrigação para o tempo começar a contar.</p> : null}
             </div>
           </div>
         )}
@@ -192,6 +194,7 @@ export function TechDashboard({
                   tomorrow={tomorrow}
                   pending={pending}
                   preview={preview}
+                  showOperationalLinks={showOperationalLinks}
                   onStart={() => run(() => toggleWorkOrderTimer(item.id))}
                 />
               ))
@@ -271,13 +274,15 @@ export function TechDashboard({
         </div>
       </div>
 
-      <WorkOrderTasksDialog
-        order={answering}
-        onOpenChange={(next) => {
-          if (!next) setAnswering(null);
-        }}
-        onExecuted={setAnswering}
-      />
+      {showOperationalLinks && !preview ? (
+        <WorkOrderTasksDialog
+          order={answering}
+          onOpenChange={(next) => {
+            if (!next) setAnswering(null);
+          }}
+          onExecuted={setAnswering}
+        />
+      ) : null}
     </div>
   );
 }
@@ -288,6 +293,7 @@ function UpcomingRow({
   tomorrow,
   pending,
   preview = false,
+  showOperationalLinks,
   onStart,
 }: {
   item: UpcomingOrder;
@@ -295,6 +301,7 @@ function UpcomingRow({
   tomorrow: string;
   pending: boolean;
   preview?: boolean;
+  showOperationalLinks: boolean;
   onStart: () => void;
 }) {
   const day = item.dueDate ? civilDay(item.dueDate) : "";
@@ -303,6 +310,7 @@ function UpcomingRow({
     : item.dueDate
       ? `${day === today ? "Hoje" : day === tomorrow ? "Amanhã" : day} · ${civilTime(item.dueDate)}${item.estimatedSeconds > 0 ? ` · est. ${clock(item.estimatedSeconds)}` : ""}`
       : "Sem horário";
+  const linkLabel = item.running ? "Abrir" : day === tomorrow ? "Ver OS" : null;
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-[#e9edf3] py-3.5">
       <div className="min-w-[220px] flex-[1.6]">
@@ -315,17 +323,13 @@ function UpcomingRow({
       ) : (
         <span className="rounded-full bg-[#e9edf3] px-2.5 py-1 text-[13px] font-semibold">{item.running ? "Em execução" : "Pendente"}</span>
       )}
-      {item.running ? (
+      {showOperationalLinks && (linkLabel ? (
         <Button variant="outline" className="h-11 min-w-24" asChild>
-          <Link href={`/work-orders/${item.id}`}>Abrir</Link>
-        </Button>
-      ) : day === tomorrow ? (
-        <Button variant="outline" className="h-11 min-w-24" asChild>
-          <Link href={`/work-orders/${item.id}`}>Ver OS</Link>
+          <Link href={`/work-orders/${item.id}`}>{linkLabel}</Link>
         </Button>
       ) : preview ? null : (
         <Button type="button" className="h-11 min-w-24" disabled={pending} onClick={onStart}>Iniciar</Button>
-      )}
+      ))}
     </div>
   );
 }

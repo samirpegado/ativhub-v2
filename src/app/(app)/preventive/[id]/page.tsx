@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { PreventiveDetailView } from "@/components/preventive/preventive-detail";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
@@ -34,15 +35,17 @@ export default async function PreventiveDetailPage({
   }
 
   return (
-    <PreventiveDetailView
-      schedule={detail.schedule}
-      assets={detail.assets}
-      assetTotal={detail.assetTotal}
-      assetPage={pages.assets}
-      workOrders={detail.workOrders}
-      workOrderTotal={detail.workOrderTotal}
-      workOrderPage={pages.orders}
-      canEdit={canEdit}
-    />
+    <TenantActivity user={appUser}>
+      <PreventiveDetailView
+        schedule={detail.schedule}
+        assets={detail.assets}
+        assetTotal={detail.assetTotal}
+        assetPage={pages.assets}
+        workOrders={detail.workOrders}
+        workOrderTotal={detail.workOrderTotal}
+        workOrderPage={pages.orders}
+        canEdit={canEdit}
+      />
+    </TenantActivity>
   );
 }

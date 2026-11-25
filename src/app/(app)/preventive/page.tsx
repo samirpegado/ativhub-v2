@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { PreventiveView } from "@/components/preventive/preventive-view";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
@@ -28,6 +29,8 @@ export default async function PreventivePage({
   }
 
   return (
-    <PreventiveView query={query} screen={screen} canEdit={can(appUser, "preventive", "edit")} />
+    <TenantActivity user={appUser}>
+      <PreventiveView query={query} screen={screen} canEdit={can(appUser, "preventive", "edit")} />
+    </TenantActivity>
   );
 }

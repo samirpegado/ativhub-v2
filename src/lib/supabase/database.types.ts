@@ -1816,6 +1816,16 @@ export type Database = {
       current_tenant_id: { Args: never; Returns: string }
       generate_due_preventive_work_orders: { Args: never; Returns: number }
       platform_admin_status: { Args: never; Returns: boolean }
+      platform_end_support_preview: { Args: { p_preview_id: string }; Returns: string | null }
+      platform_read_support_preview: {
+        Args: { p_preview_id: string; p_range: string }
+        Returns: Json
+      }
+      platform_start_support_preview: {
+        Args: { p_tenant_id: string; p_membership_id: string; p_reason: string }
+        Returns: string | null
+      }
+      platform_support_preview_status: { Args: never; Returns: boolean }
       platform_tenant_screen: {
         Args: {
           p_tenant_id: string
@@ -1841,6 +1851,7 @@ export type Database = {
         Returns: Json
       }
       refresh_preventive_schedule: { Args: { p_id: string }; Returns: undefined }
+      record_membership_access: { Args: never; Returns: undefined }
       part_detail: { Args: { p_part_id: string }; Returns: Json }
       part_set_detail: { Args: { p_set_id: string }; Returns: Json }
       part_sets_screen: {

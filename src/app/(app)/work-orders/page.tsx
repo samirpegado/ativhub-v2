@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { WorkOrdersView } from "@/components/work-orders/work-orders-view";
 import { loadAssetPickerHit } from "@/lib/assets/picker";
 import { can } from "@/lib/auth/areas";
@@ -44,21 +45,23 @@ export default async function WorkOrdersPage({
   const lockedAsset = presetAssetId ? await loadAssetPickerHit(supabase, presetAssetId) : null;
 
   return (
-    <WorkOrdersView
-      query={query}
-      orders={screen.orders}
-      total={screen.total}
-      totalAll={screen.totalAll}
-      calendar={screen.calendar}
-      locations={screen.locations}
-      assets={screen.assets}
-      people={screen.people}
-      teams={screen.teams}
-      checklists={screen.checklists}
-      customers={screen.customers}
-      canEdit={can(appUser, "work_orders", "edit")}
-      presetAssetId={presetAssetId}
-      lockedAsset={lockedAsset}
-    />
+    <TenantActivity user={appUser}>
+      <WorkOrdersView
+        query={query}
+        orders={screen.orders}
+        total={screen.total}
+        totalAll={screen.totalAll}
+        calendar={screen.calendar}
+        locations={screen.locations}
+        assets={screen.assets}
+        people={screen.people}
+        teams={screen.teams}
+        checklists={screen.checklists}
+        customers={screen.customers}
+        canEdit={can(appUser, "work_orders", "edit")}
+        presetAssetId={presetAssetId}
+        lockedAsset={lockedAsset}
+      />
+    </TenantActivity>
   );
 }

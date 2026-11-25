@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { AssetDetailView } from "@/components/assets/asset-detail";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { loadAssetPickerHit } from "@/lib/assets/picker";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
@@ -52,21 +53,23 @@ export default async function AssetDetailPage({ params, searchParams }: PageProp
     : [null, null, [], [], { data: [] }];
 
   return (
-    <AssetDetailView
-      detail={detail}
-      history={history}
-      locations={locations}
-      categories={categories}
-      canManageCategories={appUser.isAdmin}
-      canEdit={canEdit}
-      canCreateOrder={canCreateOrder}
-      canCreateRequest={canCreateRequest}
-      tenantId={tenantId}
-      lockedAsset={lockedAsset}
-      people={people?.people ?? []}
-      teams={teams}
-      checklists={checklists}
-      customers={(customers.data ?? []).flatMap((row) => (row.name ? [{ id: row.id, name: row.name, email: row.email }] : []))}
-    />
+    <TenantActivity user={appUser}>
+      <AssetDetailView
+        detail={detail}
+        history={history}
+        locations={locations}
+        categories={categories}
+        canManageCategories={appUser.isAdmin}
+        canEdit={canEdit}
+        canCreateOrder={canCreateOrder}
+        canCreateRequest={canCreateRequest}
+        tenantId={tenantId}
+        lockedAsset={lockedAsset}
+        people={people?.people ?? []}
+        teams={teams}
+        checklists={checklists}
+        customers={(customers.data ?? []).flatMap((row) => (row.name ? [{ id: row.id, name: row.name, email: row.email }] : []))}
+      />
+    </TenantActivity>
   );
 }

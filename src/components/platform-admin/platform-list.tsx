@@ -9,12 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LIST_PAGE_SIZE } from "@/lib/lists/page-size";
-import type { PlatformTenantTab } from "@/lib/platform-admin/queries";
 import { platformListHref } from "./list-href";
 
 export function PlatformList({
   path,
-  tab,
   query,
   total,
   searchLabel,
@@ -22,7 +20,6 @@ export function PlatformList({
   children,
 }: {
   path: string;
-  tab?: PlatformTenantTab;
   query: { search: string; page: number };
   total: number;
   searchLabel: string;
@@ -43,7 +40,7 @@ export function PlatformList({
     const trimmed = nextSearch.trim();
     if (trimmed === query.search && page === query.page) return;
     startNavigation(() => {
-      router.push(platformListHref(path, { tab, search: trimmed, page }), { scroll: false });
+      router.push(platformListHref(path, { search: trimmed, page }), { scroll: false });
     });
   }
 
@@ -59,7 +56,6 @@ export function PlatformList({
         }}
         className="flex flex-wrap items-center gap-2 border-b px-4 py-3"
       >
-        {tab === "people" ? <input type="hidden" name="tab" value={tab} /> : null}
         <div className="relative min-w-40 flex-1 sm:max-w-sm">
           <Search aria-hidden className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { RequestDetailView } from "@/components/requests/request-detail";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
@@ -22,11 +23,13 @@ export default async function RequestDetailPage({
   if (appUser.isAdmin) await markRequestRead(id);
 
   return (
-    <RequestDetailView
-      request={request}
-      tenantId={tenantId}
-      canEdit={can(appUser, "requests", "edit")}
-      isAdmin={appUser.isAdmin}
-    />
+    <TenantActivity user={appUser}>
+      <RequestDetailView
+        request={request}
+        tenantId={tenantId}
+        canEdit={can(appUser, "requests", "edit")}
+        isAdmin={appUser.isAdmin}
+      />
+    </TenantActivity>
   );
 }

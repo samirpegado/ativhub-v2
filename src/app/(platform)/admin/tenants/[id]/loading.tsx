@@ -19,7 +19,7 @@ export default function PlatformTenantLoading() {
         ))}
       </div>
       <ListPageSkeleton
-        toolbar={<Shimmer className="h-9 w-40" />}
+        toolbar={<Shimmer className="h-6 w-24" />}
         filters={<Shimmer className="h-9 w-full max-w-sm" />}
       />
     </div>

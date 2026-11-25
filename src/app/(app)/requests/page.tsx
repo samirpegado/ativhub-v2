@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { RequestsView } from "@/components/requests/requests-view";
 import { loadAssetPickerHit } from "@/lib/assets/picker";
 import { can } from "@/lib/auth/areas";
@@ -26,16 +27,18 @@ export default async function RequestsPage({
   if (query.page > pageCount) redirect(requestHref({ ...query, page: pageCount }));
 
   return (
-    <RequestsView
-      query={query}
-      canEdit={can(appUser, "requests", "edit")}
-      isAdmin={appUser.isAdmin}
-      tenantId={tenantId}
-      items={screen.items}
-      total={screen.total}
-      totalAll={screen.totalAll}
-      presetAssetId={presetAssetId}
-      lockedAsset={lockedAsset}
-    />
+    <TenantActivity user={appUser}>
+      <RequestsView
+        query={query}
+        canEdit={can(appUser, "requests", "edit")}
+        isAdmin={appUser.isAdmin}
+        tenantId={tenantId}
+        items={screen.items}
+        total={screen.total}
+        totalAll={screen.totalAll}
+        presetAssetId={presetAssetId}
+        lockedAsset={lockedAsset}
+      />
+    </TenantActivity>
   );
 }

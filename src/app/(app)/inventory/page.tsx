@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { InventoryView } from "@/components/inventory/inventory-view";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
 import {
@@ -31,14 +32,16 @@ export default async function InventoryPage({
       redirect(inventoryHref({ ...query, page: pageCount }));
     }
     return (
-      <InventoryView
-        query={query}
-        canEdit={canEdit}
-        sets={screen.sets}
-        setTotal={screen.total}
-        setTotalAll={screen.totalAll}
-        partOptions={screen.parts}
-      />
+      <TenantActivity user={appUser}>
+        <InventoryView
+          query={query}
+          canEdit={canEdit}
+          sets={screen.sets}
+          setTotal={screen.total}
+          setTotalAll={screen.totalAll}
+          partOptions={screen.parts}
+        />
+      </TenantActivity>
     );
   }
 
@@ -49,12 +52,14 @@ export default async function InventoryPage({
   }
 
   return (
-    <InventoryView
-      query={query}
-      canEdit={canEdit}
-      parts={screen.parts}
-      total={screen.total}
-      totalAll={screen.totalAll}
-    />
+    <TenantActivity user={appUser}>
+      <InventoryView
+        query={query}
+        canEdit={canEdit}
+        parts={screen.parts}
+        total={screen.total}
+        totalAll={screen.totalAll}
+      />
+    </TenantActivity>
   );
 }

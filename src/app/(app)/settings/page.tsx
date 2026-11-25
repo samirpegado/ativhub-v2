@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { SettingsView } from "@/components/settings/settings-view";
 import { requireAdminPage } from "@/lib/auth/permissions";
 import { areasFromPermissions, type AreaAccess } from "@/lib/auth/areas";
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SettingsPage() {
-  const { supabase } = await requireAdminPage();
+  const { supabase, appUser } = await requireAdminPage();
   const [{ data, error }, checklists, categories] = await Promise.all([
     supabase.from("role").select("id, code, name, description, permissions").order("name"),
     listChecklists(),
@@ -31,5 +32,9 @@ export default async function SettingsPage() {
       areas: areasFromPermissions(role.code, role.permissions, role.code === "ADMIN") satisfies AreaAccess,
     }));
 
-  return <SettingsView roles={roles} checklists={checklists} categories={categories} />;
+  return (
+    <TenantActivity user={appUser}>
+      <SettingsView roles={roles} checklists={checklists} categories={categories} />
+    </TenantActivity>
+  );
 }

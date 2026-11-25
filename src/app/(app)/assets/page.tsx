@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AssetsView } from "@/components/assets/assets-view";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
 import { assetListHref, assetPageCount, parseAssetListQuery } from "@/lib/assets/list-params";
@@ -28,16 +29,18 @@ export default async function AssetsPage({
   if (query.page > pageCount) redirect(assetListHref({ ...query, page: pageCount }));
 
   return (
-    <AssetsView
-      query={query}
-      assets={screen.items}
-      total={screen.total}
-      totalAll={screen.totalAll}
-      locations={locations}
-      categories={categories}
-      canManageCategories={appUser.isAdmin}
-      canEdit={can(appUser, "assets", "edit")}
-      canExport={appUser.roleCode !== "TECHNICIAN" || appUser.isAdmin}
-    />
+    <TenantActivity user={appUser}>
+      <AssetsView
+        query={query}
+        assets={screen.items}
+        total={screen.total}
+        totalAll={screen.totalAll}
+        locations={locations}
+        categories={categories}
+        canManageCategories={appUser.isAdmin}
+        canEdit={can(appUser, "assets", "edit")}
+        canExport={appUser.roleCode !== "TECHNICIAN" || appUser.isAdmin}
+      />
+    </TenantActivity>
   );
 }

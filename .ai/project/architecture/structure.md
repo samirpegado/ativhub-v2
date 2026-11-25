@@ -73,9 +73,18 @@ Describe the real structural organization of the repository and the architectura
 - `/admin/tenants` é o painel de Super Admin da plataforma. O grupo
   `(platform)` tem layout próprio e usa `src/lib/platform-admin/` para validar
   o operador e consultar os dados. A lista mostra totais por empresa e o detalhe
-  lista clientes e pessoas, com o último login do Supabase Auth em Brasília.
+  abre em Pessoas, com o último uso do tenant e o último login do Supabase Auth
+  em horário de Brasília.
   A conta interna pode operar sem vínculo com empresa. A assinatura do tenant
   continua sendo verificada nas rotas operacionais.
+- `TenantActivity` registra a abertura de páginas operacionais renderizadas e
+  interações em primeiro plano. `record_membership_access` grava o horário do
+  banco por vínculo com intervalo mínimo de cinco minutos. QR público, perfil,
+  assinatura e prévias de suporte ficam fora da medição.
+- A seção Pessoas oferece **Ver como** para abrir uma prévia de suporte de 15
+  minutos. `/admin/support/[id]` usa o papel e a assinatura atuais da pessoa.
+  Os painéis reutilizam a consulta de manutenção com escopo explícito de
+  empresa e apresentam as informações sem controles operacionais.
 - `/profile` é a conta do usuário: foto, atividade de OT e dados pessoais.
   A foto é reduzida no navegador para no máximo 256×256 em JPEG (qualidade 0,72) antes do Storage.
   Cargo (`job_title`) só muda com papel ADMIN.

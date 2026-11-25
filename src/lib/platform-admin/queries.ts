@@ -16,14 +16,7 @@ export type PlatformTenantSummary = {
   enabledPeopleCount: number;
 };
 
-export type PlatformCustomer = {
-  id: string;
-  name: string;
-  isInternal: boolean;
-  customerType: string | null;
-};
-
-export type PlatformPerson = {
+type PlatformPerson = {
   id: string;
   firstName: string;
   lastName: string;
@@ -31,15 +24,11 @@ export type PlatformPerson = {
   roleName: string | null;
   enabled: boolean;
   lastSignInAt: string | null;
+  lastAccessAt: string | null;
 };
 
-export type PlatformTenantTab = "customers" | "people";
 type ListParams = { search: string; page: number };
 type Screen<T> = { total: number; rows: T[] };
-type PlatformTenantScreen = { tenant: PlatformTenantSummary } & (
-  | ({ tab: "customers" } & Screen<PlatformCustomer>)
-  | ({ tab: "people" } & Screen<PlatformPerson>)
-);
 
 const MAX_SEARCH_LENGTH = 120;
 const MAX_PAGE = Math.floor(2_147_483_647 / LIST_PAGE_SIZE) + 1;
@@ -78,16 +67,13 @@ export async function loadPlatformTenants(params: ListParams) {
   return readScreen<PlatformTenantSummary>(data);
 }
 
-export async function loadPlatformTenant({ tenantId, tab, ...params }: ListParams & {
-  tenantId: string;
-  tab: PlatformTenantTab;
-}): Promise<PlatformTenantScreen | null> {
+export async function loadPlatformPeople({ tenantId, ...params }: ListParams & { tenantId: string }) {
   const { supabase } = await requirePlatformOperator();
   if (!UUID_PATTERN.test(tenantId)) return null;
 
   const { data, error } = await supabase.rpc("platform_tenant_screen", {
     p_tenant_id: tenantId,
-    p_tab: tab,
+    p_tab: "people",
     ...rpcListArgs(params),
   });
   if (error?.code === "42501") notFound();
@@ -99,7 +85,5 @@ export async function loadPlatformTenant({ tenantId, tab, ...params }: ListParam
   }
 
   const tenant = data.tenant as PlatformTenantSummary;
-  return tab === "people"
-    ? { tab, tenant, ...readScreen<PlatformPerson>(data) }
-    : { tab, tenant, ...readScreen<PlatformCustomer>(data) };
+  return { tenant, ...readScreen<PlatformPerson>(data) };
 }

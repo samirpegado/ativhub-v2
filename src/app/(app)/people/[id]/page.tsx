@@ -4,25 +4,13 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
 import { TechDashboard } from "@/components/dashboard/tech-dashboard";
-import { AREA_LABELS, type MenuArea } from "@/lib/auth/areas";
-import { firstAllowedPath } from "@/lib/auth/permissions";
+import { firstAllowedPageLabel } from "@/lib/auth/permissions";
 import { loadMaintenanceOverview } from "@/lib/dashboard/load";
 import { parseTechRange } from "@/lib/dashboard/overview";
 import { loadPersonDashboard } from "@/lib/people/queries";
 
 export const metadata: Metadata = {
   title: "Painel da pessoa",
-};
-
-const PATH_AREA: Record<string, MenuArea> = {
-  "/": "work_orders",
-  "/preventive": "preventive",
-  "/requests": "requests",
-  "/assets": "assets",
-  "/locations": "locations",
-  "/inventory": "inventory",
-  "/customers": "parties",
-  "/people": "people",
 };
 
 export default async function PersonDashboardPage({
@@ -61,15 +49,9 @@ export default async function PersonDashboardPage({
         )
       ) : (
         <p className="text-sm text-[#14233a]">
-          Esta pessoa não abre o painel de manutenção. Ao entrar, o acesso começa em {landingLabel(person)}.
+          Esta pessoa não abre o painel de manutenção. Ao entrar, o acesso começa em {firstAllowedPageLabel(person)}.
         </p>
       )}
     </div>
   );
-}
-
-function landingLabel(person: NonNullable<Awaited<ReturnType<typeof loadPersonDashboard>>>) {
-  const href = firstAllowedPath(person);
-  const area = PATH_AREA[href];
-  return area ? AREA_LABELS[area] : "Minha conta";
 }

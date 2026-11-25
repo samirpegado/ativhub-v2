@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { WorkOrderDetail } from "@/components/work-orders/work-order-detail";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
@@ -28,13 +29,15 @@ export default async function WorkOrderDetailPage({
   });
 
   return (
-    <WorkOrderDetail
-      order={detail.order}
-      activity={detail.activity}
-      tenantId={tenantId}
-      canEdit={canEdit}
-      canOperate={canOperate}
-      editor={editor}
-    />
+    <TenantActivity user={appUser}>
+      <WorkOrderDetail
+        order={detail.order}
+        activity={detail.activity}
+        tenantId={tenantId}
+        canEdit={canEdit}
+        canOperate={canOperate}
+        editor={editor}
+      />
+    </TenantActivity>
   );
 }

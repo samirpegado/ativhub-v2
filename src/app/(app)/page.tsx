@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
 import { TechDashboard } from "@/components/dashboard/tech-dashboard";
+import { TenantActivity } from "@/components/layout/tenant-activity";
 import { can } from "@/lib/auth/areas";
 import { requireArea } from "@/lib/auth/permissions";
 import { loadMaintenanceOverview } from "@/lib/dashboard/load";
@@ -20,9 +21,13 @@ export default async function HomePage({
   const range = parseTechRange((await searchParams).range);
   const overview = await loadMaintenanceOverview(canEdit ? null : appUser.membershipId, range);
 
-  if (!canEdit) {
-    return <TechDashboard data={overview} firstName={appUser.firstName} range={range} />;
-  }
-
-  return <AdminDashboard data={overview} range={range} />;
+  return (
+    <TenantActivity user={appUser}>
+      {canEdit ? (
+        <AdminDashboard data={overview} range={range} />
+      ) : (
+        <TechDashboard data={overview} firstName={appUser.firstName} range={range} />
+      )}
+    </TenantActivity>
+  );
 }
